@@ -1,0 +1,11 @@
+bun = "1.3.14"
+
+terraform = "1.15.7"
+
+[plugins]
+terraform = "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/terraform.toml"
+
+[settings]
+auto-clean = true
+auto-install = true
+detect-strategy = "only-prototools"

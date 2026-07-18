@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Topo &mdash; Route Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Login gate -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="brand">
+      <span class="brand-mark">&#9670;</span>
+      <span class="brand-name">TOPO</span>
+    </div>
+    <p class="login-sub">A shared route log. Members only.</p>
+    <form id="login-form">
+      <label>Your name<input type="text" id="login-name" required maxlength="40" placeholder="Alex"></label>
+      <label>Passcode<input type="password" id="login-passcode" required placeholder="&bull;&bull;&bull;&bull;&bull;&bull;"></label>
+      <button type="submit">Enter</button>
+      <p id="login-error" class="error-text"></p>
+    </form>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">&#9670;</span>
+      <span class="brand-name">TOPO</span>
+    </div>
+    <div class="topbar-right">
+      <span id="who">&nbsp;</span>
+      <button id="logout-btn" class="ghost-btn">Log out</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="filters">
+      <h2>Search</h2>
+      <input type="text" id="f-q" placeholder="Route name or description&hellip;">
+
+      <label class="field-label">Crag</label>
+      <input type="text" id="f-crag" placeholder="Any crag">
+
+      <label class="field-label">Type</label>
+      <select id="f-type">
+        <option value="">Any</option>
+        <option value="sport">Sport</option>
+        <option value="trad">Trad</option>
+        <option value="boulder">Boulder</option>
+        <option value="toprope">Top rope</option>
+        <option value="alpine">Alpine</option>
+      </select>
+
+      <label class="field-label">Tag</label>
+      <input type="text" id="f-tag" placeholder="e.g. crimpy, classic">
+
+      <button id="add-route-btn" class="primary-btn full-width" style="margin-top: 24px;">+ Add route</button>
+    </aside>
+
+    <section class="routes-panel">
+      <div class="routes-header">
+        <h1 id="results-count">Routes</h1>
+      </div>
+      <div id="routes-list" class="routes-list"></div>
+      <p id="empty-state" class="empty-state hidden">No routes match yet. Add the first one, or widen your search.</p>
+    </section>
+  </main>
+</div>
+
+<!-- Add/Edit route modal -->
+<div id="route-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h2 id="modal-title">Add a route</h2>
+    <form id="route-form">
+      <input type="hidden" id="route-id">
+      <div class="grid-2">
+        <label>Name<input type="text" id="r-name" required></label>
+        <label>Crag / Area<input type="text" id="r-crag" required></label>
+      </div>
+      <div class="grid-3">
+        <label>Grade<input type="text" id="r-grade" required placeholder="5.10a, V4, E2 5b&hellip;"></label>
+        <label>System
+          <select id="r-grade-system">
+            <option value="YDS">YDS (5.x)</option>
+            <option value="V">V-scale</option>
+            <option value="French">French</option>
+            <option value="UK">UK Trad</option>
+            <option value="UIAA">UIAA</option>
+          </select>
+        </label>
+        <label>Type
+          <select id="r-type">
+            <option value="sport">Sport</option>
+            <option value="trad">Trad</option>
+            <option value="boulder">Boulder</option>
+            <option value="toprope">Top rope</option>
+            <option value="alpine">Alpine</option>
+          </select>
+        </label>
+      </div>
+      <label>Description<textarea id="r-description" rows="3" placeholder="Beta, character of the route&hellip;"></textarea></label>
+      <div class="grid-2">
+        <label>Tags <span class="hint">(comma separated)</span><input type="text" id="r-tags" placeholder="crimpy, classic, pumpy"></label>
+        <label>First ascent<input type="text" id="r-fa" placeholder="Name, year"></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" id="modal-cancel" class="ghost-btn">Cancel</button>
+        <button type="submit" class="primary-btn">Save route</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Route detail / tick log modal -->
+<div id="detail-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="detail-head">
+      <div>
+        <h2 id="d-name"></h2>
+        <p id="d-meta" class="detail-meta"></p>
+      </div>
+      <div class="detail-actions">
+        <button id="d-edit" class="ghost-btn small">Edit</button>
+        <button id="d-delete" class="ghost-btn small danger">Delete</button>
+      </div>
+    </div>
+    <p id="d-description" class="detail-desc"></p>
+    <p id="d-fa" class="detail-fa"></p>
+    <div id="d-tags" class="tag-row"></div>
+
+    <hr class="divider">
+
+    <h3>Log an ascent</h3>
+    <form id="tick-form" class="tick-form">
+      <input type="hidden" id="t-route-id">
+      <div class="grid-3">
+        <label>Date<input type="date" id="t-date" required></label>
+        <label>Rating <span class="hint">(1&ndash;5)</span><input type="number" id="t-rating" min="1" max="5"></label>
+        <button type="submit" class="primary-btn">Log it</button>
+      </div>
+      <label>Notes<input type="text" id="t-notes" placeholder="Sent 2nd go, crux was the crimp move&hellip;"></label>
+    </form>
+
+    <h3>Ascent log</h3>
+    <div id="ticks-list" class="ticks-list"></div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+node_modules/
+.env
+climbing.db
+climbing.db-*
+.idea
+.DS_Store
