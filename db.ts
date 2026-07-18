@@ -1,7 +1,7 @@
-const { Database } = require('bun:sqlite');
-const path = require('path');
+import { Database } from 'bun:sqlite';
+import path from 'path';
 
-const db = new Database(path.join(__dirname, 'climbing.db'));
+const db = new Database(path.join(import.meta.dir, 'climbing.db'));
 db.exec('PRAGMA journal_mode = WAL');
 
 db.exec(`
@@ -34,4 +34,4 @@ CREATE INDEX IF NOT EXISTS idx_routes_crag ON routes(crag);
 CREATE INDEX IF NOT EXISTS idx_ticks_route ON ticks(route_id);
 `);
 
-module.exports = db;
+export default db;
