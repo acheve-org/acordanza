@@ -2,19 +2,50 @@ locals {
   db_connection_string = "Host=${azurerm_postgresql_flexible_server.main.fqdn};Port=5432;Database=${azurerm_postgresql_flexible_server_database.app.name};Username=${var.postgres_admin_username};Password=${var.postgres_admin_password};Ssl Mode=Require;Trust Server Certificate=true"
 }
 
+# A user-assigned identity (rather than the container app's own
+# system-assigned one) so AcrPull can be granted *before* the container app
+# exists. With a system-assigned identity, the principal ID only exists once
+# the container app resource is created, so the role assignment can only
+# happen afterwards — but Azure validates the registry credential as part of
+# the very first revision's creation, so that first apply always times out
+# ("Operation expired") waiting on a role assignment that hasn't happened yet.
+# See https://github.com/hashicorp/terraform-provider-azurerm/issues/21242.
+resource "azurerm_user_assigned_identity" "container_app" {
+  name                = "id-${local.name_prefix}"
+  resource_group_name = data.azurerm_resource_group.main.name
+  location            = data.azurerm_resource_group.main.location
+}
+
+resource "azurerm_role_assignment" "acr_pull" {
+  scope                = azurerm_container_registry.main.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.container_app.principal_id
+}
+
+# Azure RBAC assignments can take a short while to propagate; without this,
+# the container app can still hit the same race the role assignment was
+# meant to fix.
+resource "time_sleep" "acr_pull_propagation" {
+  depends_on      = [azurerm_role_assignment.acr_pull]
+  create_duration = "30s"
+}
+
 resource "azurerm_container_app" "main" {
   name                         = "ca-${local.name_prefix}"
   resource_group_name          = data.azurerm_resource_group.main.name
   container_app_environment_id = azurerm_container_app_environment.main.id
   revision_mode                = "Single"
 
+  depends_on = [time_sleep.acr_pull_propagation]
+
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.container_app.id]
   }
 
   registry {
     server   = azurerm_container_registry.main.login_server
-    identity = "System"
+    identity = azurerm_user_assigned_identity.container_app.id
   }
 
   secret {
@@ -95,10 +126,4 @@ resource "azurerm_container_app" "main" {
   lifecycle {
     ignore_changes = [template[0].container[0].image]
   }
-}
-
-resource "azurerm_role_assignment" "acr_pull" {
-  scope                = azurerm_container_registry.main.id
-  role_definition_name = "AcrPull"
-  principal_id         = azurerm_container_app.main.identity[0].principal_id
 }
