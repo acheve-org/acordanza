@@ -1,4 +1,4 @@
-# Topo — a shared climbing route log
+# Acordanza — a shared climbing route log
 
 A small private web app for logging and searching climbing routes with a few friends.
 ASP.NET Core (.NET 10) Web API + PostgreSQL backend, React + Vite frontend.
