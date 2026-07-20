@@ -37,9 +37,9 @@ jobs:
       run:
         working-directory: backend/Acordanza.Api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -73,7 +73,7 @@ jobs:
       container_app_name: ${{ steps.tf_outputs.outputs.container_app_name }}
       resource_group_name: ${{ steps.tf_outputs.outputs.resource_group_name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read Terraform version from .prototools
         id: tool_versions
@@ -132,7 +132,7 @@ jobs:
       id-token: write # required for OIDC login to Azure
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Azure login (OIDC)
         uses: azure/login@v3

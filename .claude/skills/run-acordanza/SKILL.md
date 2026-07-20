@@ -73,13 +73,13 @@ Start both dev servers in the background and wait for each to answer:
 export PATH="/usr/local/share/dotnet:$PATH"
 cd backend/Acordanza.Api
 nohup dotnet run > /tmp/acordanza-api.log 2>&1 & disown
-timeout 40 bash -c 'until curl -sf -o /dev/null -w "%{http_code}" http://localhost:5073/api/auth/me | grep -q 401; do sleep 1; done'
+i=0; while [ $i -lt 40 ]; do curl -sf -o /dev/null -w "%{http_code}" http://localhost:5073/api/auth/me 2>/dev/null | grep -q 401 && break; sleep 1; i=$((i+1)); done
 ```
 
 ```bash
 cd frontend
 nohup bun dev --port 5173 > /tmp/acordanza-frontend.log 2>&1 & disown
-timeout 30 bash -c 'until curl -sf http://localhost:5173 >/dev/null; do sleep 1; done'
+i=0; while [ $i -lt 30 ]; do curl -sf http://localhost:5173 >/dev/null 2>&1 && break; sleep 1; i=$((i+1)); done
 ```
 
 Then drive it:
@@ -135,6 +135,10 @@ verification right now.
   breaks `dotnet ef` with "Could not execute because the specified
   command or file was not found" while plain `dotnet run`/`build`
   still work fine.
+- **No `timeout`/`gtimeout` binary on this Mac** (no coreutils
+  installed) — the wait-for-server steps use a manual `while` loop with
+  a counter instead of `timeout 40 bash -c '...'`; don't reintroduce
+  `timeout`, it'll fail with `command not found: timeout`.
 - **`$!` after `nohup dotnet run &`** is fine to capture, but killing by
   port (`lsof -ti:PORT -sTCP:LISTEN | xargs kill`) is more reliable than
   tracking the PID, especially across separate background Bash calls.
@@ -155,6 +159,9 @@ verification right now.
   triggers a native `confirm()`. Register `page.once('dialog', d =>
   d.accept())` *before* the click that triggers it — Playwright
   auto-dismisses dialogs with no handler attached in time.
+- **Vite prints a Node version warning** on this machine (`Node.js
+  22.6.0`, Vite wants `20.19+`/`22.12+`) — it's noise, the dev server
+  still starts and serves fine; don't treat it as a failure signal.
 
 ## Troubleshooting
 
