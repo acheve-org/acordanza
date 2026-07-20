@@ -1,58 +1,62 @@
 # Topo — a shared climbing route log
 
 A small private web app for logging and searching climbing routes with a few friends.
-Node.js + Express + SQLite backend, plain HTML/CSS/JS frontend. No build step.
+ASP.NET Core (.NET 10) Web API + PostgreSQL backend, React + Vite frontend.
 
 ## Features
 - Add routes: name, crag, grade (any grading system), type (sport/trad/boulder/etc.), description, tags, first ascent
 - Search & filter by name/description, crag, type, and tag
 - Log ascents ("ticks") per route: who, when, rating, notes
-- Single shared passcode login — everyone who knows the code can see and edit everything
-- Data lives in a local SQLite file (`climbing.db`) — no external database needed
+- Real user accounts (JWT auth) — everyone who has an account can see and edit everything
+- Accounts are admin-provisioned; there is no public sign-up
+
+## Architecture
+```
+backend/Acordanza.Api/   — ASP.NET Core Web API: EF Core + Npgsql, ASP.NET Core Identity, JWT auth
+frontend/                — React + TypeScript, built with Vite, package-managed with Bun
+docker-compose.yml       — local PostgreSQL container
+```
 
 ## Setup
 
-1. Install [Bun](https://bun.sh) (v1.3+).
-2. In this folder, install dependencies:
-   ```
-   bun install
-   ```
-3. Copy the example environment file and edit it:
-   ```
-   cp .env.example .env
-   ```
-   Then open `.env` and set:
-   - `PASSCODE` — the shared password your friends will use to log in
-   - `SESSION_SECRET` — any random string (used to sign login cookies)
-   - `PORT` — defaults to 3000
+### 1. Prerequisites
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [Bun](https://bun.sh) (v1.3+)
+- [Docker](https://www.docker.com/) (for local Postgres)
 
-4. Start the server:
-   ```
-   bun start
-   ```
-   or, for auto-reload during development:
-   ```
-   bun run dev
-   ```
-5. Open `http://localhost:3000` in your browser.
+### 2. Start Postgres
+```
+docker compose up -d
+```
+Uses the defaults in `.env.example` (copy to `.env` to override).
 
-The first time you open it, you'll be asked for your name and the passcode. Your name is attached to routes you add and ascents you log.
+### 3. Backend
+```
+cd backend/Acordanza.Api
+dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)"   # first time only
+dotnet ef database update                                        # applies migrations
+dotnet run
+```
+The API listens on `http://localhost:5073` (see `Properties/launchSettings.json`).
+
+Accounts are created via a CLI command (no public registration endpoint):
+```
+dotnet run -- create-user <username> <password>
+```
+
+### 4. Frontend
+```
+cd frontend
+bun install
+cp .env.example .env   # VITE_API_URL, defaults to http://localhost:5073/api
+bun dev
+```
+Open `http://localhost:5173` in your browser and log in with an account created above.
 
 ## Deploying so friends can use it remotely
-
-This app runs anywhere Node.js runs. Easiest free/cheap options:
-- **Railway** or **Render**: connect this folder as a GitHub repo, set the same environment variables in their dashboard, deploy. Note: on most platforms the filesystem resets on redeploy, so for anything beyond casual use, mount a persistent volume for `climbing.db` (both Railway and Render support this) — otherwise your data will vanish on the next deploy.
-- **A spare Raspberry Pi / home server**: just run `node server.js` there and use a tool like [Tailscale](https://tailscale.com) to share access with friends without exposing it to the public internet.
-
-## Project structure
-```
-server.js       — Express app: auth, routes API, ticks API
-db.js           — SQLite schema + connection
-public/
-  index.html    — page structure
-  style.css     — styling
-  app.js        — frontend logic (fetch calls, rendering, modals)
-```
+- Backend: any host that runs .NET 10 + Postgres (Railway, Render, Fly.io, a VPS). Set `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, and `Cors:AllowedOrigins` via environment variables.
+- Frontend: build with `bun run build` (outputs to `frontend/dist`) and serve as a static site (Netlify, Vercel, Cloudflare Pages, or behind the same reverse proxy as the API). Set `VITE_API_URL` to the deployed API's URL at build time.
+- A spare Raspberry Pi / home server also works — run both processes there and use [Tailscale](https://tailscale.com) to share access without exposing it to the public internet.
 
 ## Extending it
 Some natural next steps if you want to keep building:

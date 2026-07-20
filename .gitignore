@@ -1,6 +1,17 @@
-node_modules/
+# .NET
+backend/**/bin/
+backend/**/obj/
+*.user
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Env
 .env
-climbing.db
-climbing.db-*
+frontend/.env
+backend/**/.env
+
+# Misc
 .idea
 .DS_Store
