@@ -36,5 +36,5 @@ Two independent processes talking over a JSON REST API (`VITE_API_URL`, default 
 
 ## Cross-cutting notes
 
-- Deploying: backend needs any .NET 10 + Postgres host with `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, `Cors:AllowedOrigins` set via environment variables; frontend is a static build (`bun run build` → `frontend/dist`) with `VITE_API_URL` baked in at build time. See root `README.md` for details.
+- Deploying: backend needs any .NET 10 + Postgres host with `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, `Cors:AllowedOrigins` set via environment variables; frontend is a static build (`bun run build` → `frontend/dist`) with `VITE_API_URL` baked in at build time. See root `README.md` for details. `infra/` holds a Terraform-managed Azure Container Apps deployment plus the GitHub Actions pipeline (`.github/workflows/backend-ci-cd.yml`) that builds, tests, and deploys the backend on push to `main` — see `infra/README.md`.
 - No test suite exists yet in either project.

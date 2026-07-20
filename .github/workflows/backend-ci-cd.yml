@@ -1,0 +1,159 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "infra/terraform/**"
+      - ".github/workflows/backend-ci-cd.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "infra/terraform/**"
+      - ".github/workflows/backend-ci-cd.yml"
+  workflow_dispatch: {}
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  TF_STATE_RESOURCE_GROUP: rg-acordanza-tfstate
+  TF_STATE_STORAGE_ACCOUNT: stacordanzatfstate
+  TF_STATE_CONTAINER: tfstate
+  TF_STATE_KEY: acordanza.tfstate
+  TF_VAR_postgres_admin_password: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+  TF_VAR_jwt_key: ${{ secrets.JWT_KEY }}
+  TF_VAR_cors_allowed_origins: ${{ vars.CORS_ALLOWED_ORIGINS }} # JSON array string, e.g. ["https://acordanza.example.com"]
+  ACR_IMAGE_NAME: acordanza-api
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/Acordanza.Api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        run: dotnet restore Acordanza.Api.csproj
+
+      - name: Build
+        run: dotnet build Acordanza.Api.csproj --no-restore -c Release
+
+      - name: Test
+        run: |
+          if find .. -iname '*.Tests.csproj' | grep -q .; then
+            dotnet test --no-build -c Release
+          else
+            echo "No test projects yet — skipping."
+          fi
+
+  terraform:
+    name: Terraform plan/apply
+    needs: build-test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    permissions:
+      id-token: write # required for OIDC login to Azure
+      contents: read
+    outputs:
+      acr_name: ${{ steps.tf_outputs.outputs.acr_name }}
+      acr_login_server: ${{ steps.tf_outputs.outputs.acr_login_server }}
+      container_app_name: ${{ steps.tf_outputs.outputs.container_app_name }}
+      resource_group_name: ${{ steps.tf_outputs.outputs.resource_group_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read Terraform version from .prototools
+        id: tool_versions
+        working-directory: ${{ github.workspace }}
+        run: |
+          version=$(awk -F'"' '/^\[/{exit} /^terraform[[:space:]]*=/{print $2; exit}' .prototools)
+          if [ -z "$version" ]; then
+            echo "Could not find a top-level terraform version in .prototools" >&2
+            exit 1
+          fi
+          echo "terraform_version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+          terraform_version: ${{ steps.tool_versions.outputs.terraform_version }}
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${TF_STATE_RESOURCE_GROUP}" \
+            -backend-config="storage_account_name=${TF_STATE_STORAGE_ACCOUNT}" \
+            -backend-config="container_name=${TF_STATE_CONTAINER}" \
+            -backend-config="key=${TF_STATE_KEY}"
+
+      - name: Terraform plan
+        run: terraform plan -input=false -out=tfplan
+
+      # Only apply on main — PRs get a plan only, no infra changes.
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Read Terraform outputs
+        id: tf_outputs
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          echo "acr_name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
+          echo "acr_login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
+          echo "container_app_name=$(terraform output -raw container_app_name)" >> "$GITHUB_OUTPUT"
+          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> "$GITHUB_OUTPUT"
+
+  build-and-deploy:
+    name: Build image & deploy
+    needs: terraform
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # required for OIDC login to Azure
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR
+        run: az acr login --name "${{ needs.terraform.outputs.acr_name }}"
+
+      - name: Build and push image
+        env:
+          IMAGE: ${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME }}:${{ github.sha }}
+        run: |
+          docker build -t "$IMAGE" -f backend/Acordanza.Api/Dockerfile backend/Acordanza.Api
+          docker push "$IMAGE"
+
+      - name: Deploy new image to Container App
+        run: |
+          az containerapp update \
+            --name "${{ needs.terraform.outputs.container_app_name }}" \
+            --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
+            --image "${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME }}:${{ github.sha }}"

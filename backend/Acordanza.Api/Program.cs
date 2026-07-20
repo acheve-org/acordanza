@@ -3,6 +3,7 @@ using Acordanza.Api.Data;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -57,6 +58,18 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
+// The container is never reached directly from the internet — only Azure
+// Container Apps' own edge can route to it — so it's safe to trust the
+// X-Forwarded-* headers it sets regardless of the (dynamic, unknown)
+// internal proxy IP. Without this, UseHttpsRedirection below sees every
+// request as plain HTTP and redirect-loops behind the TLS-terminating ingress.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // --- Admin CLI: `dotnet run -- create-user <username> <password>` creates an account. ---
 // Registration is intentionally not exposed over HTTP; accounts are admin-provisioned.
 if (args.Length > 0 && args[0] == "create-user")
@@ -99,6 +112,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 app.UseCors("Frontend");
