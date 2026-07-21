@@ -1,7 +1,7 @@
 FROM oven/bun:1.3.14 AS build
 WORKDIR /src
 
-COPY package.json bun.lock .
+COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY . .
@@ -16,3 +16,7 @@ FROM nginxinc/nginx-unprivileged:1-alpine AS final
 COPY --from=build /src/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
+# The base image already runs as the unprivileged "nginx" user; restated so
+# the non-root guarantee is visible (and scannable) in this Dockerfile
+# rather than inherited invisibly.
+USER nginx

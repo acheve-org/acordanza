@@ -193,13 +193,32 @@ propagates. Order of operations:
 
    If your DNS provider doesn't support `ALIAS`/`ANAME` at the zone apex,
    use an `A` record pointed at the Static Web App's `stableInboundIP`
-   instead (`az staticwebapp show --name <name> --resource-group
-   rg-acordanza-prod --query "stableInboundIP" -o tsv` — not currently
-   exposed as a Terraform output). An `A` record pins you to a single
-   region instead of Azure's global edge, which doesn't matter much for a
-   low-traffic landing page.
+   instead. That property isn't in `az staticwebapp show`'s default output
+   (it's missing from that command's projection) or exposed as a Terraform
+   output — fetch it via the generic resource API instead:
+   ```
+   az resource show --resource-group rg-acordanza-prod \
+     --name stapp-acordanza-prod-landing \
+     --resource-type Microsoft.Web/staticSites \
+     --query "properties.stableInboundIP" -o tsv
+   ```
+   An `A` record pins you to a single region instead of Azure's global
+   edge, which doesn't matter much for a low-traffic landing page.
+
+   `acordanza.eu`'s nameservers are Gandi's LiveDNS (`ns-*.gandi.net`,
+   confirmed via `dig NS acordanza.eu`) — LiveDNS supports `ALIAS` records
+   at the apex (Gandi's legacy "Classic" DNS doesn't), so either option
+   above works. Gandi won't let an `A` and an `ALIAS` coexist on `@`, so
+   whichever you pick replaces the existing apex `A` record — check what's
+   there first, since this domain already has mail hosted at Gandi (an SPF
+   `TXT` record referencing `_mailcust.gandi.net`); leave that TXT record
+   and any `MX` records alone.
 3. Wait for DNS to propagate and Azure to validate in the background (no
    further `terraform apply` needed).
+
+Static Web Apps' managed certificate is also issued by DigiCert, same as
+the Container Apps above — if `acordanza.eu` ever gets a CAA record, it
+needs the same `0 issue "digicert.com"` allowance or issuance fails.
 
 ### Why the resource group isn't in Terraform
 
@@ -242,14 +261,21 @@ the one who ran the bootstrap script.
    (typecheck + Vite build, as a compile sanity check — the artifact is
    discarded; the real build happens in the Docker build below with the
    real `VITE_API_URL`).
-3. **terraform** — needs both build-test jobs; OIDC login, `terraform plan`
+3. **security-scan** — Trivy scans the Terraform config and both
+   Dockerfiles for misconfigurations plus the whole repo for leaked
+   secrets, and zizmor scans the workflows themselves; a finding fails
+   the pipeline. Runs on PRs too (it needs no Azure credentials). See
+   "Security scanning" below for how findings are suppressed and how to
+   run it locally.
+4. **terraform** — needs both build-test jobs and security-scan (so insecure
+   infra config can never reach `apply`); OIDC login, `terraform plan`
    (always, including on PRs), `terraform apply` (only on push to `main`).
-4. **build-and-deploy-backend** / **build-and-deploy-frontend** — run in
+5. **build-and-deploy-backend** / **build-and-deploy-frontend** — run in
    parallel after `terraform`. Each builds its Docker image, pushes it to
    ACR, then `az containerapp update`s its Container App to the new image
    tag. The frontend build passes the API's custom domain as a
    `VITE_API_URL` Docker build arg. Only on push to `main`.
-5. **deploy-landing** — also runs after `terraform`, in parallel with the
+6. **deploy-landing** — also runs after `terraform`, in parallel with the
    two jobs above. Static Web Apps' deploy action doesn't support the
    OIDC-based Azure login the other jobs use, only its own deployment
    token — so this job fetches that token fresh from Azure on every run
@@ -265,3 +291,55 @@ but would be a credential-exposure risk if this repo ever went public or
 started accepting external PRs — the fix at that point would be to drop the
 PR trigger for the `terraform` job, or gate it behind an approval
 (`environment:` protection rules).
+
+## Security scanning
+
+The `security-scan` CI job runs [Trivy](https://trivy.dev) in two modes
+plus [zizmor](https://docs.zizmor.sh) on every push and PR, and the
+`terraform` job depends on it — a finding blocks the deploy:
+
+- **`trivy config`** — misconfiguration scan of the Terraform files and
+  both Dockerfiles. (Trivy's config scanner has no GitHub Actions checks,
+  hence the separate scanner below.)
+- **`trivy fs --scanners secret`** — scans the checked-out repo for
+  committed credentials.
+- **`zizmor`** — GitHub Actions security scan of `.github/workflows`:
+  template injection, credential leakage, unpinned/impostor actions, and
+  the rest of its audit suite. Fails on any low-or-higher finding;
+  informational findings are advisory only. `GH_TOKEN` is passed so the
+  online audits (impostor commits, known-vulnerable actions) run too.
+
+Run the same scans locally (`brew install trivy`; zizmor runs via pipx or
+uvx):
+
+```
+trivy config --skip-dirs infra/terraform/.terraform,frontend/node_modules --exit-code 1 .
+trivy fs --scanners secret --skip-dirs infra/terraform/.terraform,frontend/node_modules --exit-code 1 .
+GH_TOKEN=$(gh auth token) pipx run zizmor==1.27.0 --min-severity=low .github/workflows/
+```
+
+**Suppression policy:** the scan fails on *any* severity, so every
+suppressed finding must carry a written justification next to the
+suppression — inline `#trivy:ignore:<id>` comments in the `.tf` files for
+resource-specific decisions, `.trivyignore` at the repo root for global
+ones, and inline `# zizmor: ignore[rule]` comments in the workflow files.
+Nothing gets suppressed just to make CI green.
+
+Current suppressions and why:
+
+| ID | Where | Why |
+| --- | --- | --- |
+| `AVD-AZU-0022` (Postgres public network access) | `postgres.tf` | Accepted risk, documented in "Decisions made and why" above: Container Apps Consumption has no stable egress IP without VNet+NAT. Connections still require TLS 1.2+ and a password; revisit if the trust model changes. |
+| `AVD-AZU-0021`, `AVD-AZU-0026` (connection throttling / min TLS) | `postgres.tf` | Scanner false positives: Trivy's adapter only recognizes the legacy single-server parameter names (`connection_throttling`, `tls_version`); the config sets the real Flexible Server parameters (`connection_throttle.enable`, `ssl_min_protocol_version`). |
+| `AVD-DS-0026` (no Docker `HEALTHCHECK`) | `.trivyignore` | Container Apps ignores Docker `HEALTHCHECK` and probes the ingress port itself; the API's distroless image has no shell to run a check command anyway. |
+
+Checkov (`uvx checkov -d infra/terraform`) is a useful second opinion; its
+extra findings are all consciously accepted cost trade-offs: ACR
+Basic-tier limitations (no private endpoints, retention policies, image
+signing, or zone redundancy — all Premium-only, ~10x the cost) and Postgres
+geo-redundant backup (doubles backup cost, and enabling it later forces
+server replacement).
+
+`.github/dependabot.yml` keeps the security-relevant pins fresh: GitHub
+Actions versions, Terraform providers, and both Docker base images get
+weekly update PRs.

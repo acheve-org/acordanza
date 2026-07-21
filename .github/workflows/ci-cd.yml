@@ -42,9 +42,11 @@ jobs:
       run:
         working-directory: backend/Acordanza.Api
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -69,7 +71,9 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Read Bun version from .prototools
         id: tool_versions
@@ -82,7 +86,7 @@ jobs:
           fi
           echo "bun_version=$version" >> "$GITHUB_OUTPUT"
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: ${{ steps.tool_versions.outputs.bun_version }}
 
@@ -99,9 +103,48 @@ jobs:
         # in build-and-deploy-frontend below.
         run: bun run build
 
+  security-scan:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      # Scans the Terraform config and both Dockerfiles for
+      # misconfigurations, failing the pipeline on any finding.
+      # Accepted risks and scanner false positives are suppressed with a
+      # written justification, either inline (#trivy:ignore in .tf files)
+      # or in .trivyignore — see "Security scanning" in infra/README.md.
+      - name: Scan IaC & Dockerfiles for misconfigurations (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          exit-code: "1"
+          skip-dirs: infra/terraform/.terraform
+
+      - name: Scan repo for leaked secrets (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scanners: secret
+          scan-ref: .
+          exit-code: "1"
+
+      # Trivy's config scanner has no GitHub Actions checks, so the
+      # workflows themselves are scanned by zizmor (template injection,
+      # credential leakage, unpinned/impostor actions, ...). Fails on any
+      # low-or-higher finding; informational findings are advisory only.
+      # Pinned by version here since Dependabot doesn't cover pipx specs.
+      - name: Scan GitHub Actions workflows (zizmor)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # enables the online audits (impostor commits, known-vulnerable actions)
+        run: pipx run zizmor==1.27.0 --min-severity=low .github/workflows/
+
   terraform:
     name: Terraform plan/apply
-    needs: [build-test-backend, build-test-frontend]
+    needs: [build-test-backend, build-test-frontend, security-scan]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -119,7 +162,9 @@ jobs:
       backend_custom_domain: ${{ steps.tf_outputs.outputs.backend_custom_domain }}
       static_web_app_name: ${{ steps.tf_outputs.outputs.static_web_app_name }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Read Terraform version from .prototools
         id: tool_versions
@@ -132,13 +177,13 @@ jobs:
           fi
           echo "terraform_version=$version" >> "$GITHUB_OUTPUT"
 
-      - uses: hashicorp/setup-terraform@v4
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_wrapper: false
           terraform_version: ${{ steps.tool_versions.outputs.terraform_version }}
 
       - name: Azure login (OIDC)
-        uses: azure/login@v3
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -182,10 +227,12 @@ jobs:
       id-token: write # required for OIDC login to Azure
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Azure login (OIDC)
-        uses: azure/login@v3
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -217,10 +264,12 @@ jobs:
       id-token: write # required for OIDC login to Azure
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Azure login (OIDC)
-        uses: azure/login@v3
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -254,10 +303,12 @@ jobs:
       id-token: write # required for OIDC login to Azure
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Azure login (OIDC)
-        uses: azure/login@v3
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -278,7 +329,7 @@ jobs:
           echo "token=$token" >> "$GITHUB_OUTPUT"
 
       - name: Deploy static files
-        uses: Azure/static-web-apps-deploy@v1
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1 # v1
         with:
           azure_static_web_apps_api_token: ${{ steps.swa_token.outputs.token }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}

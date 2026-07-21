@@ -1,0 +1,25 @@
+# Keeps the security-relevant pinned dependencies patched: GitHub Actions,
+# Terraform providers, and both Docker base images. Application dependencies
+# (NuGet, Bun) are deliberately left out for now — add ecosystems here if
+# that changes.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: terraform
+    directory: /infra/terraform
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /backend/Acordanza.Api
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly

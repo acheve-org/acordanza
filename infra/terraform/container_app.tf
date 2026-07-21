@@ -1,5 +1,12 @@
 locals {
-  db_connection_string = "Host=${azurerm_postgresql_flexible_server.main.fqdn};Port=5432;Database=${azurerm_postgresql_flexible_server_database.app.name};Username=${var.postgres_admin_username};Password=${var.postgres_admin_password};Ssl Mode=Require;Trust Server Certificate=true"
+  # VerifyFull makes Npgsql validate the server certificate chain *and*
+  # hostname against the system root store. The distroless-extra base image
+  # ships the Mozilla CA bundle, which contains every root Azure Flexible
+  # Server can present (DigiCert Global Root CA/G2 and Microsoft RSA/ECC
+  # Root CA 2017 — verified in the image's /etc/pki/tls/certs/ca-bundle.crt).
+  # Never add "Trust Server Certificate=true" — it disables validation
+  # entirely and opens the TLS connection to MITM.
+  db_connection_string = "Host=${azurerm_postgresql_flexible_server.main.fqdn};Port=5432;Database=${azurerm_postgresql_flexible_server_database.app.name};Username=${var.postgres_admin_username};Password=${var.postgres_admin_password};Ssl Mode=VerifyFull"
 
   # The frontend Container App's own URL is always allowed to call the API;
   # var.cors_allowed_origins is only for *additional* origins (e.g. a future
