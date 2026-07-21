@@ -1,5 +1,15 @@
 locals {
   db_connection_string = "Host=${azurerm_postgresql_flexible_server.main.fqdn};Port=5432;Database=${azurerm_postgresql_flexible_server_database.app.name};Username=${var.postgres_admin_username};Password=${var.postgres_admin_password};Ssl Mode=Require;Trust Server Certificate=true"
+
+  # The frontend Container App's own URL is always allowed to call the API;
+  # var.cors_allowed_origins is only for *additional* origins (e.g. a future
+  # custom domain). Referencing azurerm_container_app.frontend here makes it
+  # an implicit dependency, so a single `terraform apply` creates the
+  # frontend app before computing the backend's CORS env vars.
+  # ingress[0].fqdn (not latest_revision_fqdn) because that's the stable
+  # hostname the browser actually sends as Origin — latest_revision_fqdn is
+  # per-revision and goes stale after the next deploy.
+  frontend_origin = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
 }
 
 # A user-assigned identity (rather than the container app's own
@@ -114,7 +124,7 @@ resource "azurerm_container_app" "main" {
       }
 
       dynamic "env" {
-        for_each = { for idx, origin in var.cors_allowed_origins : idx => origin }
+        for_each = { for idx, origin in concat(var.cors_allowed_origins, [local.frontend_origin]) : idx => origin }
         content {
           name  = "Cors__AllowedOrigins__${env.key}"
           value = env.value

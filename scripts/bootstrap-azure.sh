@@ -140,7 +140,9 @@ Variables (Settings > Secrets and variables > Actions > Variables):
   AZURE_CLIENT_ID       = $APP_ID
   AZURE_TENANT_ID       = $TENANT_ID
   AZURE_SUBSCRIPTION_ID = $SUBSCRIPTION_ID
-  CORS_ALLOWED_ORIGINS  = ["https://<your-frontend-domain>"]
+  CORS_ALLOWED_ORIGINS  = [] (optional — only needed for additional origins
+                              beyond the frontend Container App's own URL,
+                              e.g. a custom domain)
 
 Secrets (Settings > Secrets and variables > Actions > Secrets):
   POSTGRES_ADMIN_PASSWORD = <generate a strong password, e.g. openssl rand -base64 24>

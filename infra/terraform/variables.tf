@@ -71,8 +71,9 @@ variable "jwt_audience" {
 }
 
 variable "cors_allowed_origins" {
-  description = "Origins allowed to call the API (the deployed frontend's URL)."
+  description = "Additional origins allowed to call the API, beyond the deployed frontend Container App's own URL (which is added automatically) — e.g. a future custom domain."
   type        = list(string)
+  default     = []
 }
 
 variable "bootstrap_image" {
@@ -87,6 +88,16 @@ variable "container_app_min_replicas" {
 }
 
 variable "container_app_max_replicas" {
+  type    = number
+  default = 2
+}
+
+variable "container_app_web_min_replicas" {
+  type    = number
+  default = 0
+}
+
+variable "container_app_web_max_replicas" {
   type    = number
   default = 2
 }

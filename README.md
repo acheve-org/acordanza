@@ -54,8 +54,8 @@ bun dev
 Open `http://localhost:5173` in your browser and log in with an account created above.
 
 ## Deploying so friends can use it remotely
-- Backend: any host that runs .NET 10 + Postgres (Railway, Render, Fly.io, a VPS). Set `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, and `Cors:AllowedOrigins` via environment variables. For a Terraform-managed Azure Container Apps deployment with a GitHub Actions build/test/deploy pipeline, see `infra/README.md`.
-- Frontend: build with `bun run build` (outputs to `frontend/dist`) and serve as a static site (Netlify, Vercel, Cloudflare Pages, or behind the same reverse proxy as the API). Set `VITE_API_URL` to the deployed API's URL at build time.
+- Both backend and frontend deploy together as two Azure Container Apps in the same environment, via a Terraform-managed pipeline in GitHub Actions — see `infra/README.md`. The frontend runs behind `nginx-unprivileged`, serving the Vite build with `VITE_API_URL` baked in at Docker build time from the API app's URL.
+- Not using Azure: backend needs any host that runs .NET 10 + Postgres (Railway, Render, Fly.io, a VPS) with `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, and `Cors:AllowedOrigins` set via environment variables. Frontend needs `bun run build` (outputs to `frontend/dist`) served as a static site (Netlify, Vercel, Cloudflare Pages, or behind the same reverse proxy as the API), with `VITE_API_URL` set to the deployed API's URL at build time.
 - A spare Raspberry Pi / home server also works — run both processes there and use [Tailscale](https://tailscale.com) to share access without exposing it to the public internet.
 
 ## Extending it

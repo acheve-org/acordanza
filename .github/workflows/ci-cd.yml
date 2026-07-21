@@ -1,18 +1,20 @@
-name: Backend CI/CD
+name: CI/CD
 
 on:
   push:
     branches: [main]
     paths:
       - "backend/**"
+      - "frontend/**"
       - "infra/terraform/**"
-      - ".github/workflows/backend-ci-cd.yml"
+      - ".github/workflows/ci-cd.yml"
   pull_request:
     branches: [main]
     paths:
       - "backend/**"
+      - "frontend/**"
       - "infra/terraform/**"
-      - ".github/workflows/backend-ci-cd.yml"
+      - ".github/workflows/ci-cd.yml"
   workflow_dispatch: {}
 
 env:
@@ -23,15 +25,16 @@ env:
   TF_STATE_KEY: acordanza.tfstate
   TF_VAR_postgres_admin_password: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
   TF_VAR_jwt_key: ${{ secrets.JWT_KEY }}
-  TF_VAR_cors_allowed_origins: ${{ vars.CORS_ALLOWED_ORIGINS }} # JSON array string, e.g. ["https://acordanza.example.com"]
+  TF_VAR_cors_allowed_origins: ${{ vars.CORS_ALLOWED_ORIGINS || '[]' }} # JSON array string, e.g. ["https://acordanza.example.com"]; empty is fine, see infra/terraform/variables.tf
   ACR_IMAGE_NAME: acordanza-api
+  ACR_IMAGE_NAME_WEB: acordanza-web
 
 permissions:
   contents: read
 
 jobs:
-  build-test:
-    name: Build & test
+  build-test-backend:
+    name: Backend build & test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -57,9 +60,46 @@ jobs:
             echo "No test projects yet — skipping."
           fi
 
+  build-test-frontend:
+    name: Frontend build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read Bun version from .prototools
+        id: tool_versions
+        working-directory: ${{ github.workspace }}
+        run: |
+          version=$(awk -F'"' '/^\[/{exit} /^bun[[:space:]]*=/{print $2; exit}' .prototools)
+          if [ -z "$version" ]; then
+            echo "Could not find a top-level bun version in .prototools" >&2
+            exit 1
+          fi
+          echo "bun_version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ steps.tool_versions.outputs.bun_version }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Build
+        # Sanity-check the build compiles (tsc + vite build). VITE_API_URL is
+        # intentionally unset here — this artifact is discarded; the real
+        # build with the real API URL baked in happens in the Docker build
+        # in build-and-deploy-frontend below.
+        run: bun run build
+
   terraform:
     name: Terraform plan/apply
-    needs: build-test
+    needs: [build-test-backend, build-test-frontend]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -71,6 +111,8 @@ jobs:
       acr_name: ${{ steps.tf_outputs.outputs.acr_name }}
       acr_login_server: ${{ steps.tf_outputs.outputs.acr_login_server }}
       container_app_name: ${{ steps.tf_outputs.outputs.container_app_name }}
+      container_app_fqdn: ${{ steps.tf_outputs.outputs.container_app_fqdn }}
+      container_app_frontend_name: ${{ steps.tf_outputs.outputs.container_app_frontend_name }}
       resource_group_name: ${{ steps.tf_outputs.outputs.resource_group_name }}
     steps:
       - uses: actions/checkout@v7
@@ -86,7 +128,7 @@ jobs:
           fi
           echo "terraform_version=$version" >> "$GITHUB_OUTPUT"
 
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
           terraform_version: ${{ steps.tool_versions.outputs.terraform_version }}
@@ -121,10 +163,12 @@ jobs:
           echo "acr_name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
           echo "container_app_name=$(terraform output -raw container_app_name)" >> "$GITHUB_OUTPUT"
+          echo "container_app_fqdn=$(terraform output -raw container_app_fqdn)" >> "$GITHUB_OUTPUT"
+          echo "container_app_frontend_name=$(terraform output -raw container_app_frontend_name)" >> "$GITHUB_OUTPUT"
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> "$GITHUB_OUTPUT"
 
-  build-and-deploy:
-    name: Build image & deploy
+  build-and-deploy-backend:
+    name: Build backend image & deploy
     needs: terraform
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
@@ -157,3 +201,40 @@ jobs:
             --name "${{ needs.terraform.outputs.container_app_name }}" \
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
             --image "${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME }}:${{ github.sha }}"
+
+  build-and-deploy-frontend:
+    name: Build frontend image & deploy
+    needs: terraform
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # required for OIDC login to Azure
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to ACR
+        run: az acr login --name "${{ needs.terraform.outputs.acr_name }}"
+
+      - name: Build and push image
+        env:
+          IMAGE: ${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME_WEB }}:${{ github.sha }}
+        run: |
+          docker build \
+            --build-arg VITE_API_URL="https://${{ needs.terraform.outputs.container_app_fqdn }}/api" \
+            -t "$IMAGE" -f frontend/Dockerfile frontend
+          docker push "$IMAGE"
+
+      - name: Deploy new image to Container App
+        run: |
+          az containerapp update \
+            --name "${{ needs.terraform.outputs.container_app_frontend_name }}" \
+            --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
+            --image "${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME_WEB }}:${{ github.sha }}"
