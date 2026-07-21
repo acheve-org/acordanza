@@ -33,13 +33,16 @@ gated on a `terraform apply`.
 
 The frontend is a static Vite build (`bun run build` → `dist/`) served by
 `nginx-unprivileged` inside its container — `VITE_API_URL` is baked into
-the JS bundle at Docker build time (as a build arg pointing at the API
-Container App's FQDN), since Vite env vars can't be swapped at runtime once
-bundled. The backend's CORS config, in turn, includes the frontend
-Container App's FQDN automatically (`local.frontend_origin` in
-`infra/terraform/container_app.tf`, derived from
-`azurerm_container_app.frontend`) — no manual origin bookkeeping needed
-unless you add a custom domain later (`cors_allowed_origins`).
+the JS bundle at Docker build time (as a build arg pointing at the API's
+custom domain, `var.backend_custom_domain`), since Vite env vars can't be
+swapped at runtime once bundled. The backend's CORS config, in turn,
+includes both the frontend Container App's FQDN and its custom domain
+automatically (`local.frontend_origin` / `local.frontend_custom_origin` in
+`infra/terraform/container_app.tf`) — `cors_allowed_origins` is only for
+extra origins beyond those two.
+
+Both apps are also bound to custom domains with free Azure-managed
+certificates — see "Custom domains" below.
 
 ## Decisions made and why
 
@@ -93,9 +96,9 @@ unless you add a custom domain later (`cors_allowed_origins`).
    - `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` — from the
      bootstrap script's output.
    - `CORS_ALLOWED_ORIGINS` — JSON array of *additional* allowed origins
-     beyond the frontend Container App's own URL, which is added
-     automatically (see the "Architecture" section above). Fine to leave as
-     `[]` unless you're adding a custom domain, e.g.
+     beyond the frontend Container App's own URL and its custom domain,
+     both added automatically (see the "Architecture" section above). Fine
+     to leave as `[]` unless something else needs to call the API, e.g.
      `["https://acordanza.example.com"]`.
 
 3. **Set GitHub Actions repo secrets** (same page, Secrets tab):
@@ -109,13 +112,50 @@ unless you add a custom domain later (`cors_allowed_origins`).
    Postgres server, Container Apps environment and both apps — this takes
    several minutes, mostly waiting on the Postgres server), then builds and
    deploys both real images. `VITE_API_URL` is baked into the frontend image
-   automatically from the API app's FQDN — no manual step needed.
+   automatically from the API's custom domain — no manual step needed,
+   **except** the custom-domain DNS records described in "Custom domains"
+   below must exist before the very first apply that adds them, or that
+   `terraform apply` fails.
 
 5. Once it's up, grab either Container App's URL:
    ```
    az containerapp show -g rg-acordanza-prod -n ca-acordanza-prod --query properties.configuration.ingress.fqdn -o tsv
    az containerapp show -g rg-acordanza-prod -n ca-acordanza-prod-web --query properties.configuration.ingress.fqdn -o tsv
    ```
+
+## Custom domains
+
+`app.acordanza.eu` (frontend) and `api.acordanza.eu` (backend) are bound as
+custom domains with free Azure-managed certificates
+(`azurerm_container_app_custom_domain` +
+`azurerm_container_app_environment_managed_certificate` in
+`infra/terraform/container_app.tf` and `container_app_frontend.tf`,
+controlled by `var.frontend_custom_domain` / `var.backend_custom_domain`).
+
+Azure validates domain ownership and issues the certificate synchronously
+during `terraform apply`, so **the DNS records below must already exist and
+have propagated before applying** (or CI's `terraform apply` step fails and
+blocks every subsequent deploy until it's fixed). At the DNS provider
+hosting `acordanza.eu`, create:
+
+| Record | Host | Value |
+| --- | --- | --- |
+| CNAME | `app` | the frontend Container App's FQDN (`terraform output container_app_frontend_fqdn`) |
+| TXT | `asuid.app` | `terraform output custom_domain_verification_id` |
+| CNAME | `api` | the backend Container App's FQDN (`terraform output container_app_fqdn`) |
+| TXT | `asuid.api` | `terraform output custom_domain_verification_id` (same value — it's shared per environment) |
+
+Both Container Apps live in the same environment, so the verification ID
+is identical for both. If `acordanza.eu` has a CAA record, it must allow
+DigiCert as an issuer (`0 issue digicert.com`) or certificate issuance
+fails.
+
+Once DNS resolves, `terraform apply` creates the custom domain (unbound)
+and the managed certificate, and Azure auto-binds the certificate to the
+domain out-of-band — that's why `certificate_binding_type` and
+`container_app_environment_certificate_id` are in `ignore_changes` on both
+`azurerm_container_app_custom_domain` resources. Issuance can take a few
+minutes after DNS propagates.
 
 ### Why the resource group isn't in Terraform
 
@@ -163,8 +203,8 @@ the one who ran the bootstrap script.
 4. **build-and-deploy-backend** / **build-and-deploy-frontend** — run in
    parallel after `terraform`. Each builds its Docker image, pushes it to
    ACR, then `az containerapp update`s its Container App to the new image
-   tag. The frontend build passes the API app's FQDN as a `VITE_API_URL`
-   Docker build arg. Only on push to `main`.
+   tag. The frontend build passes the API's custom domain as a
+   `VITE_API_URL` Docker build arg. Only on push to `main`.
 
 **Caveat:** the `terraform` job runs `plan` on pull requests too, which
 requires real Azure credentials to be available to the PR's workflow run.

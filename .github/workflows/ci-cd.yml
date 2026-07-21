@@ -114,6 +114,7 @@ jobs:
       container_app_fqdn: ${{ steps.tf_outputs.outputs.container_app_fqdn }}
       container_app_frontend_name: ${{ steps.tf_outputs.outputs.container_app_frontend_name }}
       resource_group_name: ${{ steps.tf_outputs.outputs.resource_group_name }}
+      backend_custom_domain: ${{ steps.tf_outputs.outputs.backend_custom_domain }}
     steps:
       - uses: actions/checkout@v7
 
@@ -166,6 +167,7 @@ jobs:
           echo "container_app_fqdn=$(terraform output -raw container_app_fqdn)" >> "$GITHUB_OUTPUT"
           echo "container_app_frontend_name=$(terraform output -raw container_app_frontend_name)" >> "$GITHUB_OUTPUT"
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> "$GITHUB_OUTPUT"
+          echo "backend_custom_domain=$(terraform output -raw backend_custom_domain)" >> "$GITHUB_OUTPUT"
 
   build-and-deploy-backend:
     name: Build backend image & deploy
@@ -228,7 +230,7 @@ jobs:
           IMAGE: ${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME_WEB }}:${{ github.sha }}
         run: |
           docker build \
-            --build-arg VITE_API_URL="https://${{ needs.terraform.outputs.container_app_fqdn }}/api" \
+            --build-arg VITE_API_URL="https://${{ needs.terraform.outputs.backend_custom_domain }}/api" \
             -t "$IMAGE" -f frontend/Dockerfile frontend
           docker push "$IMAGE"
 

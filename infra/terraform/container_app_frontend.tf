@@ -53,3 +53,24 @@ resource "azurerm_container_app" "frontend" {
     ignore_changes = [template[0].container[0].image]
   }
 }
+
+# See the matching resources in container_app.tf for how the unbound
+# hostname + managed certificate combination works, and the DNS records
+# required before applying this (infra/README.md).
+resource "azurerm_container_app_custom_domain" "frontend" {
+  name             = var.frontend_custom_domain
+  container_app_id = azurerm_container_app.frontend.id
+
+  lifecycle {
+    ignore_changes = [certificate_binding_type, container_app_environment_certificate_id]
+  }
+}
+
+resource "azurerm_container_app_environment_managed_certificate" "frontend" {
+  name                         = "cert-${replace(var.frontend_custom_domain, ".", "-")}"
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  subject_name                 = var.frontend_custom_domain
+  domain_control_validation    = "CNAME"
+
+  depends_on = [azurerm_container_app_custom_domain.frontend]
+}

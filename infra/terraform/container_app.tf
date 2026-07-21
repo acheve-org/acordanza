@@ -9,7 +9,8 @@ locals {
   # ingress[0].fqdn (not latest_revision_fqdn) because that's the stable
   # hostname the browser actually sends as Origin — latest_revision_fqdn is
   # per-revision and goes stale after the next deploy.
-  frontend_origin = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
+  frontend_origin        = "https://${azurerm_container_app.frontend.ingress[0].fqdn}"
+  frontend_custom_origin = "https://${var.frontend_custom_domain}"
 }
 
 # A user-assigned identity (rather than the container app's own
@@ -124,7 +125,7 @@ resource "azurerm_container_app" "main" {
       }
 
       dynamic "env" {
-        for_each = { for idx, origin in concat(var.cors_allowed_origins, [local.frontend_origin]) : idx => origin }
+        for_each = { for idx, origin in concat(var.cors_allowed_origins, [local.frontend_origin, local.frontend_custom_origin]) : idx => origin }
         content {
           name  = "Cors__AllowedOrigins__${env.key}"
           value = env.value
@@ -136,4 +137,32 @@ resource "azurerm_container_app" "main" {
   lifecycle {
     ignore_changes = [template[0].container[0].image]
   }
+}
+
+# Unbound custom domain hostname. Creating this validates domain ownership
+# via the "asuid.<domain>" TXT record, which must already resolve — see
+# infra/README.md for the DNS records required before applying this.
+resource "azurerm_container_app_custom_domain" "main" {
+  name             = var.backend_custom_domain
+  container_app_id = azurerm_container_app.main.id
+
+  # Once the managed certificate below is issued, Azure auto-binds it to
+  # this domain out-of-band; ignore_changes stops Terraform from fighting
+  # that (and from recreating this resource on every apply).
+  lifecycle {
+    ignore_changes = [certificate_binding_type, container_app_environment_certificate_id]
+  }
+}
+
+# Free Azure-managed certificate. CNAME validation (vs. HTTP for apex
+# domains) requires the "<domain>" CNAME record — pointing at this
+# Container App's ingress FQDN — to already resolve, in addition to the TXT
+# record above.
+resource "azurerm_container_app_environment_managed_certificate" "main" {
+  name                         = "cert-${replace(var.backend_custom_domain, ".", "-")}"
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  subject_name                 = var.backend_custom_domain
+  domain_control_validation    = "CNAME"
+
+  depends_on = [azurerm_container_app_custom_domain.main]
 }

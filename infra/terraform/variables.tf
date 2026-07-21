@@ -71,9 +71,21 @@ variable "jwt_audience" {
 }
 
 variable "cors_allowed_origins" {
-  description = "Additional origins allowed to call the API, beyond the deployed frontend Container App's own URL (which is added automatically) — e.g. a future custom domain."
+  description = "Additional origins allowed to call the API, beyond the deployed frontend Container App's own URL and var.frontend_custom_domain (both added automatically)."
   type        = list(string)
   default     = []
+}
+
+variable "frontend_custom_domain" {
+  description = "Custom domain bound to the frontend Container App, with a free Azure-managed certificate. Must be a subdomain (CNAME-validated) — see infra/README.md for the DNS records required before this can be applied."
+  type        = string
+  default     = "app.acordanza.eu"
+}
+
+variable "backend_custom_domain" {
+  description = "Custom domain bound to the backend (API) Container App, with a free Azure-managed certificate. Must be a subdomain (CNAME-validated) — see infra/README.md for the DNS records required before this can be applied."
+  type        = string
+  default     = "api.acordanza.eu"
 }
 
 variable "bootstrap_image" {
