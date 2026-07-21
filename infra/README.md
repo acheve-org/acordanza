@@ -1,8 +1,8 @@
 # Deploying to Azure
 
 Terraform-managed infrastructure + a GitHub Actions pipeline that builds,
-tests, and deploys both `backend/Acordanza.Api` and `frontend` to Azure
-Container Apps on every push to `main`.
+tests, and deploys `backend/Acordanza.Api` and `frontend` to Azure Container
+Apps, and `landing` to an Azure Static Web App, on every push to `main`.
 
 ## Architecture
 
@@ -14,9 +14,16 @@ Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
 │   ├── Container App (ca-acordanza-prod)       — the API, scale-to-zero
 │   └── Container App (ca-acordanza-prod-web)   — the frontend (nginx), scale-to-zero
 │       └── shared user-assigned managed identity — AcrPull on the registry
+├── Static Web App (stapp-acordanza-prod-landing) — marketing landing page (landing/)
 └── Postgres Flexible Server (Burstable B1ms)
     └── database: acordanza
 ```
+
+The landing page is a separate Azure primitive from the two Container Apps
+above — a free-tier static-file host (`azurerm_static_web_app` in
+`infra/terraform/static_web_app.tf`), not a container/registry/nginx setup.
+It only exists to explain what Acordanza is at the bare `acordanza.eu` apex;
+the actual app lives on the Container Apps.
 
 Everything above except the resource group itself is created by Terraform
 (`infra/terraform/`). The resource group is created once, out-of-band, by
@@ -157,6 +164,43 @@ domain out-of-band — that's why `certificate_binding_type` and
 `azurerm_container_app_custom_domain` resources. Issuance can take a few
 minutes after DNS propagates.
 
+### Landing page apex domain
+
+The landing page is bound to the bare `acordanza.eu` apex
+(`azurerm_static_web_app_custom_domain` in
+`infra/terraform/static_web_app.tf`, controlled by
+`var.landing_custom_domain`). Apex domains can't be pointed at anything with
+a CNAME (that would conflict with any other record at the zone root, e.g.
+MX), so this uses `dns-txt-token` validation and either an `ALIAS`/`ANAME`
+record (if your DNS provider supports one) or a plain `A` record, instead of
+the CNAME the two subdomains above use.
+
+Unlike the Container Apps custom domains, DNS does **not** need to exist
+before applying — creating the custom domain resource generates a
+validation token first, which is what goes in the TXT record. Azure then
+validates asynchronously in the background; Terraform doesn't wait on it,
+so the domain shows as "pending validation" in the Azure portal until DNS
+propagates. Order of operations:
+
+1. `terraform apply` (creates the Static Web App and the pending custom
+   domain, generating the validation token).
+2. At the DNS provider hosting `acordanza.eu`, create:
+
+   | Record | Host | Value |
+   | --- | --- | --- |
+   | TXT | `@` | `terraform output -raw landing_custom_domain_validation_token` |
+   | ALIAS/ANAME | `@` | `terraform output -raw static_web_app_default_host_name` |
+
+   If your DNS provider doesn't support `ALIAS`/`ANAME` at the zone apex,
+   use an `A` record pointed at the Static Web App's `stableInboundIP`
+   instead (`az staticwebapp show --name <name> --resource-group
+   rg-acordanza-prod --query "stableInboundIP" -o tsv` — not currently
+   exposed as a Terraform output). An `A` record pins you to a single
+   region instead of Azure's global edge, which doesn't matter much for a
+   low-traffic landing page.
+3. Wait for DNS to propagate and Azure to validate in the background (no
+   further `terraform apply` needed).
+
 ### Why the resource group isn't in Terraform
 
 The GitHub Actions service principal's role assignment is scoped to the
@@ -205,6 +249,14 @@ the one who ran the bootstrap script.
    ACR, then `az containerapp update`s its Container App to the new image
    tag. The frontend build passes the API's custom domain as a
    `VITE_API_URL` Docker build arg. Only on push to `main`.
+5. **deploy-landing** — also runs after `terraform`, in parallel with the
+   two jobs above. Static Web Apps' deploy action doesn't support the
+   OIDC-based Azure login the other jobs use, only its own deployment
+   token — so this job fetches that token fresh from Azure on every run
+   (`az staticwebapp secrets list`, masked with `::add-mask::`) rather than
+   storing it as a long-lived GitHub secret, then uploads `landing/`
+   directly (no Docker image, no build step — it's plain static HTML).
+   Only on push to `main`.
 
 **Caveat:** the `terraform` job runs `plan` on pull requests too, which
 requires real Azure credentials to be available to the PR's workflow run.

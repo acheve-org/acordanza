@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Acordanza</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fafaf9;
+    --fg: #1c1917;
+    --muted: #57534e;
+    --accent: #b45309;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1917;
+      --fg: #fafaf9;
+      --muted: #a8a29e;
+      --accent: #f59e0b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 2rem;
+  }
+  main {
+    max-width: 32rem;
+  }
+  h1 {
+    font-size: 2.25rem;
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+  }
+  p {
+    color: var(--muted);
+    line-height: 1.6;
+    font-size: 1.05rem;
+  }
+  a {
+    display: inline-block;
+    margin-top: 1.5rem;
+    color: var(--accent);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 2px solid var(--accent);
+  }
+  a:hover { opacity: 0.8; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Acordanza</h1>
+  <p>
+    A small private log for a group of friends who climb together — routes,
+    grades, and who's ticked what. Real accounts only, no public sign-up.
+  </p>
+  <a href="https://app.acordanza.eu">Open the app &rarr;</a>
+</main>
+</body>
+</html>

@@ -47,3 +47,32 @@ output "acr_login_server" {
 output "postgres_fqdn" {
   value = azurerm_postgresql_flexible_server.main.fqdn
 }
+
+output "static_web_app_name" {
+  value = azurerm_static_web_app.landing.name
+}
+
+output "static_web_app_default_host_name" {
+  value = azurerm_static_web_app.landing.default_host_name
+}
+
+output "landing_custom_domain" {
+  value = var.landing_custom_domain
+}
+
+# Goes into the apex domain's TXT record (see infra/README.md). Only
+# populated until Azure finishes validating the domain, then cleared.
+output "landing_custom_domain_validation_token" {
+  value     = azurerm_static_web_app_custom_domain.landing.validation_token
+  sensitive = true
+}
+
+# Deployment token for the GitHub Actions SWA deploy action
+# (Azure/static-web-apps-deploy@v1). Static Web Apps doesn't support the
+# OIDC-based `az` deploy the Container Apps use — this token is the only
+# supported non-interactive auth for that action, so it has to be stored as
+# a GitHub Actions secret rather than reusing the existing OIDC federation.
+output "static_web_app_api_key" {
+  value     = azurerm_static_web_app.landing.api_key
+  sensitive = true
+}
