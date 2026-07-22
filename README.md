@@ -28,6 +28,7 @@ docker-compose.yml       — local PostgreSQL container
 ```
 docker compose up -d
 ```
+
 Uses the defaults in `.env.example` (copy to `.env` to override).
 
 ### 3. Backend

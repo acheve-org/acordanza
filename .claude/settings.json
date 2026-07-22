@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun install *)",
+      "Bash(bun dev *)",
+      "Bash(bun run build)",
+      "Bash(bun run lint)",
+      "Bash(bun run preview)",
+      "Bash(bun run driver.mjs*)",
+      "Bash(bunx playwright *)",
+      "Bash(cd *)",
+      "Bash(docker info *)",
+      "Bash(docker build *)",
+      "Bash(docker stop *)",
+      "Bash(docker rm *)",
+      "Bash(dotnet build *)",
+      "Bash(docker compose *)",
+      "Bash(gh pr *)",
+      "Bash(gh run *)",
+      "Bash(git checkout *)",
+      "Bash(terraform version *)",
+      "Bash(terraform init *)",
+      "Bash(terraform validate *)",
+      "Bash(terraform fmt *)",
+
+      "WebFetch(domain:docs.zizmor.sh)",
+      "WebFetch(domain:github.com)"
+    ],
+    "deny": ["Read(**/.env)", "Read(**/.env.*)"]
+  }
+}
