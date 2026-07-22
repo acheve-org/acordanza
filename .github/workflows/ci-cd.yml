@@ -145,6 +145,13 @@ jobs:
   terraform:
     name: Terraform plan/apply
     needs: [build-test-backend, build-test-frontend, security-scan]
+    # Runs triggered by Dependabot don't get repository secrets (by GitHub
+    # design, so a compromised dependency bump can't exfiltrate them), and
+    # TF_VAR_postgres_admin_password/TF_VAR_jwt_key come through empty —
+    # which fails `terraform plan` on the required Postgres password. Real
+    # validation still happens on the push-triggered run once merged to
+    # main, where secrets are available.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     defaults:
       run:
