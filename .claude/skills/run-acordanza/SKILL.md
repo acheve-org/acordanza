@@ -13,16 +13,13 @@ are relative to the repo root.
 
 ## Prerequisites
 
-- .NET 10 SDK. On this machine it's installed but not on `PATH`, and
-  the `dotnet-ef` tool lives under `~/.dotnet/tools` which also isn't
-  on `PATH` by default. Bash tool calls don't persist shell state
-  across invocations, so export **both** at the start of every
-  separate command block that runs `dotnet` or `dotnet ef`:
-  ```bash
-  export PATH="/usr/local/share/dotnet:$HOME/.dotnet/tools:$PATH"
-  ```
-  (`dotnet ef` alone works with just the first entry; add the tools
-  dir too so `dotnet-ef` resolves the same way.)
+- .NET 10 SDK, on `PATH` (`dotnet --version`). `dotnet ef` works too,
+  with no extra setup — it resolves through `dotnet`'s own global-tool
+  manifest rather than `PATH`, so it doesn't matter that the raw
+  `dotnet-ef` binary under `~/.dotnet/tools` isn't independently
+  resolvable (that entry sits unexpanded — literally `~/.dotnet/tools`
+  — in `$PATH`, which no shell expands during command lookup; harmless
+  since nothing here invokes `dotnet-ef` directly).
 - Bun (already on `PATH` via proto shim).
 - Docker Desktop, running (`open -a Docker` if not; poll `docker info`
   until it succeeds — takes a few seconds).
@@ -70,7 +67,6 @@ cd frontend && bun run build
 Start both dev servers in the background and wait for each to answer:
 
 ```bash
-export PATH="/usr/local/share/dotnet:$PATH"
 cd backend/Acordanza.Api
 nohup dotnet run > /tmp/acordanza-api.log 2>&1 & disown
 i=0; while [ $i -lt 40 ]; do curl -sf -o /dev/null -w "%{http_code}" http://localhost:5073/api/auth/me 2>/dev/null | grep -q 401 && break; sleep 1; i=$((i+1)); done
@@ -125,16 +121,6 @@ verification right now.
 
 ## Gotchas
 
-- **`dotnet` (and `dotnet ef`) aren't on `PATH`** in this environment
-  even though the SDK is installed at `/usr/local/share/dotnet` and
-  `dotnet-ef` at `~/.dotnet/tools` — every `dotnet` invocation needs
-  `export PATH="/usr/local/share/dotnet:$HOME/.dotnet/tools:$PATH"`
-  first, and since Bash tool calls don't share shell state, that
-  export has to be repeated at the top of every separate command
-  block, not just once per session. Forgetting the tools dir specifically
-  breaks `dotnet ef` with "Could not execute because the specified
-  command or file was not found" while plain `dotnet run`/`build`
-  still work fine.
 - **No `timeout`/`gtimeout` binary on this Mac** (no coreutils
   installed) — the wait-for-server steps use a manual `while` loop with
   a counter instead of `timeout 40 bash -c '...'`; don't reintroduce
@@ -165,14 +151,14 @@ verification right now.
 
 ## Troubleshooting
 
-- **Login stuck at 401 / driver fails at `Logged in as hugo`**: the
+- **Login stuck at 401 / driver fails at `Sesión iniciada como hugo`**: the
   `hugo` user doesn't exist yet in this Postgres volume (e.g. after
   `docker compose down -v`). Re-run `dotnet run -- create-user hugo
   testpass123` from `backend/Acordanza.Api`.
 - **`dotnet ef` not found**: install the tool once —
-  `dotnet tool install --global dotnet-ef` (needs `dotnet` on `PATH`
-  first, and `~/.dotnet/tools` on `PATH` to invoke it as `dotnet-ef`
-  directly, though `dotnet ef` works once the tool is installed).
+  `dotnet tool install --global dotnet-ef` (needs `dotnet` on `PATH`;
+  `dotnet ef` then works regardless of whether `dotnet-ef` itself is
+  independently reachable on `PATH`).
 - **Backend fails to start with a `ConnectionStrings:Default` or
   `Jwt:Key` error**: Postgres isn't up (`docker compose up -d`) or the
   user-secret was never set (see Setup above).

@@ -51,3 +51,13 @@ export interface CreateTickInput {
   rating: number | null;
   notes: string;
 }
+
+// Route `type` values are stored in English to match the backend; this maps them to
+// the Spanish labels shown in the UI (see root CLAUDE.md — all user-facing text is Spanish).
+export const routeTypeLabels: Record<string, string> = {
+  sport: 'Deportiva',
+  trad: 'Clásica',
+  boulder: 'Bloque',
+  toprope: 'Top rope',
+  alpine: 'Alpina',
+};

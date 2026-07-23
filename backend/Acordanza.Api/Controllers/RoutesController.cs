@@ -56,7 +56,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             .Include(r => r.Ticks).ThenInclude(t => t.Climber)
             .FirstOrDefaultAsync(r => r.Id == id);
 
-        if (route is null) return NotFound(new { error = "Not found" });
+        if (route is null) return NotFound(new { error = "No encontrado" });
 
         var dto = new RouteDetailDto(
             route.Id, route.Name, route.Crag, route.Grade, route.GradeSystem, route.Type,
@@ -75,7 +75,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Crag) ||
             string.IsNullOrWhiteSpace(request.Grade))
         {
-            return BadRequest(new { error = "name, crag, and grade are required" });
+            return BadRequest(new { error = "el nombre, el sector y el grado son obligatorios" });
         }
 
         var userId = userManager.GetUserId(User)!;
@@ -102,7 +102,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     public async Task<ActionResult> UpdateRoute(int id, UpsertRouteRequest request)
     {
         var route = await db.Routes.FindAsync(id);
-        if (route is null) return NotFound(new { error = "Not found" });
+        if (route is null) return NotFound(new { error = "No encontrado" });
 
         route.Name = request.Name;
         route.Crag = request.Crag;
@@ -134,11 +134,11 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     {
         if (string.IsNullOrWhiteSpace(request.Date))
         {
-            return BadRequest(new { error = "date is required" });
+            return BadRequest(new { error = "la fecha es obligatoria" });
         }
 
         var routeExists = await db.Routes.AnyAsync(r => r.Id == id);
-        if (!routeExists) return NotFound(new { error = "Not found" });
+        if (!routeExists) return NotFound(new { error = "No encontrado" });
 
         var userId = userManager.GetUserId(User)!;
         var tick = new Tick

@@ -60,7 +60,7 @@ function App() {
 
   async function handleDeleteRoute() {
     if (!detailRouteId) return;
-    if (!confirm('Delete this route and all its logged ascents?')) return;
+    if (!confirm('¿Eliminar esta vía y todos sus ascensos registrados?')) return;
     await routesApi.deleteRoute(detailRouteId);
     setDetailRouteId(null);
     refreshRoutes();
@@ -89,9 +89,9 @@ function App() {
           <span className="brand-name">TOPO</span>
         </div>
         <div className="topbar-right">
-          <span>Logged in as {username}</span>
+          <span>Sesión iniciada como {username}</span>
           <button className="ghost-btn" onClick={logout}>
-            Log out
+            Cerrar sesión
           </button>
         </div>
       </header>

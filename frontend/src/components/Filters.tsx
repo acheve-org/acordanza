@@ -1,4 +1,5 @@
 import type { RouteFilters } from '../api/types';
+import { routeTypeLabels } from '../api/types';
 
 interface Props {
   filters: RouteFilters;
@@ -13,42 +14,42 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
 
   return (
     <aside className="filters">
-      <h2>Search</h2>
+      <h2>Buscar</h2>
       <input
         type="text"
-        placeholder="Route name or description…"
+        placeholder="Nombre de la vía o descripción…"
         value={filters.q}
         onChange={(e) => set('q', e.target.value)}
       />
 
-      <label className="field-label">Crag</label>
+      <label className="field-label">Sector</label>
       <input
         type="text"
-        placeholder="Any crag"
+        placeholder="Cualquier sector"
         value={filters.crag}
         onChange={(e) => set('crag', e.target.value)}
       />
 
-      <label className="field-label">Type</label>
+      <label className="field-label">Tipo</label>
       <select value={filters.type} onChange={(e) => set('type', e.target.value)}>
-        <option value="">Any</option>
-        <option value="sport">Sport</option>
-        <option value="trad">Trad</option>
-        <option value="boulder">Boulder</option>
-        <option value="toprope">Top rope</option>
-        <option value="alpine">Alpine</option>
+        <option value="">Cualquiera</option>
+        {Object.entries(routeTypeLabels).map(([value, label]) => (
+          <option key={value} value={value}>
+            {label}
+          </option>
+        ))}
       </select>
 
-      <label className="field-label">Tag</label>
+      <label className="field-label">Etiqueta</label>
       <input
         type="text"
-        placeholder="e.g. crimpy, classic"
+        placeholder="p. ej. regletas, clásica"
         value={filters.tag}
         onChange={(e) => set('tag', e.target.value)}
       />
 
       <button className="primary-btn full-width" style={{ marginTop: 24 }} onClick={onAddRoute}>
-        + Add route
+        + Añadir vía
       </button>
     </aside>
   );

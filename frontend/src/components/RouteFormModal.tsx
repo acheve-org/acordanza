@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { RouteDetail, RouteSummary, UpsertRouteInput } from '../api/types';
+import { routeTypeLabels } from '../api/types';
 
 const emptyForm: UpsertRouteInput = {
   name: '',
@@ -67,21 +68,21 @@ export function RouteFormModal({ open, editing, onCancel, onSave }: Props) {
       }}
     >
       <div className="modal">
-        <h2>{editing ? 'Edit route' : 'Add a route'}</h2>
+        <h2>{editing ? 'Editar vía' : 'Añadir una vía'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="grid-2">
             <label>
-              Name
+              Nombre
               <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} />
             </label>
             <label>
-              Crag / Area
+              Sector / Zona
               <input type="text" required value={form.crag} onChange={(e) => set('crag', e.target.value)} />
             </label>
           </div>
           <div className="grid-3">
             <label>
-              Grade
+              Grado
               <input
                 type="text"
                 required
@@ -91,50 +92,50 @@ export function RouteFormModal({ open, editing, onCancel, onSave }: Props) {
               />
             </label>
             <label>
-              System
+              Sistema
               <select value={form.gradeSystem} onChange={(e) => set('gradeSystem', e.target.value)}>
                 <option value="YDS">YDS (5.x)</option>
-                <option value="V">V-scale</option>
-                <option value="French">French</option>
-                <option value="UK">UK Trad</option>
+                <option value="V">Escala V</option>
+                <option value="French">Francesa</option>
+                <option value="UK">Clásica UK</option>
                 <option value="UIAA">UIAA</option>
               </select>
             </label>
             <label>
-              Type
+              Tipo
               <select value={form.type} onChange={(e) => set('type', e.target.value)}>
-                <option value="sport">Sport</option>
-                <option value="trad">Trad</option>
-                <option value="boulder">Boulder</option>
-                <option value="toprope">Top rope</option>
-                <option value="alpine">Alpine</option>
+                {Object.entries(routeTypeLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
           <label>
-            Description
+            Descripción
             <textarea
               rows={3}
-              placeholder="Beta, character of the route…"
+              placeholder="Reseña, carácter de la vía…"
               value={form.description}
               onChange={(e) => set('description', e.target.value)}
             />
           </label>
           <div className="grid-2">
             <label>
-              Tags <span className="hint">(comma separated)</span>
+              Etiquetas <span className="hint">(separadas por comas)</span>
               <input
                 type="text"
-                placeholder="crimpy, classic, pumpy"
+                placeholder="regletas, clásica, resistencia"
                 value={form.tags}
                 onChange={(e) => set('tags', e.target.value)}
               />
             </label>
             <label>
-              First ascent
+              Primera ascensión
               <input
                 type="text"
-                placeholder="Name, year"
+                placeholder="Nombre, año"
                 value={form.firstAscent}
                 onChange={(e) => set('firstAscent', e.target.value)}
               />
@@ -142,10 +143,10 @@ export function RouteFormModal({ open, editing, onCancel, onSave }: Props) {
           </div>
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={onCancel}>
-              Cancel
+              Cancelar
             </button>
             <button type="submit" className="primary-btn">
-              Save route
+              Guardar vía
             </button>
           </div>
         </form>

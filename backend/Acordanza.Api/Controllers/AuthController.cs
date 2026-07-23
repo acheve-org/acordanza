@@ -18,7 +18,7 @@ public class AuthController(UserManager<ApplicationUser> userManager, JwtTokenSe
         var user = await userManager.FindByNameAsync(request.Username);
         if (user is null || !await userManager.CheckPasswordAsync(user, request.Password))
         {
-            return Unauthorized(new { error = "Invalid username or password" });
+            return Unauthorized(new { error = "Usuario o contraseña incorrectos" });
         }
 
         var token = tokenService.CreateToken(user);

@@ -33,38 +33,38 @@ async function shot(name) {
 
 try {
   await page.goto(FRONTEND_URL);
-  await page.waitForSelector('text=A shared route log', { timeout: 15000 });
+  await page.waitForSelector('text=Un registro de vías compartido', { timeout: 15000 });
   await shot('login-screen');
 
   await page.fill('input[type="text"]', USERNAME);
   await page.fill('input[type="password"]', PASSWORD);
-  await page.click('button:has-text("Enter")');
-  await page.waitForSelector(`text=Logged in as ${USERNAME}`, { timeout: 15000 });
+  await page.click('button:has-text("Entrar")');
+  await page.waitForSelector(`text=Sesión iniciada como ${USERNAME}`, { timeout: 15000 });
   await shot('logged-in');
 
   // Add a route
-  await page.click('button:has-text("+ Add route")');
-  await page.waitForSelector('text=Add a route');
+  await page.click('button:has-text("+ Añadir vía")');
+  await page.waitForSelector('text=Añadir una vía');
   const addModal = page.locator('.modal');
-  await addModal.locator('label:has-text("Name") input').fill('Sunny Crimper');
-  await addModal.locator('label:has-text("Crag / Area") input').fill('Riverside Wall');
-  await addModal.locator('label:has-text("Grade") input').fill('5.10a');
-  await addModal.locator('label:has-text("Description") textarea').fill('Fun crimpy face climbing.');
-  await addModal.locator('label:has-text("Tags") input').fill('crimpy, classic');
-  await addModal.locator('label:has-text("First ascent") input').fill('Jane Doe, 1998');
-  await addModal.locator('button:has-text("Save route")').click();
+  await addModal.locator('label:has-text("Nombre") input').fill('Sunny Crimper');
+  await addModal.locator('label:has-text("Sector / Zona") input').fill('Riverside Wall');
+  await addModal.locator('label:has-text("Grado") input').fill('5.10a');
+  await addModal.locator('label:has-text("Descripción") textarea').fill('Fun crimpy face climbing.');
+  await addModal.locator('label:has-text("Etiquetas") input').fill('crimpy, classic');
+  await addModal.locator('label:has-text("Primera ascensión") input').fill('Jane Doe, 1998');
+  await addModal.locator('button:has-text("Guardar vía")').click();
   await page.waitForSelector('text=Sunny Crimper', { timeout: 10000 });
   await shot('route-added');
 
   // Open detail, log a tick
   await page.click('text=Sunny Crimper');
-  await page.waitForSelector('text=Log an ascent');
+  await page.waitForSelector('text=Registrar un ascenso');
   const detailModal = page.locator('.modal').last();
   await detailModal.locator('input[type="date"]').fill('2026-07-15');
   await detailModal.locator('input[type="number"]').fill('5');
-  await detailModal.locator('label:has-text("Notes") input').fill('Sent 2nd go, crux was the crimp move');
-  await detailModal.locator('button:has-text("Log it")').click();
-  await page.waitForSelector('text=Sent 2nd go', { timeout: 10000 });
+  await detailModal.locator('label:has-text("Notas") input').fill('Encadenada al segundo intento, paso clave la regleta');
+  await detailModal.locator('button:has-text("Registrar")').click();
+  await page.waitForSelector('text=Encadenada al segundo intento', { timeout: 10000 });
   await shot('tick-logged');
 
   // Delete the tick
@@ -73,22 +73,22 @@ try {
   assert.equal(await page.locator('.tick-row').count(), 0, 'tick should be removed');
 
   // Edit the route
-  await page.click('button:has-text("Edit")');
-  await page.waitForSelector('text=Edit route');
+  await page.click('button:has-text("Editar")');
+  await page.waitForSelector('text=Editar vía');
   const editModal = page.locator('.modal').last();
-  await editModal.locator('label:has-text("Name") input').fill('Sunny Crimper (Updated)');
-  await editModal.locator('button:has-text("Save route")').click();
+  await editModal.locator('label:has-text("Nombre") input').fill('Sunny Crimper (Updated)');
+  await editModal.locator('button:has-text("Guardar vía")').click();
   await page.waitForSelector('text=Sunny Crimper (Updated)', { timeout: 10000 });
   await shot('route-edited');
 
   // Filters
-  const nameFilter = 'input[placeholder="Route name or description…"]';
+  const nameFilter = 'input[placeholder="Nombre de la vía o descripción…"]';
   await page.fill(nameFilter, 'Sunny');
   await page.waitForTimeout(500);
   assert.equal(await page.locator('.route-card').count(), 1, 'name filter should match the route');
 
   await page.fill(nameFilter, 'nonexistentxyz');
-  await page.waitForSelector('text=No routes match yet', { timeout: 5000 });
+  await page.waitForSelector('text=No hay vías que coincidan', { timeout: 5000 });
   await shot('filter-empty');
 
   await page.fill(nameFilter, '');
@@ -96,9 +96,9 @@ try {
 
   // Delete the route (cleans up test data)
   await page.click('text=Sunny Crimper (Updated)');
-  await page.waitForSelector('text=Log an ascent');
+  await page.waitForSelector('text=Registrar un ascenso');
   page.once('dialog', (d) => d.accept());
-  await page.click('button:has-text("Delete")');
+  await page.click('button:has-text("Eliminar")');
   await page.waitForTimeout(1000);
   assert.equal(await page.locator('.route-card').count(), 0, 'route should be deleted');
   await shot('route-deleted');

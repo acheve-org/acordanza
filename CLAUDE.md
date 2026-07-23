@@ -34,6 +34,10 @@ Two independent processes talking over a JSON REST API (`VITE_API_URL`, default 
 - The backend is a thin CRUD layer over three EF Core entities — `ApplicationUser` (Identity), `ClimbingRoute`, `Tick` (a logged ascent of a route, many-to-one with both route and user) — exposed through `RoutesController` and `AuthController`. There is no business-logic layer between controllers and `AppDbContext`.
 - Auth: `AuthController` issues JWTs on login (`JwtTokenService`); the frontend attaches them as `Authorization: Bearer` on every request via `frontend/src/api/client.ts`. Accounts are created out-of-band via the `create-user` CLI command in `Program.cs`, never via HTTP.
 
+## Language
+
+All user-facing text — frontend UI (labels, buttons, placeholders, empty states, `confirm()`/error messages) and any string that can surface in the frontend (e.g. backend `{ error }` payloads returned to the client) — must be in Spanish. Code, comments, identifiers, commit messages, and CLAUDE.md docs stay in English. `frontend/src/api/types.ts` has a `routeTypeLabels` map for translating the backend's English `type` enum values (`sport`, `trad`, …) at display time; reuse it rather than hardcoding translations per component.
+
 ## Cross-cutting notes
 
 - Deploying: backend needs any .NET 10 + Postgres host with `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, `Cors:AllowedOrigins` set via environment variables; frontend is a static build (`bun run build` → `frontend/dist`) with `VITE_API_URL` baked in at build time. See root `README.md` for details. `infra/` holds a Terraform-managed Azure Container Apps deployment plus the GitHub Actions pipeline (`.github/workflows/backend-ci-cd.yml`) that builds, tests, and deploys the backend on push to `main` — see `infra/README.md`.

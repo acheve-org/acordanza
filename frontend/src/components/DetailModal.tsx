@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { CreateTickInput, RouteDetail } from '../api/types';
+import { routeTypeLabels } from '../api/types';
 
 interface Props {
   route: RouteDetail | null;
@@ -42,20 +43,20 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onAddTick, onDel
           <div>
             <h2>{route.name}</h2>
             <p className="detail-meta">
-              {route.grade} ({route.gradeSystem}) · {route.crag} · {route.type}
+              {route.grade} ({route.gradeSystem}) · {route.crag} · {routeTypeLabels[route.type] ?? route.type}
             </p>
           </div>
           <div className="detail-actions">
             <button className="ghost-btn small" onClick={onEdit}>
-              Edit
+              Editar
             </button>
             <button className="ghost-btn small danger" onClick={onDelete}>
-              Delete
+              Eliminar
             </button>
           </div>
         </div>
-        <p className="detail-desc">{route.description || 'No description yet.'}</p>
-        {route.firstAscent && <p className="detail-fa">First ascent: {route.firstAscent}</p>}
+        <p className="detail-desc">{route.description || 'Sin descripción todavía.'}</p>
+        {route.firstAscent && <p className="detail-fa">Primera ascensión: {route.firstAscent}</p>}
         <div className="tag-row">
           {tags.map((t) => (
             <span key={t} className="tag-chip">
@@ -66,15 +67,15 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onAddTick, onDel
 
         <hr className="divider" />
 
-        <h3>Log an ascent</h3>
+        <h3>Registrar un ascenso</h3>
         <form className="tick-form" onSubmit={handleTickSubmit}>
           <div className="grid-3">
             <label>
-              Date
+              Fecha
               <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
             </label>
             <label>
-              Rating <span className="hint">(1–5)</span>
+              Puntuación <span className="hint">(1–5)</span>
               <input
                 type="number"
                 min={1}
@@ -84,25 +85,25 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onAddTick, onDel
               />
             </label>
             <button type="submit" className="primary-btn">
-              Log it
+              Registrar
             </button>
           </div>
           <label>
-            Notes
+            Notas
             <input
               type="text"
-              placeholder="Sent 2nd go, crux was the crimp move…"
+              placeholder="Encadenada al segundo intento, el paso clave fue la regleta…"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
           </label>
         </form>
 
-        <h3>Ascent log</h3>
+        <h3>Registro de ascensos</h3>
         <div className="ticks-list">
           {route.ticks.length === 0 && (
             <p className="hint" style={{ fontSize: 13 }}>
-              No ascents logged yet.
+              Todavía no hay ascensos registrados.
             </p>
           )}
           {route.ticks.map((t) => (
@@ -112,7 +113,7 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onAddTick, onDel
                 {t.rating ? ` · ${'★'.repeat(t.rating)}` : ''}
                 {t.notes && <div className="tr-notes">{t.notes}</div>}
               </div>
-              <button className="tick-remove" title="Remove" onClick={() => onDeleteTick(t.id)}>
+              <button className="tick-remove" title="Eliminar" onClick={() => onDeleteTick(t.id)}>
                 &times;
               </button>
             </div>

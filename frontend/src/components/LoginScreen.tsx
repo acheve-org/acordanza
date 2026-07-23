@@ -14,7 +14,7 @@ export function LoginScreen() {
     try {
       await login(username, password);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Login failed');
+      setError(err instanceof ApiError ? err.message : 'No se pudo iniciar sesión');
     }
   }
 
@@ -25,10 +25,10 @@ export function LoginScreen() {
           <span className="brand-mark">&#9670;</span>
           <span className="brand-name">TOPO</span>
         </div>
-        <p className="login-sub">A shared route log. Members only.</p>
+        <p className="login-sub">Un registro de vías compartido. Solo para miembros.</p>
         <form onSubmit={handleSubmit}>
           <label>
-            Username
+            Usuario
             <input
               type="text"
               required
@@ -39,7 +39,7 @@ export function LoginScreen() {
             />
           </label>
           <label>
-            Password
+            Contraseña
             <input
               type="password"
               required
@@ -49,7 +49,7 @@ export function LoginScreen() {
             />
           </label>
           <button type="submit" className="primary-btn">
-            Enter
+            Entrar
           </button>
           <p className="error-text">{error}</p>
         </form>

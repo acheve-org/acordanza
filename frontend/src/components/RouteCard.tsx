@@ -1,4 +1,5 @@
 import type { RouteSummary } from '../api/types';
+import { routeTypeLabels } from '../api/types';
 
 interface Props {
   route: RouteSummary;
@@ -13,9 +14,9 @@ export function RouteCard({ route, onClick }: Props) {
         <div className="rc-name">{route.name}</div>
         <div className="rc-sub">{route.crag}</div>
       </div>
-      <span className="rc-type">{route.type}</span>
+      <span className="rc-type">{routeTypeLabels[route.type] ?? route.type}</span>
       <span className="rc-ticks">
-        {route.tickCount} log{route.tickCount === 1 ? '' : 's'}
+        {route.tickCount} registro{route.tickCount === 1 ? '' : 's'}
       </span>
     </div>
   );
