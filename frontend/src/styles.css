@@ -171,6 +171,39 @@ input:focus, select:focus, textarea:focus {
 .topbar-right { display: flex; align-items: center; gap: var(--space-lg); }
 #who { color: var(--text-dim); font-size: 14px; }
 
+.user-menu { position: relative; }
+.user-menu-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--radius-full);
+}
+.user-menu-trigger svg { width: 20px; height: 20px; }
+.user-menu-trigger:hover { border-color: var(--color-on-dark); color: var(--text); }
+.user-menu-popup {
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  min-width: 160px;
+  z-index: 10;
+}
+.user-menu-name { color: var(--text-dim); font-size: 13px; text-align: center; }
+
 .layout {
   display: grid;
   grid-template-columns: 260px 1fr;

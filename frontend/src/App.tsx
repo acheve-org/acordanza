@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from './context/AuthContext';
 import { LoginScreen } from './components/LoginScreen';
 import { Filters } from './components/Filters';
@@ -21,6 +21,20 @@ function App() {
 
   const [detailRouteId, setDetailRouteId] = useState<number | null>(null);
   const [detailRoute, setDetailRoute] = useState<RouteDetail | null>(null);
+
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [userMenuOpen]);
 
   useEffect(() => {
     if (!username) return;
@@ -86,13 +100,38 @@ function App() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark">&#9670;</span>
-          <span className="brand-name">TOPO</span>
+          <span className="brand-name">Acordanza</span>
         </div>
         <div className="topbar-right">
-          <span>Sesión iniciada como {username}</span>
-          <button className="ghost-btn" onClick={logout}>
-            Cerrar sesión
-          </button>
+          <div className="user-menu" ref={userMenuRef}>
+            <button
+              className="user-menu-trigger"
+              aria-label={username}
+              title={username}
+              aria-haspopup="true"
+              aria-expanded={userMenuOpen}
+              onClick={() => setUserMenuOpen((open) => !open)}
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8v1H4v-1z" />
+              </svg>
+            </button>
+            {userMenuOpen && (
+              <div className="user-menu-popup">
+                <span className="user-menu-name">{username}</span>
+                <button
+                  className="ghost-btn small full-width"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    logout();
+                  }}
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 

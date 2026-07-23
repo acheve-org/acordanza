@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 
@@ -8,7 +8,7 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError('');
     try {
@@ -23,9 +23,9 @@ export function LoginScreen() {
       <div className="login-card">
         <div className="brand">
           <span className="brand-mark">&#9670;</span>
-          <span className="brand-name">TOPO</span>
+          <span className="brand-name">Acordanza</span>
         </div>
-        <p className="login-sub">Un registro de vías compartido. Solo para miembros.</p>
+        <p className="login-sub">Encuentra la ruta que quieres escalar. Solo para miembros.</p>
         <form onSubmit={handleSubmit}>
           <label>
             Usuario
