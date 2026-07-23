@@ -1,0 +1,35 @@
+# Local dev overlay, auto-merged by `docker compose up` alongside docker-compose.yml.
+# Adds the backend as a container running the SDK image with `dotnet watch`, so edits
+# under backend/Acordanza.Api hot-reload and a debugger (e.g. Rider's Docker Compose
+# debug) can attach to the running process.
+#
+# Requires JWT_KEY set in .env (see .env.example) — no default, since it signs auth tokens.
+services:
+  backend:
+    build:
+      context: ./backend/Acordanza.Api
+      dockerfile: Dockerfile.dev
+    container_name: acordanza-backend-dev
+    restart: unless-stopped
+    # Overrides the image's non-root USER: the bin/obj named volumes below are
+    # root-owned on first creation, and the entrypoint (running as root) chowns
+    # them before dropping to the non-root app user to actually run dotnet.
+    user: root
+    ports:
+      - "${BACKEND_PORT:-5073}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-acordanza};Username=${POSTGRES_USER:-acordanza};Password=${POSTGRES_PASSWORD:-acordanza}
+      Jwt__Key: ${JWT_KEY:?set JWT_KEY in .env}
+      Cors__AllowedOrigins__0: ${FRONTEND_URL:-http://localhost:5173}
+    volumes:
+      - ./backend/Acordanza.Api:/src
+      - acordanza-backend-bin:/src/bin
+      - acordanza-backend-obj:/src/obj
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  acordanza-backend-bin:
+  acordanza-backend-obj:

@@ -1,0 +1,25 @@
+# Dev image: full SDK (not the distroless runtime in Dockerfile) so `dotnet watch`
+# and debugger attach (e.g. Rider's Docker Compose debug) both work in-container.
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+WORKDIR /src
+
+COPY Acordanza.Api.csproj .
+RUN dotnet restore Acordanza.Api.csproj
+
+COPY . .
+
+# Bind-mounted source can sit on a filesystem (macOS/Windows) where the SDK's
+# default inotify-based watcher misses change events.
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
+ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8080
+
+COPY docker-entrypoint.dev.sh /usr/local/bin/docker-entrypoint.dev.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.dev.sh
+
+# Non-root, matching the runtime image (Dockerfile). docker-compose.override.yml
+# runs this container as root regardless, so the entrypoint can chown the
+# bin/obj volumes before dropping to this user for the actual process.
+USER $APP_UID
+
+ENTRYPOINT ["docker-entrypoint.dev.sh", "dotnet", "watch", "run", "--no-launch-profile", "--project", "Acordanza.Api.csproj"]

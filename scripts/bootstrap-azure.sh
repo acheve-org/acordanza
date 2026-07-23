@@ -18,7 +18,7 @@
 #     place — Terraform can't grant itself its own initial permissions.
 set -euo pipefail
 
-GITHUB_REPO="hbiarge/acordanza"
+GITHUB_REPO="acheve-org/acordanza"
 LOCATION="spaincentral"
 
 TF_STATE_RESOURCE_GROUP="rg-acordanza-tfstate"
