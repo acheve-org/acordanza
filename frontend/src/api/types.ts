@@ -52,6 +52,20 @@ export interface CreateTickInput {
   notes: string;
 }
 
+export interface LoginResponse {
+  token: string | null;
+  username: string | null;
+  mfaRequired: boolean;
+  sessionId: string | null;
+  options: unknown;
+}
+
+export interface PasskeySummary {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
 // Route `type` values are stored in English to match the backend; this maps them to
 // the Spanish labels shown in the UI (see root CLAUDE.md — all user-facing text is Spanish).
 export const routeTypeLabels: Record<string, string> = {

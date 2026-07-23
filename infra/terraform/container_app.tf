@@ -131,6 +131,11 @@ resource "azurerm_container_app" "main" {
         secret_name = "db-connection-string"
       }
 
+      env {
+        name  = "Fido2__ServerDomain"
+        value = var.fido2_server_domain
+      }
+
       dynamic "env" {
         for_each = { for idx, origin in concat(var.cors_allowed_origins, [local.frontend_origin, local.frontend_custom_origin]) : idx => origin }
         content {

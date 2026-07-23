@@ -388,8 +388,50 @@ input:focus, select:focus, textarea:focus {
 .tick-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; line-height: 1; }
 .tick-remove:hover { color: var(--danger); }
 
+.login-mfa { display: flex; flex-direction: column; gap: var(--space-md); }
+
+/* Settings page */
+.settings-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--space-xxl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+.settings-page h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 1.33;
+  margin: 0;
+}
+.settings-section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.settings-section h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin: 0;
+}
+.settings-section form { display: flex; flex-direction: column; gap: var(--space-md); }
+.success-text { color: var(--accent-2); font-size: 13px; }
+
+.passkey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
+.passkey-form { border-top: 1px solid var(--border); padding-top: var(--space-md); }
+
 @media (max-width: 720px) {
   .layout { grid-template-columns: 1fr; padding: var(--space-xl); }
   .filters { position: static; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .settings-page { padding: var(--space-xl); }
 }

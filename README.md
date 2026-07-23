@@ -7,8 +7,9 @@ ASP.NET Core (.NET 10) Web API + PostgreSQL backend, React + Vite frontend.
 - Add routes: name, crag, grade (any grading system), type (sport/trad/boulder/etc.), description, tags, first ascent
 - Search & filter by name/description, crag, type, and tag
 - Log ascents ("ticks") per route: who, when, rating, notes
-- Real user accounts (JWT auth) — everyone who has an account can see and edit everything
+- Real user accounts (JWT auth, email as username) — everyone who has an account can see and edit everything
 - Accounts are admin-provisioned; there is no public sign-up
+- Optional passkey (WebAuthn/FIDO2) second factor, and a settings page to manage it and change your password
 
 ## Architecture
 ```
@@ -42,7 +43,7 @@ The API listens on `http://localhost:5073` (see `Properties/launchSettings.json`
 
 Accounts are created via a CLI command (no public registration endpoint):
 ```
-dotnet run -- create-user <username> <password>
+dotnet run -- create-user <email> <password>
 ```
 
 #### Alternative: run the backend in a container
@@ -52,7 +53,7 @@ Instead of step 2 + step 3 above, run Postgres and the backend together in Docke
 echo "JWT_KEY=$(openssl rand -base64 48)" >> .env   # first time only
 docker compose up -d --build
 ```
-This uses `Dockerfile.dev` and `docker-compose.override.yml` (auto-merged by `docker compose up`, no flag needed): the API runs under `dotnet watch`, so edits under `backend/Acordanza.Api` hot-reload in the running container, and a debugger can attach to it (e.g. Rider's Docker Compose debug support). Migrations still run automatically on startup, so there's no separate `dotnet ef database update` step; account creation still needs the CLI command above, run inside the container: `docker compose exec backend dotnet run -- create-user <username> <password>`.
+This uses `Dockerfile.dev` and `docker-compose.override.yml` (auto-merged by `docker compose up`, no flag needed): the API runs under `dotnet watch`, so edits under `backend/Acordanza.Api` hot-reload in the running container, and a debugger can attach to it (e.g. Rider's Docker Compose debug support). Migrations still run automatically on startup, so there's no separate `dotnet ef database update` step; account creation still needs the CLI command above, run inside the container: `docker compose exec backend dotnet run -- create-user <email> <password>`.
 
 Caveat: adding a new route (e.g. a new `MapGet`/`MapControllers` call or controller action) isn't picked up by hot reload — same as `dotnet watch` on a host, but the container has no interactive terminal to prompt for a restart. Run `docker compose restart backend` after adding a route.
 

@@ -46,7 +46,11 @@ swapped at runtime once bundled. The backend's CORS config, in turn,
 includes both the frontend Container App's FQDN and its custom domain
 automatically (`local.frontend_origin` / `local.frontend_custom_origin` in
 `infra/terraform/container_app.tf`) — `cors_allowed_origins` is only for
-extra origins beyond those two.
+extra origins beyond those two. The backend's WebAuthn/passkey config
+(`Fido2:ServerDomain`) reuses that same origin list for its allowed
+origins; `var.fido2_server_domain` (the relying party ID) is set
+separately to the apex `acordanza.eu`, since it must be the frontend's
+own origin or a registrable parent of it, not the API's domain.
 
 Both apps are also bound to custom domains with free Azure-managed
 certificates — see "Custom domains" below.

@@ -77,6 +77,7 @@ namespace Acordanza.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NormalizedEmail")
+                        .IsUnique()
                         .HasDatabaseName("EmailIndex");
 
                     b.HasIndex("NormalizedUserName")
@@ -142,6 +143,49 @@ namespace Acordanza.Api.Migrations
                     b.HasIndex("Grade");
 
                     b.ToTable("Routes");
+                });
+
+            modelBuilder.Entity("Acordanza.Api.Models.PasskeyCredential", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("AaGuid")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("CredentialId")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("PublicKey")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("SignCount")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CredentialId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PasskeyCredentials");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.Tick", b =>
@@ -323,6 +367,17 @@ namespace Acordanza.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("AddedBy");
+                });
+
+            modelBuilder.Entity("Acordanza.Api.Models.PasskeyCredential", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.Tick", b =>

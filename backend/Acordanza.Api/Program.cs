@@ -2,6 +2,7 @@ using System.Text;
 using Acordanza.Api.Data;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
+using Fido2NetLib;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -22,7 +23,7 @@ builder.Services
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = false;
         options.Password.RequireDigit = false;
-        options.User.RequireUniqueEmail = false;
+        options.User.RequireUniqueEmail = true;
     })
     .AddEntityFrameworkStores<AppDbContext>();
 
@@ -55,6 +56,15 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod());
 });
 
+var fido2Section = builder.Configuration.GetSection("Fido2");
+builder.Services.AddFido2(options =>
+{
+    options.ServerDomain = fido2Section["ServerDomain"];
+    options.ServerName = fido2Section["ServerName"];
+    options.Origins = new HashSet<string>(allowedOrigins);
+});
+builder.Services.AddMemoryCache();
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -70,13 +80,13 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// --- Admin CLI: `dotnet run -- create-user <username> <password>` creates an account. ---
+// --- Admin CLI: `dotnet run -- create-user <email> <password>` creates an account. ---
 // Registration is intentionally not exposed over HTTP; accounts are admin-provisioned.
 if (args.Length > 0 && args[0] == "create-user")
 {
     if (args.Length != 3)
     {
-        Console.WriteLine("Usage: dotnet run -- create-user <username> <password>");
+        Console.WriteLine("Usage: dotnet run -- create-user <email> <password>");
         return 1;
     }
 
@@ -86,7 +96,7 @@ if (args.Length > 0 && args[0] == "create-user")
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    var user = new ApplicationUser { UserName = args[1] };
+    var user = new ApplicationUser { UserName = args[1], Email = args[1] };
     var result = await userManager.CreateAsync(user, args[2]);
     if (!result.Succeeded)
     {

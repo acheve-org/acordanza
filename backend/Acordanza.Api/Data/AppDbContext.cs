@@ -9,10 +9,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<ClimbingRoute> Routes => Set<ClimbingRoute>();
     public DbSet<Tick> Ticks => Set<Tick>();
+    public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<ApplicationUser>(entity =>
+        {
+            entity.HasIndex(u => u.NormalizedEmail).IsUnique();
+        });
 
         builder.Entity<ClimbingRoute>(entity =>
         {
@@ -38,6 +44,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .WithMany()
                 .HasForeignKey(t => t.ClimberUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<PasskeyCredential>(entity =>
+        {
+            entity.HasIndex(p => p.UserId);
+            entity.HasIndex(p => p.CredentialId).IsUnique();
+
+            entity.HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

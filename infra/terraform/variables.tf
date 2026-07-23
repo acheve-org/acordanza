@@ -88,6 +88,12 @@ variable "backend_custom_domain" {
   default     = "api.acordanza.eu"
 }
 
+variable "fido2_server_domain" {
+  description = "WebAuthn/passkey relying party ID (Fido2:ServerDomain). Must be the frontend's origin or a registrable parent of it — not var.backend_custom_domain — since the browser performs the WebAuthn ceremony on the page it's actually on (the frontend). The apex domain covers var.frontend_custom_domain as a subdomain, so passkeys keep working if the frontend's custom domain ever changes to another *.acordanza.eu name."
+  type        = string
+  default     = "acordanza.eu"
+}
+
 variable "landing_custom_domain" {
   description = "Apex domain bound to the landing page Static Web App. Apex domains use dns-txt-token validation, not CNAME — see infra/README.md for the DNS records required."
   type        = string
@@ -112,8 +118,9 @@ variable "container_app_min_replicas" {
 }
 
 variable "container_app_max_replicas" {
-  type    = number
-  default = 2
+  description = "Capped at 1 for now: the backend caches WebAuthn/passkey challenges in-process (IMemoryCache, see PasskeysController/AuthController), which isn't shared across replicas. Raise this again once that cache is backed by something shared (e.g. Postgres or Redis) or ingress sticky sessions are enabled."
+  type        = number
+  default     = 1
 }
 
 variable "container_app_web_min_replicas" {

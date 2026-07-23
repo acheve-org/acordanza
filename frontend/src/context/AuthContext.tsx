@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { get, type CredentialRequestOptionsJSON } from '@github/webauthn-json';
 import { api, setAuthToken } from '../api/client';
+import type { LoginResponse } from '../api/types';
 
 const STORAGE_KEY = 'acordanza.auth';
 
@@ -8,10 +10,16 @@ interface StoredAuth {
   username: string;
 }
 
+export interface PasskeyChallenge {
+  sessionId: string;
+  options: unknown;
+}
+
 interface AuthContextValue {
   username: string | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<PasskeyChallenge | null>;
+  completeLoginWithPasskey: (challenge: PasskeyChallenge) => Promise<void>;
   logout: () => void;
 }
 
@@ -41,11 +49,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(username: string, password: string) {
-    const res = await api.post<StoredAuth>('/auth/login', { username, password });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(res));
-    setAuthToken(res.token);
-    setUsername(res.username);
+  function applySession(token: string, sessionUsername: string) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, username: sessionUsername }));
+    setAuthToken(token);
+    setUsername(sessionUsername);
+  }
+
+  async function login(email: string, password: string): Promise<PasskeyChallenge | null> {
+    const res = await api.post<LoginResponse>('/auth/login', { email, password });
+    if (res.mfaRequired && res.sessionId) {
+      return { sessionId: res.sessionId, options: res.options };
+    }
+    applySession(res.token!, res.username!);
+    return null;
+  }
+
+  async function completeLoginWithPasskey(challenge: PasskeyChallenge) {
+    const assertionResponse = await get({
+      publicKey: challenge.options,
+    } as CredentialRequestOptionsJSON);
+    const res = await api.post<LoginResponse>('/auth/login/passkey', {
+      sessionId: challenge.sessionId,
+      assertionResponse,
+    });
+    applySession(res.token!, res.username!);
   }
 
   function logout() {
@@ -55,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ username, loading, login, logout }}>
+    <AuthContext.Provider value={{ username, loading, login, completeLoginWithPasskey, logout }}>
       {children}
     </AuthContext.Provider>
   );
