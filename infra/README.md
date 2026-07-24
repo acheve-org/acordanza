@@ -117,6 +117,15 @@ certificates — see "Custom domains" below.
      `openssl rand -base64 24`).
    - `JWT_KEY` — the JWT signing key (e.g. `openssl rand -base64 48`). This
      is a *different* key than the one used for local dev.
+   - `RESEND_API_KEY` — a Resend API key, used to send password-reset
+     emails (`Resend:ApiKey` in the backend). Resend isn't provisioned by
+     Terraform — create the account and key yourself, then also verify a
+     domain for `var.resend_from_email` (Resend's domain verification, which
+     adds DKIM/SPF-related DNS records — this doesn't touch or conflict with
+     the existing Gandi mail SPF record noted under "Custom domains" below,
+     as long as you merge Resend's `include:` into the existing SPF TXT
+     record rather than adding a second one). Without a verified domain,
+     `Resend:FromEmail` will fail to send or land in spam.
 
 4. **Push to `main`, or run the workflow manually** (Actions → "CI/CD" → Run
    workflow). The first run applies the Terraform plan (creating the ACR,

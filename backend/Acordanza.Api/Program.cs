@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Acordanza.Api.Data;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
@@ -27,7 +28,29 @@ builder.Services
         options.Password.RequireDigit = false;
         options.User.RequireUniqueEmail = true;
     })
-    .AddEntityFrameworkStores<AppDbContext>();
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+// Password-reset tokens embed the user's SecurityStamp, so they're single-use
+// (ResetPasswordAsync rotates the stamp on success) — this just tightens the
+// window an unused link stays valid from Identity's 1-day default.
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+{
+    options.TokenLifespan = TimeSpan.FromHours(1);
+});
+
+// Resend needs a real API key (production); without one (local dev) fall
+// back to logging the email instead, so the forgot-password flow can be
+// exercised end-to-end with zero email-provider setup.
+if (string.IsNullOrEmpty(builder.Configuration["Resend:ApiKey"]))
+{
+    builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+}
+else
+{
+    builder.Services.AddHttpClient<ResendEmailSender>();
+    builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<ResendEmailSender>());
+}
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Missing Jwt:Key configuration");
@@ -80,6 +103,23 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+
+// Caps how many password-reset emails a single caller (by IP) can trigger —
+// the endpoint already avoids leaking whether an account exists, but without
+// this an attacker could still flood a known user's inbox (and burn
+// Resend's free-tier quota) with a tight request loop.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("forgot-password", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 3,
+            Window = TimeSpan.FromMinutes(15),
+            QueueLimit = 0
+        }));
+});
 
 // The container is never reached directly from the internet — only Azure
 // Container Apps' own edge can route to it — so it's safe to trust the

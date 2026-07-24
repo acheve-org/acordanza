@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -21,7 +22,9 @@ public class AuthController(
     UserManager<ApplicationUser> userManager,
     JwtTokenService tokenService,
     IFido2 fido2,
-    IMemoryCache cache) : ControllerBase
+    IMemoryCache cache,
+    IConfiguration configuration,
+    IEmailSender emailSender) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
@@ -127,6 +130,60 @@ public class AuthController(
         if (user is null) return Unauthorized();
         return Ok(new MeResponse(user.UserName!));
     }
+
+    [EnableRateLimiting("forgot-password")]
+    [HttpPost("forgot-password")]
+    public async Task<ActionResult> ForgotPassword(ForgotPasswordRequest request)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user is not null)
+        {
+            var token = await userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+            var frontendBaseUrl = configuration["Frontend:BaseUrl"]
+                ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
+            var resetLink = $"{frontendBaseUrl}/reset-password" +
+                $"?email={Uri.EscapeDataString(user.Email!)}&token={encodedToken}";
+            await emailSender.SendAsync(user.Email!, "Restablece tu contraseña de Acordanza",
+                BuildResetPasswordEmailHtml(resetLink));
+        }
+
+        // Same response whether or not the account exists, so this endpoint
+        // can't be used to enumerate registered emails.
+        return Ok(new { ok = true });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<ActionResult> ResetPassword(ResetPasswordRequest request)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+
+        string token;
+        try
+        {
+            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+        }
+        catch (FormatException)
+        {
+            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        }
+
+        var result = await userManager.ResetPasswordAsync(user, token, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            var error = result.Errors.FirstOrDefault()?.Description ?? "El enlace no es válido o ha caducado";
+            return BadRequest(new { error });
+        }
+
+        return Ok(new { ok = true });
+    }
+
+    private static string BuildResetPasswordEmailHtml(string resetLink) => $"""
+        <p>Has solicitado restablecer tu contraseña de Acordanza.</p>
+        <p><a href="{resetLink}">Haz clic aquí para elegir una nueva contraseña</a>.</p>
+        <p>Si tú no has solicitado esto, puedes ignorar este correo.</p>
+        """;
 
     private static string CacheKey(string sessionId) => $"login-passkey:{sessionId}";
 

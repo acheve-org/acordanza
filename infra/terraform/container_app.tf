@@ -76,6 +76,11 @@ resource "azurerm_container_app" "main" {
     value = local.db_connection_string
   }
 
+  secret {
+    name  = "resend-api-key"
+    value = var.resend_api_key
+  }
+
   ingress {
     external_enabled = true
     target_port      = 8080
@@ -134,6 +139,26 @@ resource "azurerm_container_app" "main" {
       env {
         name  = "Fido2__ServerDomain"
         value = var.fido2_server_domain
+      }
+
+      env {
+        name  = "Frontend__BaseUrl"
+        value = "https://${var.frontend_custom_domain}"
+      }
+
+      env {
+        name        = "Resend__ApiKey"
+        secret_name = "resend-api-key"
+      }
+
+      env {
+        name  = "Resend__FromEmail"
+        value = var.resend_from_email
+      }
+
+      env {
+        name  = "Resend__FromName"
+        value = "Acordanza"
       }
 
       dynamic "env" {

@@ -70,6 +70,18 @@ variable "jwt_audience" {
   default     = "Acordanza.Client"
 }
 
+variable "resend_api_key" {
+  description = "Resend API key used to send password-reset emails. Supply via TF_VAR_resend_api_key (a GitHub Actions secret) — never commit this."
+  type        = string
+  sensitive   = true
+}
+
+variable "resend_from_email" {
+  description = "Verified Resend sender address (Resend:FromEmail) password-reset emails are sent from."
+  type        = string
+  default     = "noreply@acordanza.eu"
+}
+
 variable "cors_allowed_origins" {
   description = "Additional origins allowed to call the API, beyond the deployed frontend Container App's own URL and var.frontend_custom_domain (both added automatically)."
   type        = list(string)

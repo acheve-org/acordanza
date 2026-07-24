@@ -9,3 +9,7 @@ public record LoginResponse(string? Token, string? Username, bool MfaRequired, s
 public record PasskeyLoginRequest(string SessionId, AuthenticatorAssertionRawResponse AssertionResponse);
 
 public record MeResponse(string Username);
+
+public record ForgotPasswordRequest(string Email);
+
+public record ResetPasswordRequest(string Email, string Token, string NewPassword);

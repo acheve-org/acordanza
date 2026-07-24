@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react';
 import { useAuth, type PasskeyChallenge } from '../context/AuthContext';
 import { ApiError } from '../api/client';
+import * as authApi from '../api/auth';
 
 export function LoginScreen() {
   const { login, beginPasskeyLogin, completeLoginWithPasskey } = useAuth();
@@ -9,6 +10,10 @@ export function LoginScreen() {
   const [error, setError] = useState('');
   const [challenge, setChallenge] = useState<PasskeyChallenge | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSubmitted, setForgotSubmitted] = useState(false);
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -45,6 +50,70 @@ export function LoginScreen() {
     } finally {
       setVerifying(false);
     }
+  }
+
+  async function handleForgotSubmit(e: SubmitEvent) {
+    e.preventDefault();
+    setForgotError('');
+    try {
+      await authApi.forgotPassword(forgotEmail);
+      setForgotSubmitted(true);
+    } catch (err) {
+      setForgotError(err instanceof ApiError ? err.message : 'No se pudo enviar el correo');
+    }
+  }
+
+  function backToLogin() {
+    setForgotMode(false);
+    setForgotEmail('');
+    setForgotError('');
+    setForgotSubmitted(false);
+  }
+
+  if (forgotMode) {
+    return (
+      <div className="login-screen">
+        <div className="login-card">
+          <div className="brand">
+            <span className="brand-mark">&#9670;</span>
+            <span className="brand-name">Acordanza</span>
+          </div>
+          {forgotSubmitted ? (
+            <>
+              <p className="login-sub">
+                Si existe una cuenta con ese correo, te hemos enviado un enlace para restablecer la contraseña.
+              </p>
+              <button type="button" className="ghost-btn small full-width" onClick={backToLogin}>
+                Volver
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="login-sub">Introduce tu correo electrónico y te enviaremos un enlace para restablecerla.</p>
+              <form onSubmit={handleForgotSubmit}>
+                <label>
+                  Correo electrónico
+                  <input
+                    type="email"
+                    required
+                    placeholder="alex@example.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                </label>
+                <button type="submit" className="primary-btn">
+                  Enviar enlace
+                </button>
+                <p className="error-text">{forgotError}</p>
+                <button type="button" className="ghost-btn small full-width" onClick={backToLogin}>
+                  Volver
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      </div>
+    );
   }
 
   if (challenge) {
@@ -108,6 +177,9 @@ export function LoginScreen() {
             Entrar
           </button>
           <p className="error-text">{error}</p>
+          <button type="button" className="ghost-btn small full-width" onClick={() => setForgotMode(true)}>
+            ¿Olvidaste tu contraseña?
+          </button>
         </form>
         <div className="login-divider">
           <span>o</span>

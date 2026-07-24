@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Navigate, Outlet, Route, Routes } from 'react-router';
+import { Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { useAuth } from './context/AuthContext';
 import { LoginScreen } from './components/LoginScreen';
 import { MainView } from './pages/MainView';
 import { SettingsPage } from './pages/SettingsPage';
+import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 
 function AppLayout() {
   const { username, logout } = useAuth();
@@ -71,6 +72,10 @@ function AppLayout() {
 
 function App() {
   const { username, loading } = useAuth();
+  const location = useLocation();
+
+  // Reachable while logged out — this is where the password-reset email links.
+  if (location.pathname === '/reset-password') return <ResetPasswordScreen />;
 
   if (loading) return null;
   if (!username) return <LoginScreen />;
