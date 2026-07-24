@@ -6,8 +6,10 @@ using Fido2NetLib;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +66,17 @@ builder.Services.AddFido2(options =>
     options.Origins = new HashSet<string>(allowedOrigins);
 });
 builder.Services.AddMemoryCache();
+
+// Guards unauthenticated, no-body endpoints (currently just the usernameless
+// passkey login options request) from being used to flood IMemoryCache with
+// challenge entries at no cost to the caller.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("PasskeyOptions", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+});
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
@@ -129,6 +142,7 @@ app.UseCors("Frontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 

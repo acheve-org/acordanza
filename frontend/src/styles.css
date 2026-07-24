@@ -90,6 +90,20 @@ body {
 }
 .login-sub { color: var(--text-dim); font-size: 14px; line-height: 1.43; margin: var(--space-md) 0 var(--space-xl); }
 .login-card form { display: flex; flex-direction: column; gap: var(--space-lg); }
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-lg) 0;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.login-divider::before, .login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
 
 label {
   display: flex;

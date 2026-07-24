@@ -8,6 +8,7 @@ using Fido2NetLib.Objects;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -50,6 +51,22 @@ public class AuthController(
         return Ok(new LoginResponse(null, null, true, sessionId, options));
     }
 
+    [EnableRateLimiting("PasskeyOptions")]
+    [HttpPost("login/passkey/options")]
+    public ActionResult<LoginResponse> LoginWithPasskeyOptions()
+    {
+        var options = fido2.GetAssertionOptions(new GetAssertionOptionsParams
+        {
+            AllowedCredentials = [],
+            UserVerification = UserVerificationRequirement.Required
+        });
+
+        var sessionId = Guid.NewGuid().ToString();
+        cache.Set(CacheKey(sessionId), new LoginPasskeyChallenge(null, options), TimeSpan.FromMinutes(5));
+
+        return Ok(new LoginResponse(null, null, true, sessionId, options));
+    }
+
     [HttpPost("login/passkey")]
     public async Task<ActionResult<LoginResponse>> LoginWithPasskey(PasskeyLoginRequest request)
     {
@@ -59,12 +76,24 @@ public class AuthController(
         }
         cache.Remove(CacheKey(request.SessionId));
 
-        var user = await userManager.FindByIdAsync(challenge.UserId);
-        if (user is null) return Unauthorized();
+        ApplicationUser? user;
+        PasskeyCredential? stored;
+        if (challenge.UserId is not null)
+        {
+            user = await userManager.FindByIdAsync(challenge.UserId);
+            if (user is null) return Unauthorized();
 
-        var stored = await db.PasskeyCredentials
-            .FirstOrDefaultAsync(p => p.UserId == user.Id && p.CredentialId == request.AssertionResponse.RawId);
-        if (stored is null) return Unauthorized(new { error = "Llave de acceso desconocida" });
+            stored = await db.PasskeyCredentials
+                .FirstOrDefaultAsync(p => p.UserId == user.Id && p.CredentialId == request.AssertionResponse.RawId);
+        }
+        else
+        {
+            stored = await db.PasskeyCredentials
+                .FirstOrDefaultAsync(p => p.CredentialId == request.AssertionResponse.RawId);
+            user = stored is null ? null : await userManager.FindByIdAsync(stored.UserId);
+        }
+
+        if (user is null || stored is null) return Unauthorized(new { error = "Llave de acceso desconocida" });
 
         try
         {
@@ -101,5 +130,5 @@ public class AuthController(
 
     private static string CacheKey(string sessionId) => $"login-passkey:{sessionId}";
 
-    private record LoginPasskeyChallenge(string UserId, AssertionOptions Options);
+    private record LoginPasskeyChallenge(string? UserId, AssertionOptions Options);
 }

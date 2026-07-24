@@ -3,7 +3,7 @@ import { useAuth, type PasskeyChallenge } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 
 export function LoginScreen() {
-  const { login, completeLoginWithPasskey } = useAuth();
+  const { login, beginPasskeyLogin, completeLoginWithPasskey } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,6 +19,17 @@ export function LoginScreen() {
         setChallenge(pending);
         await confirmPasskey(pending);
       }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo iniciar sesión');
+    }
+  }
+
+  async function handlePasskeyLogin() {
+    setError('');
+    try {
+      const pending = await beginPasskeyLogin();
+      setChallenge(pending);
+      await confirmPasskey(pending);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo iniciar sesión');
     }
@@ -98,6 +109,12 @@ export function LoginScreen() {
           </button>
           <p className="error-text">{error}</p>
         </form>
+        <div className="login-divider">
+          <span>o</span>
+        </div>
+        <button type="button" className="ghost-btn full-width" onClick={handlePasskeyLogin}>
+          Usar llave de acceso
+        </button>
       </div>
     </div>
   );

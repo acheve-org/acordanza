@@ -19,6 +19,7 @@ interface AuthContextValue {
   username: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<PasskeyChallenge | null>;
+  beginPasskeyLogin: () => Promise<PasskeyChallenge>;
   completeLoginWithPasskey: (challenge: PasskeyChallenge) => Promise<void>;
   logout: () => void;
 }
@@ -64,6 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }
 
+  async function beginPasskeyLogin(): Promise<PasskeyChallenge> {
+    const res = await api.post<LoginResponse>('/auth/login/passkey/options');
+    if (!res.sessionId || !res.options) {
+      throw new Error('Respuesta inesperada del servidor');
+    }
+    return { sessionId: res.sessionId, options: res.options };
+  }
+
   async function completeLoginWithPasskey(challenge: PasskeyChallenge) {
     const assertionResponse = await get({
       publicKey: challenge.options,
@@ -82,7 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ username, loading, login, completeLoginWithPasskey, logout }}>
+    <AuthContext.Provider
+      value={{ username, loading, login, beginPasskeyLogin, completeLoginWithPasskey, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
