@@ -6,7 +6,7 @@ import { DetailModal } from '../components/DetailModal';
 import * as routesApi from '../api/routes';
 import type { CreateTickInput, RouteDetail, RouteFilters, RouteSummary } from '../api/types';
 
-const emptyFilters: RouteFilters = { q: '', crag: '', type: '', tag: '' };
+const emptyFilters: RouteFilters = { q: '', cragId: '', gear: '', tag: '' };
 
 export function MainView() {
   const navigate = useNavigate();

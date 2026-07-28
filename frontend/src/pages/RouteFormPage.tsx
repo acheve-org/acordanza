@@ -3,17 +3,19 @@ import { Link, useNavigate, useParams } from 'react-router';
 import * as routesApi from '../api/routes';
 import { ApiError } from '../api/client';
 import type { RouteDetail, UpsertRouteInput } from '../api/types';
-import { routeTypeLabels } from '../api/types';
+import { gearLabels, orientationLabels } from '../api/types';
+import { CragPicker } from '../components/CragPicker';
+import { OpenerPicker } from '../components/OpenerPicker';
 
 const emptyForm: UpsertRouteInput = {
   name: '',
-  crag: '',
+  cragId: 0,
   grade: '',
-  gradeSystem: 'YDS',
-  type: 'sport',
+  orientation: '',
+  gear: '',
   description: '',
   tags: '',
-  firstAscent: '',
+  openerIds: [],
 };
 
 export function RouteFormPage() {
@@ -33,13 +35,13 @@ export function RouteFormPage() {
         setRoute(r);
         setForm({
           name: r.name,
-          crag: r.crag,
+          cragId: r.cragId,
           grade: r.grade,
-          gradeSystem: r.gradeSystem,
-          type: r.type,
+          orientation: r.orientation ?? '',
+          gear: r.gear ?? '',
           description: r.description,
           tags: r.tags,
-          firstAscent: r.firstAscent,
+          openerIds: r.openers.map((o) => o.id),
         });
       })
       .catch((err) => {
@@ -70,11 +72,9 @@ export function RouteFormPage() {
     const input: UpsertRouteInput = {
       ...form,
       name: form.name.trim(),
-      crag: form.crag.trim(),
       grade: form.grade.trim(),
       description: form.description.trim(),
       tags: form.tags.trim(),
-      firstAscent: form.firstAscent.trim(),
     };
     if (route) {
       await routesApi.updateRoute(route.id, input);
@@ -95,35 +95,37 @@ export function RouteFormPage() {
               <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} />
             </label>
             <label>
-              Sector / Zona
-              <input type="text" required value={form.crag} onChange={(e) => set('crag', e.target.value)} />
-            </label>
-          </div>
-          <div className="grid-3">
-            <label>
               Grado
               <input
                 type="text"
                 required
-                placeholder="5.10a, V4, E2 5b…"
+                placeholder="V+, 6a, E2 5b…"
                 value={form.grade}
                 onChange={(e) => set('grade', e.target.value)}
               />
             </label>
+          </div>
+          <label>
+            Sector
+            <CragPicker value={form.cragId || null} onChange={(cragId) => set('cragId', cragId ?? 0)} allowCreate />
+          </label>
+          <div className="grid-2">
             <label>
-              Sistema
-              <select value={form.gradeSystem} onChange={(e) => set('gradeSystem', e.target.value)}>
-                <option value="YDS">YDS (5.x)</option>
-                <option value="V">Escala V</option>
-                <option value="French">Francesa</option>
-                <option value="UK">Clásica UK</option>
-                <option value="UIAA">UIAA</option>
+              Orientación
+              <select value={form.orientation} onChange={(e) => set('orientation', e.target.value)}>
+                <option value="">Sin especificar</option>
+                {Object.entries(orientationLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
             <label>
-              Tipo
-              <select value={form.type} onChange={(e) => set('type', e.target.value)}>
-                {Object.entries(routeTypeLabels).map(([value, label]) => (
+              Equipamiento
+              <select value={form.gear} onChange={(e) => set('gear', e.target.value)}>
+                <option value="">Sin especificar</option>
+                {Object.entries(gearLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
@@ -140,31 +142,24 @@ export function RouteFormPage() {
               onChange={(e) => set('description', e.target.value)}
             />
           </label>
-          <div className="grid-2">
-            <label>
-              Etiquetas <span className="hint">(separadas por comas)</span>
-              <input
-                type="text"
-                placeholder="regletas, clásica, resistencia"
-                value={form.tags}
-                onChange={(e) => set('tags', e.target.value)}
-              />
-            </label>
-            <label>
-              Primera ascensión
-              <input
-                type="text"
-                placeholder="Nombre, año"
-                value={form.firstAscent}
-                onChange={(e) => set('firstAscent', e.target.value)}
-              />
-            </label>
-          </div>
+          <label>
+            Etiquetas <span className="hint">(separadas por comas)</span>
+            <input
+              type="text"
+              placeholder="regletas, clásica, resistencia"
+              value={form.tags}
+              onChange={(e) => set('tags', e.target.value)}
+            />
+          </label>
+          <label>
+            Apertura
+            <OpenerPicker value={form.openerIds} onChange={(openerIds) => set('openerIds', openerIds)} />
+          </label>
           <div className="modal-actions">
             <Link to="/" className="ghost-btn">
               Cancelar
             </Link>
-            <button type="submit" className="primary-btn">
+            <button type="submit" className="primary-btn" disabled={!form.cragId}>
               Guardar vía
             </button>
           </div>

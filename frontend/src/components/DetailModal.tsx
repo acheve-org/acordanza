@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { CreateTickInput, RouteDetail } from '../api/types';
-import { routeTypeLabels } from '../api/types';
+import { gearLabels, orientationLabels } from '../api/types';
 
 interface Props {
   route: RouteDetail | null;
@@ -43,7 +43,12 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onAddTick, onDel
           <div>
             <h2>{route.name}</h2>
             <p className="detail-meta">
-              {route.grade} ({route.gradeSystem}) · {route.crag} · {routeTypeLabels[route.type] ?? route.type}
+              {route.grade} · {route.cragPath}
+            </p>
+            <p className="detail-fa">
+              {[route.orientation && orientationLabels[route.orientation], route.gear && gearLabels[route.gear]]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
           </div>
           <div className="detail-actions">
@@ -56,7 +61,14 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onAddTick, onDel
           </div>
         </div>
         <p className="detail-desc">{route.description || 'Sin descripción todavía.'}</p>
-        {route.firstAscent && <p className="detail-fa">Primera ascensión: {route.firstAscent}</p>}
+        {route.openers.length > 0 && (
+          <p className="detail-fa">
+            Apertura:{' '}
+            {route.openers
+              .map((o) => (o.userName ? `${o.name} (${o.userName})` : o.name))
+              .join(', ')}
+          </p>
+        )}
         <div className="tag-row">
           {tags.map((t) => (
             <span key={t} className="tag-chip">

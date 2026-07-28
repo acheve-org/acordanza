@@ -10,8 +10,8 @@ import type {
 export function listRoutes(filters: RouteFilters): Promise<RouteSummary[]> {
   const params = new URLSearchParams();
   if (filters.q) params.set('q', filters.q);
-  if (filters.crag) params.set('crag', filters.crag);
-  if (filters.type) params.set('type', filters.type);
+  if (filters.cragId) params.set('cragId', filters.cragId);
+  if (filters.gear) params.set('gear', filters.gear);
   if (filters.tag) params.set('tag', filters.tag);
   const qs = params.toString();
   return api.get<RouteSummary[]>(`/routes${qs ? `?${qs}` : ''}`);

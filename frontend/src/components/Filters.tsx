@@ -1,5 +1,6 @@
 import type { RouteFilters } from '../api/types';
-import { routeTypeLabels } from '../api/types';
+import { gearLabels } from '../api/types';
+import { CragPicker } from './CragPicker';
 
 interface Props {
   filters: RouteFilters;
@@ -23,17 +24,16 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
       />
 
       <label className="field-label">Sector</label>
-      <input
-        type="text"
-        placeholder="Cualquier sector"
-        value={filters.crag}
-        onChange={(e) => set('crag', e.target.value)}
+      <CragPicker
+        value={filters.cragId ? Number(filters.cragId) : null}
+        onChange={(id) => set('cragId', id === null ? '' : String(id))}
+        allowClear
       />
 
-      <label className="field-label">Tipo</label>
-      <select value={filters.type} onChange={(e) => set('type', e.target.value)}>
+      <label className="field-label">Equipamiento</label>
+      <select value={filters.gear} onChange={(e) => set('gear', e.target.value)}>
         <option value="">Cualquiera</option>
-        {Object.entries(routeTypeLabels).map(([value, label]) => (
+        {Object.entries(gearLabels).map(([value, label]) => (
           <option key={value} value={value}>
             {label}
           </option>

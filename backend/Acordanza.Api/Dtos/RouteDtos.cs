@@ -3,13 +3,15 @@ namespace Acordanza.Api.Dtos;
 public record RouteDto(
     int Id,
     string Name,
-    string Crag,
+    int CragId,
+    string CragName,
+    string CragPath,
     string Grade,
-    string GradeSystem,
-    string Type,
+    string? Orientation,
+    string? Gear,
     string Description,
     string Tags,
-    string FirstAscent,
+    List<RouteOpenerDto> Openers,
     string AddedBy,
     DateTimeOffset CreatedAt,
     int TickCount,
@@ -19,13 +21,15 @@ public record RouteDto(
 public record RouteDetailDto(
     int Id,
     string Name,
-    string Crag,
+    int CragId,
+    string CragName,
+    string CragPath,
     string Grade,
-    string GradeSystem,
-    string Type,
+    string? Orientation,
+    string? Gear,
     string Description,
     string Tags,
-    string FirstAscent,
+    List<RouteOpenerDto> Openers,
     string AddedBy,
     DateTimeOffset CreatedAt,
     List<TickDto> Ticks
@@ -33,11 +37,11 @@ public record RouteDetailDto(
 
 public record UpsertRouteRequest(
     string Name,
-    string Crag,
+    int CragId,
     string Grade,
-    string? GradeSystem,
-    string? Type,
+    string? Orientation,
+    string? Gear,
     string? Description,
     string? Tags,
-    string? FirstAscent
+    List<int>? OpenerIds
 );

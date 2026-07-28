@@ -384,6 +384,47 @@ input:focus, select:focus, textarea:focus {
   padding: 4px var(--space-md);
 }
 
+.combo { position: relative; display: flex; flex-direction: column; gap: var(--space-xs); }
+.combo-list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xs);
+}
+.combo-option {
+  background: none;
+  border: none;
+  color: var(--text);
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+.combo-option:hover { background: var(--bg-card-hover); }
+.combo-empty { padding: var(--space-sm) var(--space-md); font-size: 13px; }
+.combo-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+.chip-removable { display: inline-flex; align-items: center; gap: 6px; }
+.chip-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.chip-remove:hover { color: var(--danger); }
+
 .tick-form { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-md); }
 .ticks-list { display: flex; flex-direction: column; gap: var(--space-sm); }
 .tick-row {

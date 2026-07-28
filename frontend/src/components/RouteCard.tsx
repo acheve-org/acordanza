@@ -1,5 +1,5 @@
 import type { RouteSummary } from '../api/types';
-import { routeTypeLabels } from '../api/types';
+import { gearLabels } from '../api/types';
 
 interface Props {
   route: RouteSummary;
@@ -12,9 +12,9 @@ export function RouteCard({ route, onClick }: Props) {
       <span className="grade-pill">{route.grade}</span>
       <div className="rc-main">
         <div className="rc-name">{route.name}</div>
-        <div className="rc-sub">{route.crag}</div>
+        <div className="rc-sub">{route.cragPath}</div>
       </div>
-      <span className="rc-type">{routeTypeLabels[route.type] ?? route.type}</span>
+      {route.gear && <span className="rc-type">{gearLabels[route.gear] ?? route.gear}</span>}
       <span className="rc-ticks">
         {route.tickCount} registro{route.tickCount === 1 ? '' : 's'}
       </span>

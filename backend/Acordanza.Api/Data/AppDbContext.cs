@@ -10,6 +10,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ClimbingRoute> Routes => Set<ClimbingRoute>();
     public DbSet<Tick> Ticks => Set<Tick>();
     public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
+    public DbSet<Crag> Crags => Set<Crag>();
+    public DbSet<RouteOpener> RouteOpeners => Set<RouteOpener>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -24,17 +26,58 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasIndex(u => u.NormalizedEmail).IsUnique();
         });
 
+        builder.Entity<Crag>(entity =>
+        {
+            entity.ToTable("Crags", "core");
+
+            entity.HasIndex(c => c.Name);
+
+            entity.HasOne(c => c.ParentCrag)
+                .WithMany(c => c.Children)
+                .HasForeignKey(c => c.ParentCragId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<RouteOpener>(entity =>
+        {
+            entity.ToTable("RouteOpeners", "core");
+
+            entity.HasIndex(o => o.Name);
+
+            entity.HasOne(o => o.User)
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         builder.Entity<ClimbingRoute>(entity =>
         {
             entity.ToTable("Routes", "core");
 
             entity.HasIndex(r => r.Grade);
-            entity.HasIndex(r => r.Crag);
+            entity.HasIndex(r => r.CragId);
 
             entity.HasOne(r => r.AddedBy)
                 .WithMany()
                 .HasForeignKey(r => r.AddedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(r => r.Crag)
+                .WithMany()
+                .HasForeignKey(r => r.CragId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(r => r.Openers)
+                .WithMany()
+                .UsingEntity<Dictionary<string, object>>(
+                    "RouteRouteOpeners",
+                    j => j.HasOne<RouteOpener>().WithMany().HasForeignKey("OpenerId").OnDelete(DeleteBehavior.Cascade),
+                    j => j.HasOne<ClimbingRoute>().WithMany().HasForeignKey("RouteId").OnDelete(DeleteBehavior.Cascade),
+                    j =>
+                    {
+                        j.ToTable("RouteRouteOpeners", "core");
+                        j.HasKey("RouteId", "OpenerId");
+                    });
         });
 
         builder.Entity<Tick>(entity =>
