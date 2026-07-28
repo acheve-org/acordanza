@@ -17,6 +17,7 @@ namespace Acordanza.Api.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("identity")
                 .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -84,7 +85,7 @@ namespace Acordanza.Api.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("AspNetUsers", "identity");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
@@ -142,7 +143,7 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("Grade");
 
-                    b.ToTable("Routes");
+                    b.ToTable("Routes", "core");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.PasskeyCredential", b =>
@@ -185,7 +186,7 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PasskeyCredentials");
+                    b.ToTable("PasskeyCredentials", "auth");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.Tick", b =>
@@ -223,7 +224,7 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("RouteId");
 
-                    b.ToTable("Ticks");
+                    b.ToTable("Ticks", "core");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -249,7 +250,7 @@ namespace Acordanza.Api.Migrations
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex");
 
-                    b.ToTable("AspNetRoles", (string)null);
+                    b.ToTable("AspNetRoles", "identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -274,7 +275,7 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("AspNetRoleClaims", "identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -299,7 +300,7 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("AspNetUserClaims", "identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -321,7 +322,7 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("AspNetUserLogins", "identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -336,7 +337,7 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("AspNetUserRoles", "identity");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -355,7 +356,7 @@ namespace Acordanza.Api.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("AspNetUserTokens", "identity");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>

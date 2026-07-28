@@ -15,6 +15,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     {
         base.OnModelCreating(builder);
 
+        // ASP.NET Identity's own tables (AspNetUsers, AspNetRoles, ...) live in
+        // "identity"; everything app-specific is carved out into "core" below.
+        builder.HasDefaultSchema("identity");
+
         builder.Entity<ApplicationUser>(entity =>
         {
             entity.HasIndex(u => u.NormalizedEmail).IsUnique();
@@ -22,6 +26,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         builder.Entity<ClimbingRoute>(entity =>
         {
+            entity.ToTable("Routes", "core");
+
             entity.HasIndex(r => r.Grade);
             entity.HasIndex(r => r.Crag);
 
@@ -33,6 +39,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         builder.Entity<Tick>(entity =>
         {
+            entity.ToTable("Ticks", "core");
+
             entity.HasIndex(t => t.RouteId);
 
             entity.HasOne(t => t.Route)
@@ -48,6 +56,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
         builder.Entity<PasskeyCredential>(entity =>
         {
+            entity.ToTable("PasskeyCredentials", "auth");
+
             entity.HasIndex(p => p.UserId);
             entity.HasIndex(p => p.CredentialId).IsUnique();
 
