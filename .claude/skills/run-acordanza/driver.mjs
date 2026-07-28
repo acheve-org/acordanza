@@ -12,7 +12,7 @@ const SHOTS_DIR = join(HERE, 'shots');
 mkdirSync(SHOTS_DIR, { recursive: true });
 
 const FRONTEND_URL = process.env.ACORDANZA_FRONTEND_URL ?? 'http://localhost:5173';
-const USERNAME = process.env.ACORDANZA_USER ?? 'hugo';
+const USERNAME = process.env.ACORDANZA_USER ?? 'hugo@example.com';
 const PASSWORD = process.env.ACORDANZA_PASSWORD ?? 'testpass123';
 
 const consoleErrors = [];
@@ -42,17 +42,17 @@ try {
   await page.waitForSelector(`text=Sesión iniciada como ${USERNAME}`, { timeout: 15000 });
   await shot('logged-in');
 
-  // Add a route
+  // Add a route (its own page now, at /routes/new)
   await page.click('button:has-text("+ Añadir vía")');
   await page.waitForSelector('text=Añadir una vía');
-  const addModal = page.locator('.modal');
-  await addModal.locator('label:has-text("Nombre") input').fill('Sunny Crimper');
-  await addModal.locator('label:has-text("Sector / Zona") input').fill('Riverside Wall');
-  await addModal.locator('label:has-text("Grado") input').fill('5.10a');
-  await addModal.locator('label:has-text("Descripción") textarea').fill('Fun crimpy face climbing.');
-  await addModal.locator('label:has-text("Etiquetas") input').fill('crimpy, classic');
-  await addModal.locator('label:has-text("Primera ascensión") input').fill('Jane Doe, 1998');
-  await addModal.locator('button:has-text("Guardar vía")').click();
+  const addForm = page.locator('.settings-section');
+  await addForm.locator('label:has-text("Nombre") input').fill('Sunny Crimper');
+  await addForm.locator('label:has-text("Sector / Zona") input').fill('Riverside Wall');
+  await addForm.locator('label:has-text("Grado") input').fill('5.10a');
+  await addForm.locator('label:has-text("Descripción") textarea').fill('Fun crimpy face climbing.');
+  await addForm.locator('label:has-text("Etiquetas") input').fill('crimpy, classic');
+  await addForm.locator('label:has-text("Primera ascensión") input').fill('Jane Doe, 1998');
+  await addForm.locator('button:has-text("Guardar vía")').click();
   await page.waitForSelector('text=Sunny Crimper', { timeout: 10000 });
   await shot('route-added');
 
@@ -72,12 +72,12 @@ try {
   await page.waitForTimeout(500);
   assert.equal(await page.locator('.tick-row').count(), 0, 'tick should be removed');
 
-  // Edit the route
+  // Edit the route (its own page now, at /routes/:id/edit)
   await page.click('button:has-text("Editar")');
   await page.waitForSelector('text=Editar vía');
-  const editModal = page.locator('.modal').last();
-  await editModal.locator('label:has-text("Nombre") input').fill('Sunny Crimper (Updated)');
-  await editModal.locator('button:has-text("Guardar vía")').click();
+  const editForm = page.locator('.settings-section');
+  await editForm.locator('label:has-text("Nombre") input').fill('Sunny Crimper (Updated)');
+  await editForm.locator('button:has-text("Guardar vía")').click();
   await page.waitForSelector('text=Sunny Crimper (Updated)', { timeout: 10000 });
   await shot('route-edited');
 

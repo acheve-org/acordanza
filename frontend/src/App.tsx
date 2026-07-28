@@ -5,6 +5,7 @@ import { LoginScreen } from './components/LoginScreen';
 import { MainView } from './pages/MainView';
 import { SettingsPage } from './pages/SettingsPage';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
+import { RouteFormPage } from './pages/RouteFormPage';
 
 function AppLayout() {
   const { username, logout } = useAuth();
@@ -84,6 +85,8 @@ function App() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<MainView />} />
+        <Route path="routes/new" element={<RouteFormPage />} />
+        <Route path="routes/:id/edit" element={<RouteFormPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

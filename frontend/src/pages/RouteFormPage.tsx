@@ -1,5 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import type { RouteDetail, RouteSummary, UpsertRouteInput } from '../api/types';
+import { Link, useNavigate, useParams } from 'react-router';
+import * as routesApi from '../api/routes';
+import { ApiError } from '../api/client';
+import type { RouteDetail, UpsertRouteInput } from '../api/types';
 import { routeTypeLabels } from '../api/types';
 
 const emptyForm: UpsertRouteInput = {
@@ -13,35 +16,50 @@ const emptyForm: UpsertRouteInput = {
   firstAscent: '',
 };
 
-interface Props {
-  open: boolean;
-  editing: RouteSummary | RouteDetail | null;
-  onCancel: () => void;
-  onSave: (input: UpsertRouteInput) => Promise<void>;
-}
+export function RouteFormPage() {
+  const { id } = useParams();
+  const editing = id !== undefined;
+  const navigate = useNavigate();
 
-export function RouteFormModal({ open, editing, onCancel, onSave }: Props) {
+  const [route, setRoute] = useState<RouteDetail | null>(null);
+  const [loadError, setLoadError] = useState('');
   const [form, setForm] = useState<UpsertRouteInput>(emptyForm);
 
   useEffect(() => {
-    if (!open) return;
-    setForm(
-      editing
-        ? {
-            name: editing.name,
-            crag: editing.crag,
-            grade: editing.grade,
-            gradeSystem: editing.gradeSystem,
-            type: editing.type,
-            description: editing.description,
-            tags: editing.tags,
-            firstAscent: editing.firstAscent,
-          }
-        : emptyForm,
-    );
-  }, [open, editing]);
+    if (!editing) return;
+    routesApi
+      .getRoute(Number(id))
+      .then((r) => {
+        setRoute(r);
+        setForm({
+          name: r.name,
+          crag: r.crag,
+          grade: r.grade,
+          gradeSystem: r.gradeSystem,
+          type: r.type,
+          description: r.description,
+          tags: r.tags,
+          firstAscent: r.firstAscent,
+        });
+      })
+      .catch((err) => {
+        setLoadError(err instanceof ApiError ? err.message : 'No se pudo cargar la vía');
+      });
+  }, [id, editing]);
 
-  if (!open) return null;
+  if (editing && loadError) {
+    return (
+      <main className="settings-page">
+        <h1>Editar vía</h1>
+        <p className="error-text">{loadError}</p>
+        <Link to="/" className="ghost-btn small">
+          Volver
+        </Link>
+      </main>
+    );
+  }
+
+  if (editing && !route) return null;
 
   function set<K extends keyof UpsertRouteInput>(key: K, value: UpsertRouteInput[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -49,7 +67,7 @@ export function RouteFormModal({ open, editing, onCancel, onSave }: Props) {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    await onSave({
+    const input: UpsertRouteInput = {
       ...form,
       name: form.name.trim(),
       crag: form.crag.trim(),
@@ -57,18 +75,19 @@ export function RouteFormModal({ open, editing, onCancel, onSave }: Props) {
       description: form.description.trim(),
       tags: form.tags.trim(),
       firstAscent: form.firstAscent.trim(),
-    });
+    };
+    if (route) {
+      await routesApi.updateRoute(route.id, input);
+    } else {
+      await routesApi.createRoute(input);
+    }
+    navigate('/');
   }
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCancel();
-      }}
-    >
-      <div className="modal">
-        <h2>{editing ? 'Editar vía' : 'Añadir una vía'}</h2>
+    <main className="settings-page">
+      <h1>{editing ? 'Editar vía' : 'Añadir una vía'}</h1>
+      <section className="settings-section">
         <form onSubmit={handleSubmit}>
           <div className="grid-2">
             <label>
@@ -142,15 +161,15 @@ export function RouteFormModal({ open, editing, onCancel, onSave }: Props) {
             </label>
           </div>
           <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={onCancel}>
+            <Link to="/" className="ghost-btn">
               Cancelar
-            </button>
+            </Link>
             <button type="submit" className="primary-btn">
               Guardar vía
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

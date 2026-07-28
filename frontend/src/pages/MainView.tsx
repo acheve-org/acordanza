@@ -1,19 +1,17 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { Filters } from '../components/Filters';
 import { RoutesList } from '../components/RoutesList';
-import { RouteFormModal } from '../components/RouteFormModal';
 import { DetailModal } from '../components/DetailModal';
 import * as routesApi from '../api/routes';
-import type { CreateTickInput, RouteDetail, RouteFilters, RouteSummary, UpsertRouteInput } from '../api/types';
+import type { CreateTickInput, RouteDetail, RouteFilters, RouteSummary } from '../api/types';
 
 const emptyFilters: RouteFilters = { q: '', crag: '', type: '', tag: '' };
 
 export function MainView() {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<RouteFilters>(emptyFilters);
   const [routes, setRoutes] = useState<RouteSummary[]>([]);
-
-  const [routeModalOpen, setRouteModalOpen] = useState(false);
-  const [editingRoute, setEditingRoute] = useState<RouteSummary | RouteDetail | null>(null);
 
   const [detailRouteId, setDetailRouteId] = useState<number | null>(null);
   const [detailRoute, setDetailRoute] = useState<RouteDetail | null>(null);
@@ -41,18 +39,6 @@ export function MainView() {
     if (detailRouteId !== null) routesApi.getRoute(detailRouteId).then(setDetailRoute);
   }
 
-  async function handleSaveRoute(input: UpsertRouteInput) {
-    if (editingRoute) {
-      await routesApi.updateRoute(editingRoute.id, input);
-    } else {
-      await routesApi.createRoute(input);
-    }
-    setRouteModalOpen(false);
-    setEditingRoute(null);
-    refreshRoutes();
-    refreshDetail();
-  }
-
   async function handleDeleteRoute() {
     if (!detailRouteId) return;
     if (!confirm('¿Eliminar esta vía y todos sus ascensos registrados?')) return;
@@ -76,34 +62,15 @@ export function MainView() {
   return (
     <>
       <main className="layout">
-        <Filters
-          filters={filters}
-          onChange={setFilters}
-          onAddRoute={() => {
-            setEditingRoute(null);
-            setRouteModalOpen(true);
-          }}
-        />
+        <Filters filters={filters} onChange={setFilters} onAddRoute={() => navigate('/routes/new')} />
         <RoutesList routes={routes} onSelect={setDetailRouteId} />
       </main>
-
-      <RouteFormModal
-        open={routeModalOpen}
-        editing={editingRoute}
-        onCancel={() => {
-          setRouteModalOpen(false);
-          setEditingRoute(null);
-        }}
-        onSave={handleSaveRoute}
-      />
 
       <DetailModal
         route={detailRoute}
         onClose={() => setDetailRouteId(null)}
         onEdit={() => {
-          setEditingRoute(detailRoute);
-          setDetailRouteId(null);
-          setRouteModalOpen(true);
+          if (detailRouteId !== null) navigate(`/routes/${detailRouteId}/edit`);
         }}
         onDelete={handleDeleteRoute}
         onAddTick={handleAddTick}
