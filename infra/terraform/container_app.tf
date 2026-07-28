@@ -161,6 +161,21 @@ resource "azurerm_container_app" "main" {
         value = "Acordanza"
       }
 
+      env {
+        name  = "Storage__AccountName"
+        value = azurerm_storage_account.topos.name
+      }
+
+      env {
+        name  = "Storage__ContainerName"
+        value = azurerm_storage_container.topos.name
+      }
+
+      env {
+        name  = "Storage__ManagedIdentityClientId"
+        value = azurerm_user_assigned_identity.container_app.client_id
+      }
+
       dynamic "env" {
         for_each = { for idx, origin in concat(var.cors_allowed_origins, [local.frontend_origin, local.frontend_custom_origin]) : idx => origin }
         content {

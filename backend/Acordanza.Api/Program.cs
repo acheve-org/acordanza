@@ -73,6 +73,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddSingleton<BlobStorageService>();
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
@@ -168,6 +169,21 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+
+    // One-time backfill for crags created before the Slug column existed.
+    // New crags always get one assigned in CragsController.CreateCrag.
+    var unslugged = await db.Crags.Where(c => c.Slug == "").ToListAsync();
+    if (unslugged.Count > 0)
+    {
+        foreach (var crag in unslugged)
+        {
+            crag.Slug = $"{Slugify.ToSlug(crag.Name)}-{crag.Id}";
+        }
+        await db.SaveChangesAsync();
+    }
+
+    var blobStorage = scope.ServiceProvider.GetRequiredService<BlobStorageService>();
+    await blobStorage.EnsureContainerExistsAsync();
 }
 
 if (app.Environment.IsDevelopment())

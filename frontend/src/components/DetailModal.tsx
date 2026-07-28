@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import type { CreateTickInput, RouteDetail } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 
@@ -9,14 +9,47 @@ interface Props {
   onDelete: () => void;
   onAddTick: (input: CreateTickInput) => Promise<void>;
   onDeleteTick: (tickId: number) => Promise<void>;
+  onUploadTopo: (file: File) => Promise<void>;
+  onDeleteTopo: (topoId: number) => Promise<void>;
 }
 
-export function DetailModal({ route, onClose, onEdit, onDelete, onAddTick, onDeleteTick }: Props) {
+const ACCEPTED_TOPO_TYPES = 'image/jpeg,image/png,image/webp';
+
+export function DetailModal({
+  route,
+  onClose,
+  onEdit,
+  onDelete,
+  onAddTick,
+  onDeleteTick,
+  onUploadTopo,
+  onDeleteTopo,
+}: Props) {
   const [date, setDate] = useState('');
   const [rating, setRating] = useState('');
   const [notes, setNotes] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   if (!route) return null;
+
+  async function handleTopoFilesSelected(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    if (files.length === 0) return;
+
+    setUploading(true);
+    setUploadError('');
+    try {
+      for (const file of files) {
+        await onUploadTopo(file);
+      }
+    } catch {
+      setUploadError('No se pudo subir la imagen');
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const tags = route.tags
     .split(',')
@@ -76,6 +109,40 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onAddTick, onDel
             </span>
           ))}
         </div>
+
+        <hr className="divider" />
+
+        <h3>Topos</h3>
+        {route.topos.length > 0 && (
+          <div className="topo-grid">
+            {route.topos.map((topo) => (
+              <div key={topo.id} className="topo-thumb">
+                <a href={topo.url} target="_blank" rel="noreferrer">
+                  <img src={topo.url} alt={topo.fileName} loading="lazy" />
+                </a>
+                <button
+                  className="topo-remove"
+                  title="Eliminar"
+                  onClick={() => onDeleteTopo(topo.id)}
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <label className="topo-upload ghost-btn small">
+          {uploading ? 'Subiendo…' : '+ Añadir topo'}
+          <input
+            type="file"
+            accept={ACCEPTED_TOPO_TYPES}
+            multiple
+            disabled={uploading}
+            onChange={handleTopoFilesSelected}
+            className="hidden"
+          />
+        </label>
+        {uploadError && <p className="error-text">{uploadError}</p>}
 
         <hr className="divider" />
 

@@ -1,6 +1,7 @@
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
+using Acordanza.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,21 +12,27 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/routes")]
-public class RoutesController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
+public class RoutesController(AppDbContext db, UserManager<ApplicationUser> userManager, BlobStorageService blobStorage)
+    : ControllerBase
 {
     private static readonly HashSet<string> AllowedOrientations =
         ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
 
     private static readonly HashSet<string> AllowedGear = ["bolted", "removable", "pitons", "aiders"];
 
-    private sealed record CragNode(int Id, string Name, int? ParentCragId);
+    private static readonly HashSet<string> AllowedTopoContentTypes = ["image/jpeg", "image/png", "image/webp"];
+    private const long MaxTopoBytes = 15 * 1024 * 1024;
+    private static readonly TimeSpan TopoUrlLifetime = TimeSpan.FromMinutes(15);
+
+    private sealed record CragNode(int Id, string Name, string Slug, int? ParentCragId);
 
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
-        [FromQuery] string? q, [FromQuery] int? cragId, [FromQuery] string? gear, [FromQuery] string? tag)
+        [FromQuery] string? q, [FromQuery] int? cragId, [FromQuery] string? gear, [FromQuery] string? tag,
+        [FromQuery] bool? hasTopo)
     {
         var crags = await db.Crags.AsNoTracking()
-            .Select(c => new CragNode(c.Id, c.Name, c.ParentCragId))
+            .Select(c => new CragNode(c.Id, c.Name, c.Slug, c.ParentCragId))
             .ToListAsync();
         var cragById = crags.ToDictionary(c => c.Id);
 
@@ -33,6 +40,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             .Include(r => r.AddedBy)
             .Include(r => r.Openers).ThenInclude(o => o.User)
             .Include(r => r.Ticks)
+            .Include(r => r.Topos)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
@@ -52,6 +60,10 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         {
             query = query.Where(r => r.Tags.Contains(tag));
         }
+        if (hasTopo == true)
+        {
+            query = query.Where(r => r.Topos.Any());
+        }
 
         var routes = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
 
@@ -61,7 +73,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             r.Openers.Select(ToOpenerDto).ToList(),
             r.AddedBy.UserName!, r.CreatedAt,
             r.Ticks.Count,
-            r.Ticks.Count == 0 ? null : r.Ticks.Average(t => (double?)t.Rating))).ToList();
+            r.Ticks.Count == 0 ? null : r.Ticks.Average(t => (double?)t.Rating),
+            r.Topos.Count > 0)).ToList();
 
         return Ok(dtos);
     }
@@ -73,14 +86,22 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             .Include(r => r.AddedBy)
             .Include(r => r.Openers).ThenInclude(o => o.User)
             .Include(r => r.Ticks).ThenInclude(t => t.Climber)
+            .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
             .FirstOrDefaultAsync(r => r.Id == id);
 
         if (route is null) return NotFound(new { error = "No encontrado" });
 
         var crags = await db.Crags.AsNoTracking()
-            .Select(c => new CragNode(c.Id, c.Name, c.ParentCragId))
+            .Select(c => new CragNode(c.Id, c.Name, c.Slug, c.ParentCragId))
             .ToListAsync();
         var cragById = crags.ToDictionary(c => c.Id);
+
+        var topoDtos = new List<TopoDto>();
+        foreach (var topo in route.Topos.OrderBy(t => t.CreatedAt))
+        {
+            var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, TopoUrlLifetime);
+            topoDtos.Add(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, topo.UploadedBy.UserName!));
+        }
 
         var dto = new RouteDetailDto(
             route.Id, route.Name, route.CragId, cragById[route.CragId].Name, CragPath(cragById, route.CragId),
@@ -90,7 +111,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             route.Ticks
                 .OrderByDescending(t => t.Date)
                 .Select(t => new TickDto(t.Id, t.RouteId, t.Climber.UserName!, t.Date, t.Rating, t.Notes, t.CreatedAt))
-                .ToList());
+                .ToList(),
+            topoDtos);
 
         return Ok(dto);
     }
@@ -175,13 +197,84 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteRoute(int id)
     {
-        var route = await db.Routes.FindAsync(id);
+        var route = await db.Routes.Include(r => r.Topos).FirstOrDefaultAsync(r => r.Id == id);
         if (route is not null)
         {
+            // The Topo rows cascade-delete with the route (see AppDbContext),
+            // but that's DB-only — their blobs won't clean themselves up, so
+            // delete those explicitly first while BlobName is still known.
+            foreach (var topo in route.Topos)
+            {
+                await blobStorage.DeleteAsync(topo.BlobName);
+            }
+
             db.Routes.Remove(route);
             await db.SaveChangesAsync();
         }
         return Ok(new { ok = true });
+    }
+
+    [HttpPost("{id:int}/topos")]
+    [RequestSizeLimit(MaxTopoBytes)]
+    public async Task<ActionResult<TopoDto>> UploadTopo(int id, IFormFile? file)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { error = "la imagen es obligatoria" });
+        }
+        if (!AllowedTopoContentTypes.Contains(file.ContentType))
+        {
+            return BadRequest(new { error = "el formato de la imagen no es válido (usa JPEG, PNG o WebP)" });
+        }
+        if (file.Length > MaxTopoBytes)
+        {
+            return BadRequest(new { error = "la imagen es demasiado grande (máximo 15 MB)" });
+        }
+
+        var route = await db.Routes.FirstOrDefaultAsync(r => r.Id == id);
+        if (route is null) return NotFound(new { error = "No encontrado" });
+
+        var crags = await db.Crags.AsNoTracking()
+            .Select(c => new CragNode(c.Id, c.Name, c.Slug, c.ParentCragId))
+            .ToListAsync();
+        var cragById = crags.ToDictionary(c => c.Id);
+
+        var userId = userManager.GetUserId(User)!;
+        var topo = new Topo
+        {
+            RouteId = route.Id,
+            BlobName = "",
+            ContentType = file.ContentType,
+            FileName = file.FileName,
+            UploadedByUserId = userId
+        };
+        db.Topos.Add(topo);
+        await db.SaveChangesAsync();
+
+        // The blob name needs the DB-generated Id, so it's assigned in a
+        // second save — same two-phase pattern as CragsController's Slug.
+        var extension = Path.GetExtension(file.FileName);
+        topo.BlobName = $"{CragSlugPath(cragById, route.CragId)}/route-{route.Id}/{topo.Id}{extension}";
+        await db.SaveChangesAsync();
+
+        try
+        {
+            await using var stream = file.OpenReadStream();
+            await blobStorage.UploadAsync(topo.BlobName, stream, topo.ContentType);
+        }
+        catch
+        {
+            // The blob never landed (or landed only partially) — don't leave
+            // a Topo row pointing at content that doesn't exist, which would
+            // otherwise mark the route as having a topo and render a broken
+            // image in the detail view.
+            db.Topos.Remove(topo);
+            await db.SaveChangesAsync();
+            throw;
+        }
+
+        var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, TopoUrlLifetime);
+        return Ok(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, userManager.GetUserName(User)!));
     }
 
     [HttpPost("{id:int}/ticks")]
@@ -271,5 +364,20 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             currentId = crag.ParentCragId;
         }
         return string.Join(" › ", parts);
+    }
+
+    // Same ancestor walk as CragPath, but joining Slug (not Name) with "/" —
+    // this is the blob-name prefix topo images for routes under this crag
+    // are stored under.
+    private static string CragSlugPath(Dictionary<int, CragNode> cragById, int id)
+    {
+        var parts = new List<string>();
+        int? currentId = id;
+        while (currentId is int cid && cragById.TryGetValue(cid, out var crag))
+        {
+            parts.Insert(0, crag.Slug);
+            currentId = crag.ParentCragId;
+        }
+        return string.Join("/", parts);
     }
 }

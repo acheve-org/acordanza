@@ -154,6 +154,13 @@ namespace Acordanza.Api.Migrations
                     b.Property<int?>("ParentCragId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)")
+                        .HasDefaultValue("");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
@@ -266,6 +273,45 @@ namespace Acordanza.Api.Migrations
                     b.HasIndex("RouteId");
 
                     b.ToTable("Ticks", "core");
+                });
+
+            modelBuilder.Entity("Acordanza.Api.Models.Topo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BlobName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("RouteId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UploadedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RouteId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("Topos", "core");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -484,6 +530,25 @@ namespace Acordanza.Api.Migrations
                     b.Navigation("Route");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.Topo", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.ClimbingRoute", "Route")
+                        .WithMany("Topos")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+
+                    b.Navigation("UploadedBy");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -553,6 +618,8 @@ namespace Acordanza.Api.Migrations
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
                 {
                     b.Navigation("Ticks");
+
+                    b.Navigation("Topos");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.Crag", b =>

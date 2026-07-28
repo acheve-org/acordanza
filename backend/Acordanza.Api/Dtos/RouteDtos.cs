@@ -15,7 +15,8 @@ public record RouteDto(
     string AddedBy,
     DateTimeOffset CreatedAt,
     int TickCount,
-    double? AvgRating
+    double? AvgRating,
+    bool HasTopos
 );
 
 public record RouteDetailDto(
@@ -32,7 +33,8 @@ public record RouteDetailDto(
     List<RouteOpenerDto> Openers,
     string AddedBy,
     DateTimeOffset CreatedAt,
-    List<TickDto> Ticks
+    List<TickDto> Ticks,
+    List<TopoDto> Topos
 );
 
 public record UpsertRouteRequest(

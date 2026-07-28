@@ -48,6 +48,15 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
         onChange={(e) => set('tag', e.target.value)}
       />
 
+      <label className="checkbox-field">
+        <input
+          type="checkbox"
+          checked={filters.hasTopo === 'true'}
+          onChange={(e) => set('hasTopo', e.target.checked ? 'true' : '')}
+        />
+        Solo con topo
+      </label>
+
       <button className="primary-btn full-width" style={{ marginTop: 24 }} onClick={onAddRoute}>
         + Añadir vía
       </button>

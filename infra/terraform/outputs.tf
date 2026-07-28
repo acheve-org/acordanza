@@ -48,6 +48,10 @@ output "postgres_fqdn" {
   value = azurerm_postgresql_flexible_server.main.fqdn
 }
 
+output "topos_storage_account_name" {
+  value = azurerm_storage_account.topos.name
+}
+
 output "static_web_app_name" {
   value = azurerm_static_web_app.landing.name
 }

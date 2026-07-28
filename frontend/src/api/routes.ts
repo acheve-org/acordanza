@@ -13,6 +13,7 @@ export function listRoutes(filters: RouteFilters): Promise<RouteSummary[]> {
   if (filters.cragId) params.set('cragId', filters.cragId);
   if (filters.gear) params.set('gear', filters.gear);
   if (filters.tag) params.set('tag', filters.tag);
+  if (filters.hasTopo) params.set('hasTopo', filters.hasTopo);
   const qs = params.toString();
   return api.get<RouteSummary[]>(`/routes${qs ? `?${qs}` : ''}`);
 }

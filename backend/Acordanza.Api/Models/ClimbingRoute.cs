@@ -17,4 +17,5 @@ public class ClimbingRoute
 
     public List<RouteOpener> Openers { get; set; } = [];
     public List<Tick> Ticks { get; set; } = [];
+    public List<Topo> Topos { get; set; } = [];
 }

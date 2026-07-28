@@ -16,6 +16,14 @@ export interface UserSummary {
   userName: string;
 }
 
+export interface TopoSummary {
+  id: number;
+  url: string;
+  fileName: string;
+  createdAt: string;
+  uploadedBy: string;
+}
+
 export interface RouteSummary {
   id: number;
   name: string;
@@ -32,6 +40,7 @@ export interface RouteSummary {
   createdAt: string;
   tickCount: number;
   avgRating: number | null;
+  hasTopos: boolean;
 }
 
 export interface Tick {
@@ -44,8 +53,9 @@ export interface Tick {
   createdAt: string;
 }
 
-export interface RouteDetail extends Omit<RouteSummary, 'tickCount' | 'avgRating'> {
+export interface RouteDetail extends Omit<RouteSummary, 'tickCount' | 'avgRating' | 'hasTopos'> {
   ticks: Tick[];
+  topos: TopoSummary[];
 }
 
 export interface RouteFilters {
@@ -53,6 +63,7 @@ export interface RouteFilters {
   cragId: string;
   gear: string;
   tag: string;
+  hasTopo: string;
 }
 
 export interface UpsertRouteInput {

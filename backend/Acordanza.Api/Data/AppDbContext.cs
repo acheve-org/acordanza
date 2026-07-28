@@ -12,6 +12,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
     public DbSet<Crag> Crags => Set<Crag>();
     public DbSet<RouteOpener> RouteOpeners => Set<RouteOpener>();
+    public DbSet<Topo> Topos => Set<Topo>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -31,6 +32,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.ToTable("Crags", "core");
 
             entity.HasIndex(c => c.Name);
+            // Default "" (rather than leaving the column non-nullable with no
+            // default) lets the AddColumn migration apply cleanly against
+            // rows that predate Slug; Program.cs backfills those on startup.
+            entity.Property(c => c.Slug).HasMaxLength(280).HasDefaultValue("");
 
             entity.HasOne(c => c.ParentCrag)
                 .WithMany(c => c.Children)
@@ -94,6 +99,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasOne(t => t.Climber)
                 .WithMany()
                 .HasForeignKey(t => t.ClimberUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Topo>(entity =>
+        {
+            entity.ToTable("Topos", "core");
+
+            entity.HasIndex(t => t.RouteId);
+
+            entity.HasOne(t => t.Route)
+                .WithMany(r => r.Topos)
+                .HasForeignKey(t => t.RouteId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(t => t.UploadedBy)
+                .WithMany()
+                .HasForeignKey(t => t.UploadedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

@@ -15,8 +15,10 @@ Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
 │   └── Container App (ca-acordanza-prod-web)   — the frontend (nginx), scale-to-zero
 │       └── shared user-assigned managed identity — AcrPull on the registry
 ├── Static Web App (stapp-acordanza-prod-landing) — marketing landing page (landing/)
-└── Postgres Flexible Server (Burstable B1ms)
-    └── database: acordanza
+├── Postgres Flexible Server (Burstable B1ms)
+│   └── database: acordanza
+└── Storage Account (stacordanzaprod<random>)     — topo images, private container
+    └── container: topos                          — read via backend-issued SAS URLs only
 ```
 
 The landing page is a separate Azure primitive from the two Container Apps
@@ -345,6 +347,8 @@ Current suppressions and why:
 | `AVD-AZU-0022` (Postgres public network access) | `postgres.tf` | Accepted risk, documented in "Decisions made and why" above: Container Apps Consumption has no stable egress IP without VNet+NAT. Connections still require TLS 1.2+ and a password; revisit if the trust model changes. |
 | `AVD-AZU-0021`, `AVD-AZU-0026` (connection throttling / min TLS) | `postgres.tf` | Scanner false positives: Trivy's adapter only recognizes the legacy single-server parameter names (`connection_throttling`, `tls_version`); the config sets the real Flexible Server parameters (`connection_throttle.enable`, `ssl_min_protocol_version`). |
 | `AVD-DS-0026` (no Docker `HEALTHCHECK`) | `.trivyignore` | Container Apps ignores Docker `HEALTHCHECK` and probes the ingress port itself; the API's distroless image has no shell to run a check command anyway. |
+| `AVD-AZU-0012` (storage account public network access) | `storage.tf` | Same accepted risk as Postgres above: no stable Container Apps egress IP without a VNet. Every read/write still requires a managed-identity token or a short-lived user delegation SAS — there's no anonymous path in. |
+| `AVD-AZU-0057/0058/0060/0061` (storage logging / geo-redundancy / customer-managed keys / infrastructure encryption) | `storage.tf` | Same cost/complexity trade-offs already accepted for ACR/Postgres below — topo photos for a handful of friends don't need enterprise-grade redundancy, key management, or audit logging. |
 
 Checkov (`uvx checkov -d infra/terraform`) is a useful second opinion; its
 extra findings are all consciously accepted cost trade-offs: ACR

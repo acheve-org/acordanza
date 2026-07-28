@@ -4,9 +4,10 @@ import { Filters } from '../components/Filters';
 import { RoutesList } from '../components/RoutesList';
 import { DetailModal } from '../components/DetailModal';
 import * as routesApi from '../api/routes';
+import * as toposApi from '../api/topos';
 import type { CreateTickInput, RouteDetail, RouteFilters, RouteSummary } from '../api/types';
 
-const emptyFilters: RouteFilters = { q: '', cragId: '', gear: '', tag: '' };
+const emptyFilters: RouteFilters = { q: '', cragId: '', gear: '', tag: '', hasTopo: '' };
 
 export function MainView() {
   const navigate = useNavigate();
@@ -59,6 +60,19 @@ export function MainView() {
     refreshDetail();
   }
 
+  async function handleUploadTopo(file: File) {
+    if (!detailRouteId) return;
+    await toposApi.uploadTopo(detailRouteId, file);
+    refreshDetail();
+    refreshRoutes();
+  }
+
+  async function handleDeleteTopo(topoId: number) {
+    await toposApi.deleteTopo(topoId);
+    refreshDetail();
+    refreshRoutes();
+  }
+
   return (
     <>
       <main className="layout">
@@ -75,6 +89,8 @@ export function MainView() {
         onDelete={handleDeleteRoute}
         onAddTick={handleAddTick}
         onDeleteTick={handleDeleteTick}
+        onUploadTopo={handleUploadTopo}
+        onDeleteTopo={handleDeleteTopo}
       />
     </>
   );

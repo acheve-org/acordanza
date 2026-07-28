@@ -17,5 +17,23 @@ services:
       timeout: 5s
       retries: 10
 
+  # Local stand-in for the "topos" Azure Storage account (see infra/terraform/storage.tf).
+  # The backend talks to it via Storage:ConnectionString in appsettings.Development.json,
+  # using Azurite's well-known devstoreaccount1 credentials — never used in production,
+  # where the container app authenticates via managed identity instead.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: acordanza-azurite
+    restart: unless-stopped
+    # --skipApiVersionCheck: the Azure.Storage.Blobs SDK version the backend
+    # uses sends a newer x-ms-version header than this Azurite image knows
+    # about; Azurite otherwise rejects every request outright.
+    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck"
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - acordanza-azurite-data:/data
+
 volumes:
   acordanza-postgres-data:
+  acordanza-azurite-data:
