@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
@@ -28,6 +29,7 @@ builder.Services
         options.Password.RequireDigit = false;
         options.User.RequireUniqueEmail = true;
     })
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddDefaultTokenProviders();
 
@@ -71,7 +73,13 @@ builder.Services
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    foreach (var permission in Permissions.All)
+    {
+        options.AddPolicy(permission, policy => policy.RequireClaim("permission", permission));
+    }
+});
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddSingleton<BlobStorageService>();
 
@@ -134,13 +142,21 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// --- Admin CLI: `dotnet run -- create-user <email> <password>` creates an account. ---
+// --- Admin CLI: `dotnet run -- create-user <email> <password> [role]` creates an account. ---
 // Registration is intentionally not exposed over HTTP; accounts are admin-provisioned.
 if (args.Length > 0 && args[0] == "create-user")
 {
-    if (args.Length != 3)
+    if (args.Length is < 3 or > 4)
     {
-        Console.WriteLine("Usage: dotnet run -- create-user <email> <password>");
+        Console.WriteLine("Usage: dotnet run -- create-user <email> <password> [role]");
+        Console.WriteLine($"Roles: {string.Join(", ", Roles.All)} (default: {Roles.User})");
+        return 1;
+    }
+
+    var role = args.Length == 4 ? args[3] : Roles.User;
+    if (!Roles.All.Contains(role))
+    {
+        Console.WriteLine($"Unknown role '{role}'. Roles: {string.Join(", ", Roles.All)}");
         return 1;
     }
 
@@ -149,6 +165,7 @@ if (args.Length > 0 && args[0] == "create-user")
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+    await RoleSeeder.EnsureSeededAsync(scope.ServiceProvider);
 
     var user = new ApplicationUser { UserName = args[1], Email = args[1] };
     var result = await userManager.CreateAsync(user, args[2]);
@@ -159,7 +176,15 @@ if (args.Length > 0 && args[0] == "create-user")
         return 1;
     }
 
-    Console.WriteLine($"Created user '{args[1]}'.");
+    var roleResult = await userManager.AddToRoleAsync(user, role);
+    if (!roleResult.Succeeded)
+    {
+        Console.WriteLine("Failed to assign role:");
+        foreach (var error in roleResult.Errors) Console.WriteLine($"  - {error.Description}");
+        return 1;
+    }
+
+    Console.WriteLine($"Created user '{args[1]}' with role '{role}'.");
     return 0;
 }
 
@@ -169,6 +194,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+
+    await RoleSeeder.EnsureSeededAsync(scope.ServiceProvider);
 
     // One-time backfill for crags created before the Slug column existed.
     // New crags always get one assigned in CragsController.CreateCrag.

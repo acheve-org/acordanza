@@ -1,13 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { get, type CredentialRequestOptionsJSON } from '@github/webauthn-json';
 import { api, setAuthToken } from '../api/client';
-import type { LoginResponse } from '../api/types';
+import type { LoginResponse, MeResponse } from '../api/types';
 
 const STORAGE_KEY = 'acordanza.auth';
 
 interface StoredAuth {
   token: string;
   username: string;
+  role: string;
+  permissions: string[];
 }
 
 export interface PasskeyChallenge {
@@ -17,7 +19,10 @@ export interface PasskeyChallenge {
 
 interface AuthContextValue {
   username: string | null;
+  role: string | null;
+  permissions: string[];
   loading: boolean;
+  hasPermission: (permission: string) => boolean;
   login: (email: string, password: string) => Promise<PasskeyChallenge | null>;
   beginPasskeyLogin: () => Promise<PasskeyChallenge>;
   completeLoginWithPasskey: (challenge: PasskeyChallenge) => Promise<void>;
@@ -28,6 +33,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,8 +48,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthToken(parsed.token);
 
     api
-      .get<{ username: string }>('/auth/me')
-      .then((me) => setUsername(me.username))
+      .get<MeResponse>('/auth/me')
+      .then((me) => {
+        setUsername(me.username);
+        setRole(me.role);
+        setPermissions(me.permissions);
+      })
       .catch(() => {
         localStorage.removeItem(STORAGE_KEY);
         setAuthToken(null);
@@ -50,10 +61,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  function applySession(token: string, sessionUsername: string) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ token, username: sessionUsername }));
+  async function applySession(token: string) {
     setAuthToken(token);
-    setUsername(sessionUsername);
+    const me = await api.get<MeResponse>('/auth/me');
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ token, username: me.username, role: me.role, permissions: me.permissions }),
+    );
+    setUsername(me.username);
+    setRole(me.role);
+    setPermissions(me.permissions);
   }
 
   async function login(email: string, password: string): Promise<PasskeyChallenge | null> {
@@ -61,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (res.mfaRequired && res.sessionId) {
       return { sessionId: res.sessionId, options: res.options };
     }
-    applySession(res.token!, res.username!);
+    await applySession(res.token!);
     return null;
   }
 
@@ -81,18 +98,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       sessionId: challenge.sessionId,
       assertionResponse,
     });
-    applySession(res.token!, res.username!);
+    await applySession(res.token!);
   }
 
   function logout() {
     localStorage.removeItem(STORAGE_KEY);
     setAuthToken(null);
     setUsername(null);
+    setRole(null);
+    setPermissions([]);
+  }
+
+  function hasPermission(permission: string) {
+    return permissions.includes(permission);
   }
 
   return (
     <AuthContext.Provider
-      value={{ username, loading, login, beginPasskeyLogin, completeLoginWithPasskey, logout }}
+      value={{
+        username,
+        role,
+        permissions,
+        loading,
+        hasPermission,
+        login,
+        beginPasskeyLogin,
+        completeLoginWithPasskey,
+        logout,
+      }}
     >
       {children}
     </AuthContext.Provider>

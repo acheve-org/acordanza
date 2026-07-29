@@ -72,6 +72,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(r => r.CragId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(r => r.ValidatedBy)
+                .WithMany()
+                .HasForeignKey(r => r.ValidatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasMany(r => r.Openers)
                 .WithMany()
                 .UsingEntity<Dictionary<string, object>>(

@@ -1,3 +1,4 @@
+using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
@@ -24,6 +25,7 @@ public class CragsController(AppDbContext db) : ControllerBase
         return Ok(crags);
     }
 
+    [Authorize(Policy = Permissions.CragCreate)]
     [HttpPost]
     public async Task<ActionResult<CragDto>> CreateCrag(CreateCragRequest request)
     {

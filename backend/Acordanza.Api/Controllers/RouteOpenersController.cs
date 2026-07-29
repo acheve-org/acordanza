@@ -1,3 +1,4 @@
+using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
@@ -35,6 +36,7 @@ public class RouteOpenersController(AppDbContext db) : ControllerBase
         return Ok(users);
     }
 
+    [Authorize(Policy = Permissions.OpenerCreate)]
     [HttpPost]
     public async Task<ActionResult<RouteOpenerDto>> CreateOpener(CreateRouteOpenerRequest request)
     {

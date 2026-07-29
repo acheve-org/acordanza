@@ -41,9 +41,9 @@ dotnet run
 ```
 The API listens on `http://localhost:5073` (see `Properties/launchSettings.json`).
 
-Accounts are created via a CLI command (no public registration endpoint):
+Accounts are created via a CLI command (no public registration endpoint); role defaults to `user` if omitted (other roles: `first-ascensionist`, `moderator`, `admin`):
 ```
-dotnet run -- create-user <email> <password>
+dotnet run -- create-user <email> <password> [role]
 ```
 
 #### Alternative: run the backend in a container
@@ -53,7 +53,7 @@ Instead of step 2 + step 3 above, run Postgres and the backend together in Docke
 echo "JWT_KEY=$(openssl rand -base64 48)" >> .env   # first time only
 docker compose up -d --build
 ```
-This uses `Dockerfile.dev` and `docker-compose.override.yml` (auto-merged by `docker compose up`, no flag needed): the API runs under `dotnet watch`, so edits under `backend/Acordanza.Api` hot-reload in the running container, and a debugger can attach to it (e.g. Rider's Docker Compose debug support). Migrations still run automatically on startup, so there's no separate `dotnet ef database update` step; account creation still needs the CLI command above, run inside the container: `docker compose exec backend dotnet run -- create-user <email> <password>`.
+This uses `Dockerfile.dev` and `docker-compose.override.yml` (auto-merged by `docker compose up`, no flag needed): the API runs under `dotnet watch`, so edits under `backend/Acordanza.Api` hot-reload in the running container, and a debugger can attach to it (e.g. Rider's Docker Compose debug support). Migrations still run automatically on startup, so there's no separate `dotnet ef database update` step; account creation still needs the CLI command above, run inside the container: `docker compose exec backend dotnet run -- create-user <email> <password> [role]`.
 
 Caveat: adding a new route (e.g. a new `MapGet`/`MapControllers` call or controller action) isn't picked up by hot reload — same as `dotnet watch` on a host, but the container has no interactive terminal to prompt for a restart. Run `docker compose restart backend` after adding a route.
 

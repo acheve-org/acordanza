@@ -1,3 +1,4 @@
+using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ namespace Acordanza.Api.Controllers;
 [Route("api/ticks")]
 public class TicksController(AppDbContext db) : ControllerBase
 {
+    [Authorize(Policy = Permissions.TickDelete)]
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteTick(int id)
     {

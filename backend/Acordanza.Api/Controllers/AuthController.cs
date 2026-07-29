@@ -1,4 +1,5 @@
 using System.Text;
+using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
@@ -38,7 +39,7 @@ public class AuthController(
         var passkeys = await db.PasskeyCredentials.Where(p => p.UserId == user.Id).ToListAsync();
         if (passkeys.Count == 0)
         {
-            var token = tokenService.CreateToken(user);
+            var token = await tokenService.CreateToken(user);
             return Ok(new LoginResponse(token, user.UserName!, false, null, null));
         }
 
@@ -118,7 +119,7 @@ public class AuthController(
             return Unauthorized(new { error = "No se pudo verificar la llave de acceso" });
         }
 
-        var token = tokenService.CreateToken(user);
+        var token = await tokenService.CreateToken(user);
         return Ok(new LoginResponse(token, user.UserName!, false, null, null));
     }
 
@@ -128,7 +129,12 @@ public class AuthController(
     {
         var user = await userManager.GetUserAsync(User);
         if (user is null) return Unauthorized();
-        return Ok(new MeResponse(user.UserName!));
+
+        var roles = await userManager.GetRolesAsync(user);
+        var permissions = RolePermissions.PermissionsFor(roles);
+        var role = roles.FirstOrDefault() ?? Roles.User;
+
+        return Ok(new MeResponse(user.UserName!, role, permissions.ToArray()));
     }
 
     [EnableRateLimiting("forgot-password")]

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Acordanza is a small private web app for a group of friends to log and search climbing routes. Real accounts only (JWT auth, admin-provisioned) — no public sign-up, everyone who has an account can see and edit everything.
+Acordanza is a small private web app for a group of friends to log and search climbing routes. Real accounts only (JWT auth, admin-provisioned) — no public sign-up. Every account can read everything; write access is role-based (`admin`/`moderator`/`first-ascensionist`/`user`, see `backend/CLAUDE.md`).
 
 - `backend/Acordanza.Api/` — ASP.NET Core (.NET 10) Web API: EF Core + Npgsql, ASP.NET Core Identity, JWT auth. See `backend/CLAUDE.md`.
 - `frontend/` — React 19 + TypeScript, built with Vite, package-managed with Bun. See `frontend/CLAUDE.md`.
@@ -22,7 +22,7 @@ cd backend/Acordanza.Api && dotnet ef database update && dotnet run   # API on :
 cd frontend && bun install && bun dev                              # frontend on :5173
 ```
 
-First-time backend setup also needs a JWT signing key (`dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)"`) and at least one user account (`dotnet run -- create-user <email> <password>`, since there's no public registration endpoint). Full details are in `backend/CLAUDE.md` and the root `README.md`.
+First-time backend setup also needs a JWT signing key (`dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 48)"`) and at least one user account (`dotnet run -- create-user <email> <password> [role]`, since there's no public registration endpoint). Full details are in `backend/CLAUDE.md` and the root `README.md`.
 
 The `run-acordanza` skill (`.claude/skills/run-acordanza`) automates building, starting, and driving both processes end-to-end, including a headless-browser screenshot driver — use it instead of reinventing this when asked to run or verify the app.
 
@@ -32,7 +32,7 @@ Two independent processes talking over a JSON REST API (`VITE_API_URL`, default 
 
 - The frontend holds no server state beyond a JWT + username in `localStorage` (`AuthContext`); every other piece of data (routes, ticks, passkeys) is fetched fresh from the API per view.
 - The backend is a thin CRUD layer over four EF Core entities — `ApplicationUser` (Identity, email as username), `ClimbingRoute`, `Tick` (a logged ascent of a route, many-to-one with both route and user), `PasskeyCredential` (a user's registered WebAuthn credential) — exposed through `RoutesController`, `AuthController`, `AccountController`, and `PasskeysController`. There is no business-logic layer between controllers and `AppDbContext`.
-- Auth: `AuthController` issues JWTs on login (`JwtTokenService`); the frontend attaches them as `Authorization: Bearer` on every request via `frontend/src/api/client.ts`. Login is optionally two-step — a user with a registered passkey must also complete a WebAuthn assertion (`POST /api/auth/login/passkey`) before a JWT is issued. Accounts are created out-of-band via the `create-user` CLI command in `Program.cs`, never via HTTP.
+- Auth: `AuthController` issues JWTs on login (`JwtTokenService`); the frontend attaches them as `Authorization: Bearer` on every request via `frontend/src/api/client.ts`. Login is optionally two-step — a user with a registered passkey must also complete a WebAuthn assertion (`POST /api/auth/login/passkey`) before a JWT is issued. Accounts are created out-of-band via the `create-user` CLI command in `Program.cs`, never via HTTP. Each account has one role (`admin`/`moderator`/`first-ascensionist`/`user`); the role's permissions (see `backend/Acordanza.Api/Authorization/`) are embedded as JWT claims and enforced via `[Authorize(Policy = ...)]` on write endpoints, and returned from `GET /auth/me` so the frontend (`AuthContext.hasPermission`) can hide actions the current user can't perform.
 
 ## Language
 

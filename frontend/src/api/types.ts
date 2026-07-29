@@ -41,6 +41,8 @@ export interface RouteSummary {
   tickCount: number;
   avgRating: number | null;
   hasTopos: boolean;
+  validatedAt: string | null;
+  validatedBy: string | null;
 }
 
 export interface Tick {
@@ -89,6 +91,12 @@ export interface LoginResponse {
   mfaRequired: boolean;
   sessionId: string | null;
   options: unknown;
+}
+
+export interface MeResponse {
+  username: string;
+  role: string;
+  permissions: string[];
 }
 
 export interface PasskeySummary {

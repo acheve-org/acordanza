@@ -1,12 +1,15 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import type { CreateTickInput, RouteDetail } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
+import { Permissions } from '../api/permissions';
+import { useAuth } from '../context/AuthContext';
 
 interface Props {
   route: RouteDetail | null;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onValidate: () => Promise<void>;
   onAddTick: (input: CreateTickInput) => Promise<void>;
   onDeleteTick: (tickId: number) => Promise<void>;
   onUploadTopo: (file: File) => Promise<void>;
@@ -20,11 +23,13 @@ export function DetailModal({
   onClose,
   onEdit,
   onDelete,
+  onValidate,
   onAddTick,
   onDeleteTick,
   onUploadTopo,
   onDeleteTopo,
 }: Props) {
+  const { hasPermission } = useAuth();
   const [date, setDate] = useState('');
   const [rating, setRating] = useState('');
   const [notes, setNotes] = useState('');
@@ -83,14 +88,28 @@ export function DetailModal({
                 .filter(Boolean)
                 .join(' · ')}
             </p>
+            {route.validatedAt && (
+              <p className="detail-fa">
+                ✓ Validada por {route.validatedBy} el {new Date(route.validatedAt).toLocaleDateString()}
+              </p>
+            )}
           </div>
           <div className="detail-actions">
-            <button className="ghost-btn small" onClick={onEdit}>
-              Editar
-            </button>
-            <button className="ghost-btn small danger" onClick={onDelete}>
-              Eliminar
-            </button>
+            {!route.validatedAt && hasPermission(Permissions.routeValidate) && (
+              <button className="ghost-btn small" onClick={onValidate}>
+                Validar
+              </button>
+            )}
+            {hasPermission(Permissions.routeEdit) && (
+              <button className="ghost-btn small" onClick={onEdit}>
+                Editar
+              </button>
+            )}
+            {hasPermission(Permissions.routeDelete) && (
+              <button className="ghost-btn small danger" onClick={onDelete}>
+                Eliminar
+              </button>
+            )}
           </div>
         </div>
         <p className="detail-desc">{route.description || 'Sin descripción todavía.'}</p>
@@ -146,37 +165,41 @@ export function DetailModal({
 
         <hr className="divider" />
 
-        <h3>Registrar un ascenso</h3>
-        <form className="tick-form" onSubmit={handleTickSubmit}>
-          <div className="grid-3">
-            <label>
-              Fecha
-              <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
-            </label>
-            <label>
-              Puntuación <span className="hint">(1–5)</span>
-              <input
-                type="number"
-                min={1}
-                max={5}
-                value={rating}
-                onChange={(e) => setRating(e.target.value)}
-              />
-            </label>
-            <button type="submit" className="primary-btn">
-              Registrar
-            </button>
-          </div>
-          <label>
-            Notas
-            <input
-              type="text"
-              placeholder="Encadenada al segundo intento, el paso clave fue la regleta…"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </label>
-        </form>
+        {hasPermission(Permissions.tickCreate) && (
+          <>
+            <h3>Registrar un ascenso</h3>
+            <form className="tick-form" onSubmit={handleTickSubmit}>
+              <div className="grid-3">
+                <label>
+                  Fecha
+                  <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
+                </label>
+                <label>
+                  Puntuación <span className="hint">(1–5)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={5}
+                    value={rating}
+                    onChange={(e) => setRating(e.target.value)}
+                  />
+                </label>
+                <button type="submit" className="primary-btn">
+                  Registrar
+                </button>
+              </div>
+              <label>
+                Notas
+                <input
+                  type="text"
+                  placeholder="Encadenada al segundo intento, el paso clave fue la regleta…"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </label>
+            </form>
+          </>
+        )}
 
         <h3>Registro de ascensos</h3>
         <div className="ticks-list">
@@ -192,9 +215,11 @@ export function DetailModal({
                 {t.rating ? ` · ${'★'.repeat(t.rating)}` : ''}
                 {t.notes && <div className="tr-notes">{t.notes}</div>}
               </div>
-              <button className="tick-remove" title="Eliminar" onClick={() => onDeleteTick(t.id)}>
-                &times;
-              </button>
+              {hasPermission(Permissions.tickDelete) && (
+                <button className="tick-remove" title="Eliminar" onClick={() => onDeleteTick(t.id)}>
+                  &times;
+                </button>
+              )}
             </div>
           ))}
         </div>

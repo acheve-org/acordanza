@@ -1,5 +1,7 @@
 import type { RouteFilters } from '../api/types';
 import { gearLabels } from '../api/types';
+import { Permissions } from '../api/permissions';
+import { useAuth } from '../context/AuthContext';
 import { CragPicker } from './CragPicker';
 
 interface Props {
@@ -9,6 +11,8 @@ interface Props {
 }
 
 export function Filters({ filters, onChange, onAddRoute }: Props) {
+  const { hasPermission } = useAuth();
+
   function set<K extends keyof RouteFilters>(key: K, value: RouteFilters[K]) {
     onChange({ ...filters, [key]: value });
   }
@@ -57,9 +61,11 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
         Solo con topo
       </label>
 
-      <button className="primary-btn full-width" style={{ marginTop: 24 }} onClick={onAddRoute}>
-        + Añadir vía
-      </button>
+      {hasPermission(Permissions.routeCreate) && (
+        <button className="primary-btn full-width" style={{ marginTop: 24 }} onClick={onAddRoute}>
+          + Añadir vía
+        </button>
+      )}
     </aside>
   );
 }

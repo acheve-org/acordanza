@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as cragsApi from '../api/crags';
 import type { CragSummary } from '../api/types';
+import { Permissions } from '../api/permissions';
+import { useAuth } from '../context/AuthContext';
 
 interface Props {
   value: number | null;
@@ -20,6 +22,8 @@ function pathFor(crag: CragSummary, byId: Map<number, CragSummary>): string {
 }
 
 export function CragPicker({ value, onChange, allowCreate = false, allowClear = false }: Props) {
+  const { hasPermission } = useAuth();
+  const canCreate = allowCreate && hasPermission(Permissions.cragCreate);
   const [crags, setCrags] = useState<CragSummary[]>([]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -92,7 +96,7 @@ export function CragPicker({ value, onChange, allowCreate = false, allowClear = 
           ))}
         </div>
       )}
-      {allowCreate &&
+      {canCreate &&
         (!showCreate ? (
           <button type="button" className="ghost-btn small" onClick={() => setShowCreate(true)}>
             + Añadir nuevo sector

@@ -1,3 +1,4 @@
+using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
@@ -38,6 +39,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
         var query = db.Routes
             .Include(r => r.AddedBy)
+            .Include(r => r.ValidatedBy)
             .Include(r => r.Openers).ThenInclude(o => o.User)
             .Include(r => r.Ticks)
             .Include(r => r.Topos)
@@ -74,7 +76,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             r.AddedBy.UserName!, r.CreatedAt,
             r.Ticks.Count,
             r.Ticks.Count == 0 ? null : r.Ticks.Average(t => (double?)t.Rating),
-            r.Topos.Count > 0)).ToList();
+            r.Topos.Count > 0,
+            r.ValidatedAt, r.ValidatedBy?.UserName)).ToList();
 
         return Ok(dtos);
     }
@@ -84,6 +87,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     {
         var route = await db.Routes
             .Include(r => r.AddedBy)
+            .Include(r => r.ValidatedBy)
             .Include(r => r.Openers).ThenInclude(o => o.User)
             .Include(r => r.Ticks).ThenInclude(t => t.Climber)
             .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
@@ -112,11 +116,13 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
                 .OrderByDescending(t => t.Date)
                 .Select(t => new TickDto(t.Id, t.RouteId, t.Climber.UserName!, t.Date, t.Rating, t.Notes, t.CreatedAt))
                 .ToList(),
-            topoDtos);
+            topoDtos,
+            route.ValidatedAt, route.ValidatedBy?.UserName);
 
         return Ok(dto);
     }
 
+    [Authorize(Policy = Permissions.RouteCreate)]
     [HttpPost]
     public async Task<ActionResult> CreateRoute(UpsertRouteRequest request)
     {
@@ -159,6 +165,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         return Ok(new { id = route.Id });
     }
 
+    [Authorize(Policy = Permissions.RouteEdit)]
     [HttpPut("{id:int}")]
     public async Task<ActionResult> UpdateRoute(int id, UpsertRouteRequest request)
     {
@@ -190,10 +197,30 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         route.Openers.Clear();
         route.Openers.AddRange(openers!);
 
+        // An edit invalidates any prior validation of the route's info.
+        route.ValidatedAt = null;
+        route.ValidatedByUserId = null;
+
         await db.SaveChangesAsync();
         return Ok(new { ok = true });
     }
 
+    [Authorize(Policy = Permissions.RouteValidate)]
+    [HttpPost("{id:int}/validate")]
+    public async Task<ActionResult> ValidateRoute(int id)
+    {
+        var route = await db.Routes.FindAsync(id);
+        if (route is null) return NotFound(new { error = "No encontrado" });
+
+        var userId = userManager.GetUserId(User)!;
+        route.ValidatedAt = DateTimeOffset.UtcNow;
+        route.ValidatedByUserId = userId;
+
+        await db.SaveChangesAsync();
+        return Ok(new { ok = true });
+    }
+
+    [Authorize(Policy = Permissions.RouteDelete)]
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteRoute(int id)
     {
@@ -277,6 +304,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         return Ok(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, userManager.GetUserName(User)!));
     }
 
+    [Authorize(Policy = Permissions.TickCreate)]
     [HttpPost("{id:int}/ticks")]
     public async Task<ActionResult> CreateTick(int id, CreateTickRequest request)
     {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as openersApi from '../api/routeOpeners';
 import type { RouteOpenerSummary, UserSummary } from '../api/types';
+import { Permissions } from '../api/permissions';
+import { useAuth } from '../context/AuthContext';
 
 interface Props {
   value: number[];
@@ -8,6 +10,8 @@ interface Props {
 }
 
 export function OpenerPicker({ value, onChange }: Props) {
+  const { hasPermission } = useAuth();
+  const canCreate = hasPermission(Permissions.openerCreate);
   const [openers, setOpeners] = useState<RouteOpenerSummary[]>([]);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [query, setQuery] = useState('');
@@ -91,36 +95,37 @@ export function OpenerPicker({ value, onChange }: Props) {
           ))}
         </div>
       )}
-      {!showCreate ? (
-        <button type="button" className="ghost-btn small" onClick={() => setShowCreate(true)}>
-          + Nuevo aperturista
-        </button>
-      ) : (
-        <div className="combo-create-form">
-          <input
-            type="text"
-            placeholder="Nombre del aperturista"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-          />
-          <select value={newUserId} onChange={(e) => setNewUserId(e.target.value)}>
-            <option value="">Sin vincular a cuenta</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.userName}
-              </option>
-            ))}
-          </select>
-          <div className="modal-actions">
-            <button type="button" className="ghost-btn small" onClick={() => setShowCreate(false)}>
-              Cancelar
-            </button>
-            <button type="button" className="primary-btn" onClick={handleCreate}>
-              Añadir
-            </button>
+      {canCreate &&
+        (!showCreate ? (
+          <button type="button" className="ghost-btn small" onClick={() => setShowCreate(true)}>
+            + Nuevo aperturista
+          </button>
+        ) : (
+          <div className="combo-create-form">
+            <input
+              type="text"
+              placeholder="Nombre del aperturista"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            <select value={newUserId} onChange={(e) => setNewUserId(e.target.value)}>
+              <option value="">Sin vincular a cuenta</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.userName}
+                </option>
+              ))}
+            </select>
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn small" onClick={() => setShowCreate(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="primary-btn" onClick={handleCreate}>
+                Añadir
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        ))}
     </div>
   );
 }

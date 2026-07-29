@@ -128,6 +128,12 @@ namespace Acordanza.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset?>("ValidatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ValidatedByUserId")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AddedByUserId");
@@ -135,6 +141,8 @@ namespace Acordanza.Api.Migrations
                     b.HasIndex("CragId");
 
                     b.HasIndex("Grade");
+
+                    b.HasIndex("ValidatedByUserId");
 
                     b.ToTable("Routes", "core");
                 });
@@ -475,9 +483,16 @@ namespace Acordanza.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "ValidatedBy")
+                        .WithMany()
+                        .HasForeignKey("ValidatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("AddedBy");
 
                     b.Navigation("Crag");
+
+                    b.Navigation("ValidatedBy");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.Crag", b =>

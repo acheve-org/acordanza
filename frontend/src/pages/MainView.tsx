@@ -73,6 +73,13 @@ export function MainView() {
     refreshRoutes();
   }
 
+  async function handleValidateRoute() {
+    if (!detailRouteId) return;
+    await routesApi.validateRoute(detailRouteId);
+    refreshDetail();
+    refreshRoutes();
+  }
+
   return (
     <>
       <main className="layout">
@@ -87,6 +94,7 @@ export function MainView() {
           if (detailRouteId !== null) navigate(`/routes/${detailRouteId}/edit`);
         }}
         onDelete={handleDeleteRoute}
+        onValidate={handleValidateRoute}
         onAddTick={handleAddTick}
         onDeleteTick={handleDeleteTick}
         onUploadTopo={handleUploadTopo}
