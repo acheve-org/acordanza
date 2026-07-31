@@ -5,17 +5,33 @@ import * as accountApi from '../api/account';
 import * as passkeysApi from '../api/passkeys';
 import type { PasskeySummary } from '../api/types';
 import { ApiError } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 
 export function SettingsPage() {
   return (
     <main className="settings-page">
       <h1>Configuración</h1>
+      <ProfileSection />
       <PasswordSection />
       <PasskeysSection />
       <Link to="/" className="ghost-btn small">
         Volver
       </Link>
     </main>
+  );
+}
+
+function ProfileSection() {
+  const { name } = useAuth();
+
+  return (
+    <section className="settings-section">
+      <h2>Perfil</h2>
+      <label>
+        Nombre
+        <input type="text" value={name ?? ''} readOnly disabled />
+      </label>
+    </section>
   );
 }
 

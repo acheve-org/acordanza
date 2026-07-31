@@ -117,7 +117,7 @@ export function DetailModal({
           <p className="detail-fa">
             Apertura:{' '}
             {route.openers
-              .map((o) => (o.userName ? `${o.name} (${o.userName})` : o.name))
+              .map((o) => (o.linkedUserName ? `${o.name} (${o.linkedUserName})` : o.name))
               .join(', ')}
           </p>
         )}

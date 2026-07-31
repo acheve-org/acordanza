@@ -8,12 +8,12 @@ export interface RouteOpenerSummary {
   id: number;
   name: string;
   userId: string | null;
-  userName: string | null;
+  linkedUserName: string | null;
 }
 
 export interface UserSummary {
   id: string;
-  userName: string;
+  name: string;
 }
 
 export interface TopoSummary {
@@ -95,6 +95,7 @@ export interface LoginResponse {
 
 export interface MeResponse {
   username: string;
+  name: string;
   role: string;
   permissions: string[];
 }

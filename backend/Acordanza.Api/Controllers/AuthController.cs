@@ -134,7 +134,7 @@ public class AuthController(
         var permissions = RolePermissions.PermissionsFor(roles);
         var role = roles.FirstOrDefault() ?? Roles.User;
 
-        return Ok(new MeResponse(user.UserName!, role, permissions.ToArray()));
+        return Ok(new MeResponse(user.UserName!, user.Name, role, permissions.ToArray()));
     }
 
     [EnableRateLimiting("forgot-password")]

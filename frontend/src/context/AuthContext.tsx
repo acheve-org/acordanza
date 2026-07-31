@@ -8,6 +8,7 @@ const STORAGE_KEY = 'acordanza.auth';
 interface StoredAuth {
   token: string;
   username: string;
+  name: string;
   role: string;
   permissions: string[];
 }
@@ -19,6 +20,7 @@ export interface PasskeyChallenge {
 
 interface AuthContextValue {
   username: string | null;
+  name: string | null;
   role: string | null;
   permissions: string[];
   loading: boolean;
@@ -33,6 +35,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(null);
+  const [name, setName] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .get<MeResponse>('/auth/me')
       .then((me) => {
         setUsername(me.username);
+        setName(me.name);
         setRole(me.role);
         setPermissions(me.permissions);
       })
@@ -66,9 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const me = await api.get<MeResponse>('/auth/me');
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ token, username: me.username, role: me.role, permissions: me.permissions }),
+      JSON.stringify({ token, username: me.username, name: me.name, role: me.role, permissions: me.permissions }),
     );
     setUsername(me.username);
+    setName(me.name);
     setRole(me.role);
     setPermissions(me.permissions);
   }
@@ -105,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEY);
     setAuthToken(null);
     setUsername(null);
+    setName(null);
     setRole(null);
     setPermissions([]);
   }
@@ -117,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         username,
+        name,
         role,
         permissions,
         loading,

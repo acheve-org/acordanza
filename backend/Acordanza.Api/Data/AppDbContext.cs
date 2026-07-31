@@ -25,6 +25,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<ApplicationUser>(entity =>
         {
             entity.HasIndex(u => u.NormalizedEmail).IsUnique();
+            // Default "" (rather than leaving the column non-nullable with no
+            // default) lets the AddColumn migration apply cleanly against
+            // rows that predate Name; Program.cs backfills those on startup.
+            entity.Property(u => u.Name).HasMaxLength(20).HasDefaultValue("");
         });
 
         builder.Entity<Crag>(entity =>

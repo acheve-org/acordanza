@@ -73,11 +73,11 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             r.Id, r.Name, r.CragId, cragById[r.CragId].Name, CragPath(cragById, r.CragId),
             r.Grade, r.Orientation, r.Gear, r.Description, r.Tags,
             r.Openers.Select(ToOpenerDto).ToList(),
-            r.AddedBy.UserName!, r.CreatedAt,
+            r.AddedBy.Name, r.CreatedAt,
             r.Ticks.Count,
             r.Ticks.Count == 0 ? null : r.Ticks.Average(t => (double?)t.Rating),
             r.Topos.Count > 0,
-            r.ValidatedAt, r.ValidatedBy?.UserName)).ToList();
+            r.ValidatedAt, r.ValidatedBy?.Name)).ToList();
 
         return Ok(dtos);
     }
@@ -104,20 +104,20 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         foreach (var topo in route.Topos.OrderBy(t => t.CreatedAt))
         {
             var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, TopoUrlLifetime);
-            topoDtos.Add(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, topo.UploadedBy.UserName!));
+            topoDtos.Add(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, topo.UploadedBy.Name));
         }
 
         var dto = new RouteDetailDto(
             route.Id, route.Name, route.CragId, cragById[route.CragId].Name, CragPath(cragById, route.CragId),
             route.Grade, route.Orientation, route.Gear, route.Description, route.Tags,
             route.Openers.Select(ToOpenerDto).ToList(),
-            route.AddedBy.UserName!, route.CreatedAt,
+            route.AddedBy.Name, route.CreatedAt,
             route.Ticks
                 .OrderByDescending(t => t.Date)
-                .Select(t => new TickDto(t.Id, t.RouteId, t.Climber.UserName!, t.Date, t.Rating, t.Notes, t.CreatedAt))
+                .Select(t => new TickDto(t.Id, t.RouteId, t.Climber.Name, t.Date, t.Rating, t.Notes, t.CreatedAt))
                 .ToList(),
             topoDtos,
-            route.ValidatedAt, route.ValidatedBy?.UserName);
+            route.ValidatedAt, route.ValidatedBy?.Name);
 
         return Ok(dto);
     }
@@ -266,14 +266,16 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             .ToListAsync();
         var cragById = crags.ToDictionary(c => c.Id);
 
-        var userId = userManager.GetUserId(User)!;
+        var currentUser = await userManager.GetUserAsync(User);
+        if (currentUser is null) return Unauthorized();
+
         var topo = new Topo
         {
             RouteId = route.Id,
             BlobName = "",
             ContentType = file.ContentType,
             FileName = file.FileName,
-            UploadedByUserId = userId
+            UploadedByUserId = currentUser.Id
         };
         db.Topos.Add(topo);
         await db.SaveChangesAsync();
@@ -301,7 +303,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         }
 
         var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, TopoUrlLifetime);
-        return Ok(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, userManager.GetUserName(User)!));
+        return Ok(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, currentUser.Name));
     }
 
     [Authorize(Policy = Permissions.TickCreate)]
@@ -356,7 +358,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         return (openers, null);
     }
 
-    private static RouteOpenerDto ToOpenerDto(RouteOpener o) => new(o.Id, o.Name, o.UserId, o.User?.UserName);
+    private static RouteOpenerDto ToOpenerDto(RouteOpener o) => new(o.Id, o.Name, o.UserId, o.User?.Name);
 
     private static List<int> DescendantCragIds(List<CragNode> crags, int rootId)
     {

@@ -11,7 +11,7 @@ All run from `backend/Acordanza.Api/`:
 ```
 dotnet build                                                      # compile
 dotnet run                                                        # run the API on http://localhost:5073
-dotnet run -- create-user <email> <password> [role]               # provision an account (only way to create one — no HTTP registration); role defaults to 'user'
+dotnet run -- create-user <email> <password> <name> [role]        # provision an account (only way to create one — no HTTP registration); name max 20 chars; role defaults to 'user'
 dotnet ef migrations add <Name>                                   # add a migration after changing a model/AppDbContext
 dotnet ef database update                                         # apply pending migrations
 ```
@@ -27,7 +27,7 @@ No test project exists yet.
 Flat, controller-per-resource structure — there is no service/repository layer; controllers talk to `AppDbContext` directly via EF Core:
 
 - `Controllers/` — `AuthController` (login incl. passkey second factor, `/auth/me`), `AccountController` (self-service password change), `PasskeysController` (register/list/delete the current user's passkeys), `RoutesController` (CRUD on routes + nested `POST /{id}/ticks` and `POST /{id}/validate`), `CragsController`, `RouteOpenersController`, `TicksController` (tick deletion). All routes require `[Authorize]` (JWT bearer); write actions additionally require `[Authorize(Policy = Permissions.X)]` — see Authorization below.
-- `Models/` — `ApplicationUser` (extends `IdentityUser`, no extra fields — email *is* the username), `ClimbingRoute` (has a nullable `ValidatedAt`/`ValidatedByUserId`, cleared on edit), `Crag`, `RouteOpener`, `Tick`, `PasskeyCredential` (a registered WebAuthn credential, belongs to one `ApplicationUser`, cascades on user delete). `Tick` is a logged ascent: belongs to one `ClimbingRoute` and one `ApplicationUser` (the climber).
+- `Models/` — `ApplicationUser` (extends `IdentityUser`; email *is* the username, but `Name` (max 20 chars) is the only user-facing display value — email is PII and must never be shown to other users), `ClimbingRoute` (has a nullable `ValidatedAt`/`ValidatedByUserId`, cleared on edit), `Crag`, `RouteOpener`, `Tick`, `PasskeyCredential` (a registered WebAuthn credential, belongs to one `ApplicationUser`, cascades on user delete). `Tick` is a logged ascent: belongs to one `ClimbingRoute` and one `ApplicationUser` (the climber).
 - `Dtos/` — request/response records per resource (`AuthDtos.cs`, `AccountDtos.cs`, `PasskeyDtos.cs`, `RouteDtos.cs`, `TickDtos.cs`). Controllers project EF entities into these directly in LINQ `Select` calls rather than mapping in a separate layer.
 - `Data/AppDbContext.cs` — `IdentityDbContext<ApplicationUser>` plus `Routes`/`Ticks`/`PasskeyCredentials`/`Crags`/`RouteOpeners` `DbSet`s. Indexes on `Grade`, `CragId`, `Tick.RouteId`; `ApplicationUser.NormalizedEmail` is unique (email is the username). `ClimbingRoute.AddedBy`/`ValidatedBy` and `Tick.Climber` use `DeleteBehavior.Restrict` (deleting a user does not cascade); `Tick.Route` and `PasskeyCredential.User` cascade. Tables are split across three Postgres schemas via `OnModelCreating`: `identity` (the default, holding the built-in `AspNetUsers`/`AspNetRoles`/... Identity tables), `auth` (`PasskeyCredentials`), and `core` (`Routes`, `Ticks`, `Crags`, `RouteOpeners`).
 - `Services/JwtTokenService.cs` — issues the bearer token consumed by the frontend, embedding the user's role and resolved permission claims (see Authorization below).

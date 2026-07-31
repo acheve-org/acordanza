@@ -142,18 +142,25 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// --- Admin CLI: `dotnet run -- create-user <email> <password> [role]` creates an account. ---
+// --- Admin CLI: `dotnet run -- create-user <email> <password> <name> [role]` creates an account. ---
 // Registration is intentionally not exposed over HTTP; accounts are admin-provisioned.
 if (args.Length > 0 && args[0] == "create-user")
 {
-    if (args.Length is < 3 or > 4)
+    if (args.Length is < 4 or > 5)
     {
-        Console.WriteLine("Usage: dotnet run -- create-user <email> <password> [role]");
+        Console.WriteLine("Usage: dotnet run -- create-user <email> <password> <name> [role]");
         Console.WriteLine($"Roles: {string.Join(", ", Roles.All)} (default: {Roles.User})");
         return 1;
     }
 
-    var role = args.Length == 4 ? args[3] : Roles.User;
+    var name = args[3];
+    if (string.IsNullOrWhiteSpace(name) || name.Length > 20)
+    {
+        Console.WriteLine("Name must be between 1 and 20 characters.");
+        return 1;
+    }
+
+    var role = args.Length == 5 ? args[4] : Roles.User;
     if (!Roles.All.Contains(role))
     {
         Console.WriteLine($"Unknown role '{role}'. Roles: {string.Join(", ", Roles.All)}");
@@ -167,7 +174,7 @@ if (args.Length > 0 && args[0] == "create-user")
     await db.Database.MigrateAsync();
     await RoleSeeder.EnsureSeededAsync(scope.ServiceProvider);
 
-    var user = new ApplicationUser { UserName = args[1], Email = args[1] };
+    var user = new ApplicationUser { UserName = args[1], Email = args[1], Name = name };
     var result = await userManager.CreateAsync(user, args[2]);
     if (!result.Succeeded)
     {
@@ -205,6 +212,19 @@ using (var scope = app.Services.CreateScope())
         foreach (var crag in unslugged)
         {
             crag.Slug = $"{Slugify.ToSlug(crag.Name)}-{crag.Id}";
+        }
+        await db.SaveChangesAsync();
+    }
+
+    // One-time backfill for accounts created before the Name column existed.
+    // New accounts always get one via the create-user CLI.
+    var unnamed = await db.Users.Where(u => u.Name == "").ToListAsync();
+    if (unnamed.Count > 0)
+    {
+        foreach (var user in unnamed)
+        {
+            var localPart = user.Email!.Split('@')[0];
+            user.Name = localPart.Length > 20 ? localPart[..20] : localPart;
         }
         await db.SaveChangesAsync();
     }

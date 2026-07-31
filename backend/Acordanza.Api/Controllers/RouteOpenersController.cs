@@ -19,7 +19,7 @@ public class RouteOpenersController(AppDbContext db) : ControllerBase
         var openers = await db.RouteOpeners.AsNoTracking()
             .Include(o => o.User)
             .OrderBy(o => o.Name)
-            .Select(o => new RouteOpenerDto(o.Id, o.Name, o.UserId, o.User != null ? o.User.UserName : null))
+            .Select(o => new RouteOpenerDto(o.Id, o.Name, o.UserId, o.User != null ? o.User.Name : null))
             .ToListAsync();
 
         return Ok(openers);
@@ -29,8 +29,8 @@ public class RouteOpenersController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<List<UserSummaryDto>>> GetLinkableUsers()
     {
         var users = await db.Users.AsNoTracking()
-            .OrderBy(u => u.UserName)
-            .Select(u => new UserSummaryDto(u.Id, u.UserName!))
+            .OrderBy(u => u.Name)
+            .Select(u => new UserSummaryDto(u.Id, u.Name))
             .ToListAsync();
 
         return Ok(users);
@@ -56,6 +56,6 @@ public class RouteOpenersController(AppDbContext db) : ControllerBase
         db.RouteOpeners.Add(opener);
         await db.SaveChangesAsync();
 
-        return Ok(new RouteOpenerDto(opener.Id, opener.Name, opener.UserId, user?.UserName));
+        return Ok(new RouteOpenerDto(opener.Id, opener.Name, opener.UserId, user?.Name));
     }
 }

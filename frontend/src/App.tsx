@@ -8,7 +8,7 @@ import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
 
 function AppLayout() {
-  const { username, logout } = useAuth();
+  const { name, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -34,8 +34,8 @@ function AppLayout() {
           <div className="user-menu" ref={userMenuRef}>
             <button
               className="user-menu-trigger"
-              aria-label={username ?? ''}
-              title={username ?? ''}
+              aria-label={name ?? ''}
+              title={name ?? ''}
               aria-haspopup="true"
               aria-expanded={userMenuOpen}
               onClick={() => setUserMenuOpen((open) => !open)}
@@ -47,7 +47,7 @@ function AppLayout() {
             </button>
             {userMenuOpen && (
               <div className="user-menu-popup">
-                <span className="user-menu-name">{username}</span>
+                <span className="user-menu-name">{name}</span>
                 <Link className="ghost-btn small full-width" to="/settings" onClick={() => setUserMenuOpen(false)}>
                   Configuración
                 </Link>

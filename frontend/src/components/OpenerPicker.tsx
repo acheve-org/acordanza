@@ -61,7 +61,7 @@ export function OpenerPicker({ value, onChange }: Props) {
           {selected.map((o) => (
             <span key={o.id} className="tag-chip chip-removable">
               {o.name}
-              {o.userName && <span className="hint"> · {o.userName}</span>}
+              {o.linkedUserName && <span className="hint"> · {o.linkedUserName}</span>}
               <button type="button" className="chip-remove" onClick={() => removeOpener(o.id)}>
                 &times;
               </button>
@@ -90,7 +90,7 @@ export function OpenerPicker({ value, onChange }: Props) {
               onClick={() => addOpener(o.id)}
             >
               {o.name}
-              {o.userName ? ` · ${o.userName}` : ''}
+              {o.linkedUserName ? ` · ${o.linkedUserName}` : ''}
             </button>
           ))}
         </div>
@@ -112,7 +112,7 @@ export function OpenerPicker({ value, onChange }: Props) {
               <option value="">Sin vincular a cuenta</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.userName}
+                  {u.name}
                 </option>
               ))}
             </select>
