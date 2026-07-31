@@ -1,6 +1,6 @@
 namespace Acordanza.Api.Models;
 
-public class RouteOpener
+public class FirstAscensionist
 {
     public int Id { get; set; }
     public required string Name { get; set; }

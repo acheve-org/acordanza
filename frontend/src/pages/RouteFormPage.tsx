@@ -5,7 +5,7 @@ import { ApiError } from '../api/client';
 import type { RouteDetail, UpsertRouteInput } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 import { CragPicker } from '../components/CragPicker';
-import { OpenerPicker } from '../components/OpenerPicker';
+import { FirstAscensionistPicker } from '../components/FirstAscensionistPicker';
 
 const emptyForm: UpsertRouteInput = {
   name: '',
@@ -15,7 +15,7 @@ const emptyForm: UpsertRouteInput = {
   gear: '',
   description: '',
   tags: '',
-  openerIds: [],
+  firstAscensionistIds: [],
 };
 
 export function RouteFormPage() {
@@ -41,7 +41,7 @@ export function RouteFormPage() {
           gear: r.gear ?? '',
           description: r.description,
           tags: r.tags,
-          openerIds: r.openers.map((o) => o.id),
+          firstAscensionistIds: r.firstAscensionists.map((o) => o.id),
         });
       })
       .catch((err) => {
@@ -153,7 +153,10 @@ export function RouteFormPage() {
           </label>
           <label>
             Apertura
-            <OpenerPicker value={form.openerIds} onChange={(openerIds) => set('openerIds', openerIds)} />
+            <FirstAscensionistPicker
+              value={form.firstAscensionistIds}
+              onChange={(firstAscensionistIds) => set('firstAscensionistIds', firstAscensionistIds)}
+            />
           </label>
           <div className="modal-actions">
             <Link to="/" className="ghost-btn">

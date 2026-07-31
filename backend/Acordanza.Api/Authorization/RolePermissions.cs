@@ -11,7 +11,7 @@ public static class RolePermissions
         Permissions.RouteCreate,
         Permissions.TickCreate,
         Permissions.TickDelete,
-        Permissions.OpenerCreate
+        Permissions.FirstAscensionistCreate
     ];
 
     private static readonly string[] FirstAscensionistPermissions =
@@ -19,7 +19,7 @@ public static class RolePermissions
         .. UserPermissions,
         Permissions.RouteEdit,
         Permissions.RouteValidate,
-        Permissions.OpenerEdit
+        Permissions.FirstAscensionistEdit
     ];
 
     private static readonly string[] ModeratorPermissions =
@@ -31,8 +31,8 @@ public static class RolePermissions
         Permissions.RouteDelete,
         Permissions.TickEdit,
         Permissions.TickValidate,
-        Permissions.OpenerValidate,
-        Permissions.OpenerDelete
+        Permissions.FirstAscensionistValidate,
+        Permissions.FirstAscensionistDelete
     ];
 
     private static readonly string[] AdminPermissions = [.. Permissions.All];

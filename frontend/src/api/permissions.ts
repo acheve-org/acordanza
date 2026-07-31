@@ -15,10 +15,10 @@ export const Permissions = {
   tickValidate: 'tick.validate',
   tickDelete: 'tick.delete',
 
-  openerCreate: 'opener.create',
-  openerEdit: 'opener.edit',
-  openerValidate: 'opener.validate',
-  openerDelete: 'opener.delete',
+  firstAscensionistCreate: 'first-ascensionist.create',
+  firstAscensionistEdit: 'first-ascensionist.edit',
+  firstAscensionistValidate: 'first-ascensionist.validate',
+  firstAscensionistDelete: 'first-ascensionist.delete',
 
   userManage: 'user.manage',
 } as const;

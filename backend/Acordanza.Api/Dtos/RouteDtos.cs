@@ -11,7 +11,7 @@ public record RouteDto(
     string? Gear,
     string Description,
     string Tags,
-    List<RouteOpenerDto> Openers,
+    List<FirstAscensionistDto> FirstAscensionists,
     string AddedBy,
     DateTimeOffset CreatedAt,
     int TickCount,
@@ -32,7 +32,7 @@ public record RouteDetailDto(
     string? Gear,
     string Description,
     string Tags,
-    List<RouteOpenerDto> Openers,
+    List<FirstAscensionistDto> FirstAscensionists,
     string AddedBy,
     DateTimeOffset CreatedAt,
     List<TickDto> Ticks,
@@ -49,5 +49,5 @@ public record UpsertRouteRequest(
     string? Gear,
     string? Description,
     string? Tags,
-    List<int>? OpenerIds
+    List<int>? FirstAscensionistIds
 );

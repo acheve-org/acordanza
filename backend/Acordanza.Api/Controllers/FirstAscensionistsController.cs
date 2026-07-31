@@ -10,19 +10,19 @@ namespace Acordanza.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/route-openers")]
-public class RouteOpenersController(AppDbContext db) : ControllerBase
+[Route("api/first-ascensionists")]
+public class FirstAscensionistsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<RouteOpenerDto>>> GetOpeners()
+    public async Task<ActionResult<List<FirstAscensionistDto>>> GetFirstAscensionists()
     {
-        var openers = await db.RouteOpeners.AsNoTracking()
+        var firstAscensionists = await db.FirstAscensionists.AsNoTracking()
             .Include(o => o.User)
             .OrderBy(o => o.Name)
-            .Select(o => new RouteOpenerDto(o.Id, o.Name, o.UserId, o.User != null ? o.User.Name : null))
+            .Select(o => new FirstAscensionistDto(o.Id, o.Name, o.UserId, o.User != null ? o.User.Name : null))
             .ToListAsync();
 
-        return Ok(openers);
+        return Ok(firstAscensionists);
     }
 
     [HttpGet("users")]
@@ -36,9 +36,9 @@ public class RouteOpenersController(AppDbContext db) : ControllerBase
         return Ok(users);
     }
 
-    [Authorize(Policy = Permissions.OpenerCreate)]
+    [Authorize(Policy = Permissions.FirstAscensionistCreate)]
     [HttpPost]
-    public async Task<ActionResult<RouteOpenerDto>> CreateOpener(CreateRouteOpenerRequest request)
+    public async Task<ActionResult<FirstAscensionistDto>> CreateFirstAscensionist(CreateFirstAscensionistRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
@@ -52,10 +52,10 @@ public class RouteOpenersController(AppDbContext db) : ControllerBase
             if (user is null) return BadRequest(new { error = "el usuario no existe" });
         }
 
-        var opener = new RouteOpener { Name = request.Name.Trim(), UserId = user?.Id };
-        db.RouteOpeners.Add(opener);
+        var firstAscensionist = new FirstAscensionist { Name = request.Name.Trim(), UserId = user?.Id };
+        db.FirstAscensionists.Add(firstAscensionist);
         await db.SaveChangesAsync();
 
-        return Ok(new RouteOpenerDto(opener.Id, opener.Name, opener.UserId, user?.Name));
+        return Ok(new FirstAscensionistDto(firstAscensionist.Id, firstAscensionist.Name, firstAscensionist.UserId, user?.Name));
     }
 }

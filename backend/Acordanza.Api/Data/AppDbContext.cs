@@ -11,7 +11,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Tick> Ticks => Set<Tick>();
     public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
     public DbSet<Crag> Crags => Set<Crag>();
-    public DbSet<RouteOpener> RouteOpeners => Set<RouteOpener>();
+    public DbSet<FirstAscensionist> FirstAscensionists => Set<FirstAscensionist>();
     public DbSet<Topo> Topos => Set<Topo>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -47,9 +47,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        builder.Entity<RouteOpener>(entity =>
+        builder.Entity<FirstAscensionist>(entity =>
         {
-            entity.ToTable("RouteOpeners", "core");
+            entity.ToTable("FirstAscensionists", "core");
 
             entity.HasIndex(o => o.Name);
 
@@ -81,16 +81,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(r => r.ValidatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasMany(r => r.Openers)
+            entity.HasMany(r => r.FirstAscensionists)
                 .WithMany()
                 .UsingEntity<Dictionary<string, object>>(
-                    "RouteRouteOpeners",
-                    j => j.HasOne<RouteOpener>().WithMany().HasForeignKey("OpenerId").OnDelete(DeleteBehavior.Cascade),
+                    "RouteFirstAscensionists",
+                    j => j.HasOne<FirstAscensionist>().WithMany().HasForeignKey("FirstAscensionistId").OnDelete(DeleteBehavior.Cascade),
                     j => j.HasOne<ClimbingRoute>().WithMany().HasForeignKey("RouteId").OnDelete(DeleteBehavior.Cascade),
                     j =>
                     {
-                        j.ToTable("RouteRouteOpeners", "core");
-                        j.HasKey("RouteId", "OpenerId");
+                        j.ToTable("RouteFirstAscensionists", "core");
+                        j.HasKey("RouteId", "FirstAscensionistId");
                     });
         });
 

@@ -185,6 +185,30 @@ namespace Acordanza.Api.Migrations
                     b.ToTable("Crags", "core");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.FirstAscensionist", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("FirstAscensionists", "core");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.PasskeyCredential", b =>
                 {
                     b.Property<int>("Id")
@@ -226,30 +250,6 @@ namespace Acordanza.Api.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PasskeyCredentials", "auth");
-                });
-
-            modelBuilder.Entity("Acordanza.Api.Models.RouteOpener", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("RouteOpeners", "core");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.Tick", b =>
@@ -461,19 +461,19 @@ namespace Acordanza.Api.Migrations
                     b.ToTable("AspNetUserTokens", "identity");
                 });
 
-            modelBuilder.Entity("RouteRouteOpeners", b =>
+            modelBuilder.Entity("RouteFirstAscensionists", b =>
                 {
                     b.Property<int>("RouteId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("OpenerId")
+                    b.Property<int>("FirstAscensionistId")
                         .HasColumnType("integer");
 
-                    b.HasKey("RouteId", "OpenerId");
+                    b.HasKey("RouteId", "FirstAscensionistId");
 
-                    b.HasIndex("OpenerId");
+                    b.HasIndex("FirstAscensionistId");
 
-                    b.ToTable("RouteRouteOpeners", "core");
+                    b.ToTable("RouteFirstAscensionists", "core");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
@@ -512,6 +512,16 @@ namespace Acordanza.Api.Migrations
                     b.Navigation("ParentCrag");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.FirstAscensionist", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.PasskeyCredential", b =>
                 {
                     b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
@@ -519,16 +529,6 @@ namespace Acordanza.Api.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Acordanza.Api.Models.RouteOpener", b =>
-                {
-                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("User");
                 });
@@ -622,11 +622,11 @@ namespace Acordanza.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("RouteRouteOpeners", b =>
+            modelBuilder.Entity("RouteFirstAscensionists", b =>
                 {
-                    b.HasOne("Acordanza.Api.Models.RouteOpener", null)
+                    b.HasOne("Acordanza.Api.Models.FirstAscensionist", null)
                         .WithMany()
-                        .HasForeignKey("OpenerId")
+                        .HasForeignKey("FirstAscensionistId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

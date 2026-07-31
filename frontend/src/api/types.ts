@@ -4,7 +4,7 @@ export interface CragSummary {
   parentCragId: number | null;
 }
 
-export interface RouteOpenerSummary {
+export interface FirstAscensionistSummary {
   id: number;
   name: string;
   userId: string | null;
@@ -35,7 +35,7 @@ export interface RouteSummary {
   gear: string | null;
   description: string;
   tags: string;
-  openers: RouteOpenerSummary[];
+  firstAscensionists: FirstAscensionistSummary[];
   addedBy: string;
   createdAt: string;
   tickCount: number;
@@ -76,7 +76,7 @@ export interface UpsertRouteInput {
   gear: string;
   description: string;
   tags: string;
-  openerIds: number[];
+  firstAscensionistIds: number[];
 }
 
 export interface CreateTickInput {

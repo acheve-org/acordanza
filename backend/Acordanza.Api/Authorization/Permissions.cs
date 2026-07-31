@@ -17,10 +17,10 @@ public static class Permissions
     public const string TickValidate = "tick.validate";
     public const string TickDelete = "tick.delete";
 
-    public const string OpenerCreate = "opener.create";
-    public const string OpenerEdit = "opener.edit";
-    public const string OpenerValidate = "opener.validate";
-    public const string OpenerDelete = "opener.delete";
+    public const string FirstAscensionistCreate = "first-ascensionist.create";
+    public const string FirstAscensionistEdit = "first-ascensionist.edit";
+    public const string FirstAscensionistValidate = "first-ascensionist.validate";
+    public const string FirstAscensionistDelete = "first-ascensionist.delete";
 
     public const string UserManage = "user.manage";
 
@@ -29,7 +29,7 @@ public static class Permissions
         CragCreate, CragEdit, CragValidate, CragDelete,
         RouteCreate, RouteEdit, RouteValidate, RouteDelete,
         TickCreate, TickEdit, TickValidate, TickDelete,
-        OpenerCreate, OpenerEdit, OpenerValidate, OpenerDelete,
+        FirstAscensionistCreate, FirstAscensionistEdit, FirstAscensionistValidate, FirstAscensionistDelete,
         UserManage
     ];
 }

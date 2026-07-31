@@ -40,7 +40,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var query = db.Routes
             .Include(r => r.AddedBy)
             .Include(r => r.ValidatedBy)
-            .Include(r => r.Openers).ThenInclude(o => o.User)
+            .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
             .Include(r => r.Ticks)
             .Include(r => r.Topos)
             .AsQueryable();
@@ -72,7 +72,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var dtos = routes.Select(r => new RouteDto(
             r.Id, r.Name, r.CragId, cragById[r.CragId].Name, CragPath(cragById, r.CragId),
             r.Grade, r.Orientation, r.Gear, r.Description, r.Tags,
-            r.Openers.Select(ToOpenerDto).ToList(),
+            r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             r.AddedBy.Name, r.CreatedAt,
             r.Ticks.Count,
             r.Ticks.Count == 0 ? null : r.Ticks.Average(t => (double?)t.Rating),
@@ -88,7 +88,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var route = await db.Routes
             .Include(r => r.AddedBy)
             .Include(r => r.ValidatedBy)
-            .Include(r => r.Openers).ThenInclude(o => o.User)
+            .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
             .Include(r => r.Ticks).ThenInclude(t => t.Climber)
             .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
             .FirstOrDefaultAsync(r => r.Id == id);
@@ -110,7 +110,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var dto = new RouteDetailDto(
             route.Id, route.Name, route.CragId, cragById[route.CragId].Name, CragPath(cragById, route.CragId),
             route.Grade, route.Orientation, route.Gear, route.Description, route.Tags,
-            route.Openers.Select(ToOpenerDto).ToList(),
+            route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             route.AddedBy.Name, route.CreatedAt,
             route.Ticks
                 .OrderByDescending(t => t.Date)
@@ -142,8 +142,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var gearError = ValidateGear(request.Gear);
         if (gearError is not null) return BadRequest(new { error = gearError });
 
-        var (openers, openersError) = await ResolveOpenersAsync(request.OpenerIds);
-        if (openersError is not null) return BadRequest(new { error = openersError });
+        var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
+        if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
         var userId = userManager.GetUserId(User)!;
         var route = new ClimbingRoute
@@ -156,7 +156,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             Description = request.Description ?? "",
             Tags = request.Tags ?? "",
             AddedByUserId = userId,
-            Openers = openers!
+            FirstAscensionists = firstAscensionists!
         };
 
         db.Routes.Add(route);
@@ -169,7 +169,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     [HttpPut("{id:int}")]
     public async Task<ActionResult> UpdateRoute(int id, UpsertRouteRequest request)
     {
-        var route = await db.Routes.Include(r => r.Openers).FirstOrDefaultAsync(r => r.Id == id);
+        var route = await db.Routes.Include(r => r.FirstAscensionists).FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
         if (!await db.Crags.AnyAsync(c => c.Id == request.CragId))
@@ -183,8 +183,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var gearError = ValidateGear(request.Gear);
         if (gearError is not null) return BadRequest(new { error = gearError });
 
-        var (openers, openersError) = await ResolveOpenersAsync(request.OpenerIds);
-        if (openersError is not null) return BadRequest(new { error = openersError });
+        var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
+        if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
         route.Name = request.Name;
         route.CragId = request.CragId;
@@ -194,8 +194,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         route.Description = request.Description ?? "";
         route.Tags = request.Tags ?? "";
 
-        route.Openers.Clear();
-        route.Openers.AddRange(openers!);
+        route.FirstAscensionists.Clear();
+        route.FirstAscensionists.AddRange(firstAscensionists!);
 
         // An edit invalidates any prior validation of the route's info.
         route.ValidatedAt = null;
@@ -344,21 +344,21 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             ? "el tipo de equipamiento no es válido"
             : null;
 
-    private async Task<(List<RouteOpener>? Openers, string? Error)> ResolveOpenersAsync(List<int>? openerIds)
+    private async Task<(List<FirstAscensionist>? FirstAscensionists, string? Error)> ResolveFirstAscensionistsAsync(List<int>? firstAscensionistIds)
     {
-        if (openerIds is not { Count: > 0 }) return ([], null);
+        if (firstAscensionistIds is not { Count: > 0 }) return ([], null);
 
-        var distinctIds = openerIds.Distinct().ToList();
-        var openers = await db.RouteOpeners.Where(o => distinctIds.Contains(o.Id)).ToListAsync();
-        if (openers.Count != distinctIds.Count)
+        var distinctIds = firstAscensionistIds.Distinct().ToList();
+        var firstAscensionists = await db.FirstAscensionists.Where(o => distinctIds.Contains(o.Id)).ToListAsync();
+        if (firstAscensionists.Count != distinctIds.Count)
         {
             return (null, "algún aperturista no existe");
         }
 
-        return (openers, null);
+        return (firstAscensionists, null);
     }
 
-    private static RouteOpenerDto ToOpenerDto(RouteOpener o) => new(o.Id, o.Name, o.UserId, o.User?.Name);
+    private static FirstAscensionistDto ToFirstAscensionistDto(FirstAscensionist o) => new(o.Id, o.Name, o.UserId, o.User?.Name);
 
     private static List<int> DescendantCragIds(List<CragNode> crags, int rootId)
     {

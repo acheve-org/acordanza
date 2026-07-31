@@ -113,10 +113,10 @@ export function DetailModal({
           </div>
         </div>
         <p className="detail-desc">{route.description || 'Sin descripción todavía.'}</p>
-        {route.openers.length > 0 && (
+        {route.firstAscensionists.length > 0 && (
           <p className="detail-fa">
             Apertura:{' '}
-            {route.openers
+            {route.firstAscensionists
               .map((o) => (o.linkedUserName ? `${o.name} (${o.linkedUserName})` : o.name))
               .join(', ')}
           </p>

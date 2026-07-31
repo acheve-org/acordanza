@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import * as openersApi from '../api/routeOpeners';
-import type { RouteOpenerSummary, UserSummary } from '../api/types';
+import * as firstAscensionistsApi from '../api/firstAscensionists';
+import type { FirstAscensionistSummary, UserSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
 
 interface Props {
   value: number[];
-  onChange: (openerIds: number[]) => void;
+  onChange: (firstAscensionistIds: number[]) => void;
 }
 
-export function OpenerPicker({ value, onChange }: Props) {
+export function FirstAscensionistPicker({ value, onChange }: Props) {
   const { hasPermission } = useAuth();
-  const canCreate = hasPermission(Permissions.openerCreate);
-  const [openers, setOpeners] = useState<RouteOpenerSummary[]>([]);
+  const canCreate = hasPermission(Permissions.firstAscensionistCreate);
+  const [firstAscensionists, setFirstAscensionists] = useState<FirstAscensionistSummary[]>([]);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -21,33 +21,33 @@ export function OpenerPicker({ value, onChange }: Props) {
   const [newUserId, setNewUserId] = useState('');
 
   useEffect(() => {
-    openersApi.listOpeners().then(setOpeners);
-    openersApi.listLinkableUsers().then(setUsers);
+    firstAscensionistsApi.listFirstAscensionists().then(setFirstAscensionists);
+    firstAscensionistsApi.listLinkableUsers().then(setUsers);
   }, []);
 
-  const byId = useMemo(() => new Map(openers.map((o) => [o.id, o])), [openers]);
-  const selected = value.map((id) => byId.get(id)).filter((o): o is RouteOpenerSummary => o !== undefined);
+  const byId = useMemo(() => new Map(firstAscensionists.map((o) => [o.id, o])), [firstAscensionists]);
+  const selected = value.map((id) => byId.get(id)).filter((o): o is FirstAscensionistSummary => o !== undefined);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return openers.filter((o) => !value.includes(o.id) && (!q || o.name.toLowerCase().includes(q)));
-  }, [openers, value, query]);
+    return firstAscensionists.filter((o) => !value.includes(o.id) && (!q || o.name.toLowerCase().includes(q)));
+  }, [firstAscensionists, value, query]);
 
-  function addOpener(id: number) {
+  function addFirstAscensionist(id: number) {
     onChange([...value, id]);
     setQuery('');
     setOpen(false);
   }
 
-  function removeOpener(id: number) {
+  function removeFirstAscensionist(id: number) {
     onChange(value.filter((v) => v !== id));
   }
 
   async function handleCreate() {
     const name = newName.trim();
     if (!name) return;
-    const created = await openersApi.createOpener(name, newUserId || null);
-    setOpeners((prev) => [...prev, created]);
+    const created = await firstAscensionistsApi.createFirstAscensionist(name, newUserId || null);
+    setFirstAscensionists((prev) => [...prev, created]);
     setNewName('');
     setNewUserId('');
     setShowCreate(false);
@@ -62,7 +62,7 @@ export function OpenerPicker({ value, onChange }: Props) {
             <span key={o.id} className="tag-chip chip-removable">
               {o.name}
               {o.linkedUserName && <span className="hint"> · {o.linkedUserName}</span>}
-              <button type="button" className="chip-remove" onClick={() => removeOpener(o.id)}>
+              <button type="button" className="chip-remove" onClick={() => removeFirstAscensionist(o.id)}>
                 &times;
               </button>
             </span>
@@ -87,7 +87,7 @@ export function OpenerPicker({ value, onChange }: Props) {
               key={o.id}
               className="combo-option"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => addOpener(o.id)}
+              onClick={() => addFirstAscensionist(o.id)}
             >
               {o.name}
               {o.linkedUserName ? ` · ${o.linkedUserName}` : ''}

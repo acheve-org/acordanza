@@ -19,7 +19,7 @@ public class ClimbingRoute
     public string? ValidatedByUserId { get; set; }
     public ApplicationUser? ValidatedBy { get; set; }
 
-    public List<RouteOpener> Openers { get; set; } = [];
+    public List<FirstAscensionist> FirstAscensionists { get; set; } = [];
     public List<Tick> Ticks { get; set; } = [];
     public List<Topo> Topos { get; set; } = [];
 }
