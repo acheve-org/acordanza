@@ -131,6 +131,12 @@ export interface UserAccount {
   name: string;
   email: string;
   role: string;
+  pending: boolean;
+}
+
+export interface InviteUserInput {
+  email: string;
+  role: string;
 }
 
 export interface PagedUsers {

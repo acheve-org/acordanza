@@ -544,6 +544,7 @@ input:focus, select:focus, textarea:focus {
   line-height: 1.33;
   margin: 0;
 }
+.users-page-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
 .users-toolbar { display: flex; gap: var(--space-md); }
 .users-toolbar input { flex: 1; }
 .users-toolbar select { width: 220px; }
@@ -582,6 +583,7 @@ input:focus, select:focus, textarea:focus {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .settings-page { padding: var(--space-xl); }
   .users-page { padding: var(--space-xl); }
+  .users-page-header { flex-direction: column; align-items: stretch; }
   .users-toolbar { flex-direction: column; }
   .users-toolbar select { width: 100%; }
 }

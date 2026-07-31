@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { PagedUsers, UserFilters } from './types';
+import type { InviteUserInput, PagedUsers, UserFilters } from './types';
 
 const PAGE_SIZE = 10;
 
@@ -12,4 +12,8 @@ export function listUsers(filters: UserFilters): Promise<PagedUsers> {
   params.set('sortBy', filters.sortBy);
   params.set('sortDir', filters.sortDir);
   return api.get<PagedUsers>(`/users?${params.toString()}`);
+}
+
+export function inviteUser(input: InviteUserInput): Promise<{ ok: true }> {
+  return api.post<{ ok: true }>('/users/invite', input);
 }

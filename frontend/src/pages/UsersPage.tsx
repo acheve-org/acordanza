@@ -6,6 +6,7 @@ import { roleLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { InviteUserModal } from '../components/InviteUserModal';
 
 const emptyFilters: UserFilters = { q: '', role: '', page: 1, sortBy: 'name', sortDir: 'asc' };
 
@@ -22,6 +23,20 @@ export function UsersPage() {
   const [filters, setFilters] = useState<UserFilters>(emptyFilters);
   const [result, setResult] = useState<PagedUsers>(emptyResult);
   const [error, setError] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState(false);
+
+  function refreshUsers() {
+    usersApi
+      .listUsers(filters)
+      .then((users) => {
+        setResult(users);
+        setError('');
+      })
+      .catch((err) => {
+        setError(err instanceof ApiError ? err.message : 'No se pudieron cargar los usuarios');
+      });
+  }
 
   useEffect(() => {
     if (!hasPermission(Permissions.userManage)) return;
@@ -47,6 +62,12 @@ export function UsersPage() {
 
   if (!hasPermission(Permissions.userManage)) return <Navigate to="/" replace />;
 
+  function handleInvited() {
+    setInviteOpen(false);
+    setInviteSuccess(true);
+    refreshUsers();
+  }
+
   function set<K extends keyof UserFilters>(key: K, value: UserFilters[K]) {
     setFilters((f) => ({ ...f, [key]: value, page: key === 'page' ? (value as number) : 1 }));
   }
@@ -64,7 +85,14 @@ export function UsersPage() {
 
   return (
     <main className="users-page">
-      <h1>Gestionar usuarios</h1>
+      <div className="users-page-header">
+        <h1>Gestionar usuarios</h1>
+        <button type="button" className="primary-btn" onClick={() => setInviteOpen(true)}>
+          Invitar usuario
+        </button>
+      </div>
+
+      {inviteSuccess && <p className="success-text">Invitación enviada.</p>}
 
       <div className="users-toolbar">
         <input
@@ -105,7 +133,9 @@ export function UsersPage() {
             <tbody>
               {result.items.map((u) => (
                 <tr key={u.id}>
-                  <td>{u.name}</td>
+                  <td>
+                    {u.pending ? <span className="tag-chip">Pendiente</span> : u.name}
+                  </td>
                   <td>{u.email}</td>
                   <td>{roleLabels[u.role] ?? u.role}</td>
                 </tr>
@@ -140,6 +170,13 @@ export function UsersPage() {
       <Link to="/" className="ghost-btn small">
         Volver
       </Link>
+
+      {inviteOpen && (
+        <InviteUserModal
+          onClose={() => setInviteOpen(false)}
+          onInvited={handleInvited}
+        />
+      )}
     </main>
   );
 }

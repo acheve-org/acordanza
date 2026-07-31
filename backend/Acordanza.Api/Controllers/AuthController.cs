@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
@@ -185,10 +186,60 @@ public class AuthController(
         return Ok(new { ok = true });
     }
 
+    // Completes an admin-issued invite (see UsersController.InviteUser): sets the
+    // password via the same single-use reset-token mechanism forgot-password uses,
+    // and records the display name chosen by the new user.
+    [HttpPost("accept-invite")]
+    public async Task<ActionResult> AcceptInvite(AcceptInviteRequest request)
+    {
+        var name = request.Name.Trim();
+        if (name.Length is 0 or > 20)
+        {
+            return BadRequest(new { error = "El nombre debe tener entre 1 y 20 caracteres" });
+        }
+
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+
+        string token;
+        try
+        {
+            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+        }
+        catch (FormatException)
+        {
+            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        }
+
+        var result = await userManager.ResetPasswordAsync(user, token, request.Password);
+        if (!result.Succeeded)
+        {
+            var error = result.Errors.FirstOrDefault()?.Description ?? "El enlace no es válido o ha caducado";
+            return BadRequest(new { error });
+        }
+
+        user.Name = name;
+        await userManager.UpdateAsync(user);
+
+        var admins = await userManager.GetUsersInRoleAsync(Roles.Admin);
+        foreach (var admin in admins.Where(a => a.Id != user.Id && !string.IsNullOrEmpty(a.Email)))
+        {
+            await emailSender.SendAsync(admin.Email!, "Nuevo usuario registrado en Acordanza",
+                BuildNewUserNotificationEmailHtml(user.Name, user.Email!));
+        }
+
+        return Ok(new { ok = true });
+    }
+
     private static string BuildResetPasswordEmailHtml(string resetLink) => $"""
         <p>Has solicitado restablecer tu contraseña de Acordanza.</p>
         <p><a href="{resetLink}">Haz clic aquí para elegir una nueva contraseña</a>.</p>
         <p>Si tú no has solicitado esto, puedes ignorar este correo.</p>
+        """;
+
+    private static string BuildNewUserNotificationEmailHtml(string name, string email) => $"""
+        <p>Un nuevo usuario ha completado su registro en Acordanza.</p>
+        <p><strong>{WebUtility.HtmlEncode(name)}</strong> ({WebUtility.HtmlEncode(email)})</p>
         """;
 
     private static string CacheKey(string sessionId) => $"login-passkey:{sessionId}";

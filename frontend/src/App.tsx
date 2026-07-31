@@ -7,6 +7,7 @@ import { MainView } from './pages/MainView';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
+import { AcceptInviteScreen } from './pages/AcceptInviteScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
 
 function AppLayout() {
@@ -84,6 +85,8 @@ function App() {
 
   // Reachable while logged out — this is where the password-reset email links.
   if (location.pathname === '/reset-password') return <ResetPasswordScreen />;
+  // Reachable while logged out — this is where the invite email links.
+  if (location.pathname === '/accept-invite') return <AcceptInviteScreen />;
 
   if (loading) return null;
   if (!username) return <LoginScreen />;
