@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text;
 using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
@@ -26,7 +25,8 @@ public class AuthController(
     IFido2 fido2,
     IMemoryCache cache,
     IConfiguration configuration,
-    IEmailSender emailSender) : ControllerBase
+    IEmailSender emailSender,
+    ILogger<AuthController> logger) : ControllerBase
 {
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
@@ -151,8 +151,8 @@ public class AuthController(
                 ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
             var resetLink = $"{frontendBaseUrl}/reset-password" +
                 $"?email={Uri.EscapeDataString(user.Email!)}&token={encodedToken}";
-            await emailSender.SendAsync(user.Email!, "Restablece tu contraseña de Acordanza",
-                BuildResetPasswordEmailHtml(resetLink));
+            var (subject, html) = EmailTemplates.ResetPassword(resetLink);
+            await emailSender.SendAsync(user.Email!, subject, html);
         }
 
         // Same response whether or not the account exists, so this endpoint
@@ -219,28 +219,33 @@ public class AuthController(
         }
 
         user.Name = name;
-        await userManager.UpdateAsync(user);
+        var updateResult = await userManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            var error = updateResult.Errors.FirstOrDefault()?.Description ?? "No se pudo guardar el nombre";
+            return BadRequest(new { error });
+        }
 
+        // Best-effort from here on — the invite has already been fully accepted (password
+        // set, name saved, single-use token consumed), so a notification delivery failure
+        // must not fail the response and strand an otherwise-successful registration.
         var admins = await userManager.GetUsersInRoleAsync(Roles.Admin);
         foreach (var admin in admins.Where(a => a.Id != user.Id && !string.IsNullOrEmpty(a.Email)))
         {
-            await emailSender.SendAsync(admin.Email!, "Nuevo usuario registrado en Acordanza",
-                BuildNewUserNotificationEmailHtml(user.Name, user.Email!));
+            try
+            {
+                var (subject, html) = EmailTemplates.NewUserRegistered(user.Name, user.Email!);
+                await emailSender.SendAsync(admin.Email!, subject, html);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to notify admin {AdminEmail} of new user {UserEmail}",
+                    admin.Email, user.Email);
+            }
         }
 
         return Ok(new { ok = true });
     }
-
-    private static string BuildResetPasswordEmailHtml(string resetLink) => $"""
-        <p>Has solicitado restablecer tu contraseña de Acordanza.</p>
-        <p><a href="{resetLink}">Haz clic aquí para elegir una nueva contraseña</a>.</p>
-        <p>Si tú no has solicitado esto, puedes ignorar este correo.</p>
-        """;
-
-    private static string BuildNewUserNotificationEmailHtml(string name, string email) => $"""
-        <p>Un nuevo usuario ha completado su registro en Acordanza.</p>
-        <p><strong>{WebUtility.HtmlEncode(name)}</strong> ({WebUtility.HtmlEncode(email)})</p>
-        """;
 
     private static string CacheKey(string sessionId) => $"login-passkey:{sessionId}";
 

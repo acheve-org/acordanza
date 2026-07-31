@@ -103,25 +103,56 @@ public class UsersController(
         }
 
         var existing = await userManager.FindByEmailAsync(email);
+        ApplicationUser user;
         if (existing is not null)
         {
-            return Conflict(new { error = "Ya existe una cuenta con ese correo" });
-        }
+            if (existing.PasswordHash is not null)
+            {
+                return Conflict(new { error = "Ya existe una cuenta con ese correo" });
+            }
 
-        var user = new ApplicationUser { UserName = email, Email = email };
-        var createResult = await userManager.CreateAsync(user);
-        if (!createResult.Succeeded)
-        {
-            var error = createResult.Errors.FirstOrDefault()?.Description ?? "No se pudo crear la invitación";
-            return BadRequest(new { error });
-        }
+            // A pending invite for this email already exists — most likely a previous
+            // send failed after the account/role were created (config error, email
+            // provider outage, ...), which would otherwise strand it behind this same
+            // Conflict with no way to recover. Treat this as a resend instead, updating
+            // the role in case the admin is also correcting it.
+            user = existing;
+            var currentRoles = await userManager.GetRolesAsync(user);
+            if (!currentRoles.Contains(request.Role))
+            {
+                var removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
+                if (!removeResult.Succeeded)
+                {
+                    var error = removeResult.Errors.FirstOrDefault()?.Description ?? "No se pudo actualizar el rol";
+                    return BadRequest(new { error });
+                }
 
-        var roleResult = await userManager.AddToRoleAsync(user, request.Role);
-        if (!roleResult.Succeeded)
+                var addRoleResult = await userManager.AddToRoleAsync(user, request.Role);
+                if (!addRoleResult.Succeeded)
+                {
+                    await userManager.AddToRolesAsync(user, currentRoles);
+                    var error = addRoleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
+                    return BadRequest(new { error });
+                }
+            }
+        }
+        else
         {
-            await userManager.DeleteAsync(user);
-            var error = roleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
-            return BadRequest(new { error });
+            user = new ApplicationUser { UserName = email, Email = email };
+            var createResult = await userManager.CreateAsync(user);
+            if (!createResult.Succeeded)
+            {
+                var error = createResult.Errors.FirstOrDefault()?.Description ?? "No se pudo crear la invitación";
+                return BadRequest(new { error });
+            }
+
+            var roleResult = await userManager.AddToRoleAsync(user, request.Role);
+            if (!roleResult.Succeeded)
+            {
+                await userManager.DeleteAsync(user);
+                var error = roleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
+                return BadRequest(new { error });
+            }
         }
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
@@ -130,14 +161,9 @@ public class UsersController(
             ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
         var inviteLink = $"{frontendBaseUrl}/accept-invite" +
             $"?email={Uri.EscapeDataString(email)}&token={encodedToken}";
-        await emailSender.SendAsync(email, "Te han invitado a Acordanza", BuildInviteEmailHtml(inviteLink));
+        var (subject, html) = EmailTemplates.InviteUser(inviteLink);
+        await emailSender.SendAsync(email, subject, html);
 
         return Ok(new { ok = true });
     }
-
-    private static string BuildInviteEmailHtml(string inviteLink) => $"""
-        <p>Te han invitado a unirte a Acordanza.</p>
-        <p><a href="{inviteLink}">Haz clic aquí para completar tu registro</a>.</p>
-        <p>Si no esperabas esta invitación, puedes ignorar este correo.</p>
-        """;
 }
