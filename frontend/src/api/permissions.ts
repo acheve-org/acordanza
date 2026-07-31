@@ -19,4 +19,6 @@ export const Permissions = {
   openerEdit: 'opener.edit',
   openerValidate: 'opener.validate',
   openerDelete: 'opener.delete',
+
+  userManage: 'user.manage',
 } as const;

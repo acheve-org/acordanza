@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { useAuth } from './context/AuthContext';
+import { Permissions } from './api/permissions';
 import { LoginScreen } from './components/LoginScreen';
 import { MainView } from './pages/MainView';
 import { SettingsPage } from './pages/SettingsPage';
+import { UsersPage } from './pages/UsersPage';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
 
 function AppLayout() {
-  const { name, logout } = useAuth();
+  const { name, hasPermission, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +50,11 @@ function AppLayout() {
             {userMenuOpen && (
               <div className="user-menu-popup">
                 <span className="user-menu-name">{name}</span>
+                {hasPermission(Permissions.userManage) && (
+                  <Link className="ghost-btn small full-width" to="/users" onClick={() => setUserMenuOpen(false)}>
+                    Gestionar usuarios
+                  </Link>
+                )}
                 <Link className="ghost-btn small full-width" to="/settings" onClick={() => setUserMenuOpen(false)}>
                   Configuración
                 </Link>
@@ -88,6 +95,7 @@ function App() {
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

@@ -125,3 +125,33 @@ export const gearLabels: Record<string, string> = {
   pitons: 'Clavos',
   aiders: 'Estribos',
 };
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
+export interface PagedUsers {
+  items: UserAccount[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface UserFilters {
+  q: string;
+  role: string;
+  page: number;
+  sortBy: 'name' | 'email' | 'role';
+  sortDir: 'asc' | 'desc';
+}
+
+// Mirrors backend/Acordanza.Api/Authorization/Roles.cs
+export const roleLabels: Record<string, string> = {
+  admin: 'Administrador',
+  moderator: 'Moderador',
+  'first-ascensionist': 'Aperturista',
+  user: 'Usuario',
+};

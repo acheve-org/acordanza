@@ -528,9 +528,60 @@ input:focus, select:focus, textarea:focus {
 .passkey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
 .passkey-form { border-top: 1px solid var(--border); padding-top: var(--space-md); }
 
+/* Users management page */
+.users-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-xxl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.users-page h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 1.33;
+  margin: 0;
+}
+.users-toolbar { display: flex; gap: var(--space-md); }
+.users-toolbar input { flex: 1; }
+.users-toolbar select { width: 220px; }
+
+.users-table-wrap {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  overflow-x: auto;
+}
+.users-table { width: 100%; border-collapse: collapse; }
+.users-table th, .users-table td {
+  text-align: left;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.users-table th { color: var(--text-dim); font-weight: 600; }
+.users-table tbody tr:last-child td { border-bottom: none; }
+.sort-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pagination { display: flex; align-items: center; justify-content: center; gap: var(--space-lg); }
+.pagination-status { color: var(--text-dim); font-size: 13px; }
+
 @media (max-width: 720px) {
   .layout { grid-template-columns: 1fr; padding: var(--space-xl); }
   .filters { position: static; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .settings-page { padding: var(--space-xl); }
+  .users-page { padding: var(--space-xl); }
+  .users-toolbar { flex-direction: column; }
+  .users-toolbar select { width: 100%; }
 }

@@ -22,11 +22,14 @@ public static class Permissions
     public const string OpenerValidate = "opener.validate";
     public const string OpenerDelete = "opener.delete";
 
+    public const string UserManage = "user.manage";
+
     public static readonly IReadOnlyList<string> All =
     [
         CragCreate, CragEdit, CragValidate, CragDelete,
         RouteCreate, RouteEdit, RouteValidate, RouteDelete,
         TickCreate, TickEdit, TickValidate, TickDelete,
-        OpenerCreate, OpenerEdit, OpenerValidate, OpenerDelete
+        OpenerCreate, OpenerEdit, OpenerValidate, OpenerDelete,
+        UserManage
     ];
 }
