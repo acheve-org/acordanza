@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
+import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { useAuth } from './context/AuthContext';
 import { Permissions } from './api/permissions';
 import { LoginScreen } from './components/LoginScreen';
@@ -33,6 +33,19 @@ function AppLayout() {
           <span className="brand-mark">&#9670;</span>
           <span className="brand-name">Acordanza</span>
         </Link>
+        <nav className="main-nav">
+          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/" end>
+            Rutas
+          </NavLink>
+          {hasPermission(Permissions.userManage) && (
+            <>
+              <span className="main-nav-separator" aria-hidden="true" />
+              <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/users">
+                Usuarios
+              </NavLink>
+            </>
+          )}
+        </nav>
         <div className="topbar-right">
           <div className="user-menu" ref={userMenuRef}>
             <button
@@ -51,11 +64,6 @@ function AppLayout() {
             {userMenuOpen && (
               <div className="user-menu-popup">
                 <span className="user-menu-name">{name}</span>
-                {hasPermission(Permissions.userManage) && (
-                  <Link className="ghost-btn small full-width" to="/users" onClick={() => setUserMenuOpen(false)}>
-                    Gestionar usuarios
-                  </Link>
-                )}
                 <Link className="ghost-btn small full-width" to="/settings" onClick={() => setUserMenuOpen(false)}>
                   Configuración
                 </Link>

@@ -176,14 +176,34 @@ input:focus, select:focus, textarea:focus {
 /* App shell — component.nav-bar */
 .topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--space-xxl);
   min-height: 64px;
   padding: 0 var(--space-xxl);
   border-bottom: 1px solid var(--border);
 }
-.topbar-right { display: flex; align-items: center; gap: var(--space-lg); }
+.topbar-right { display: flex; align-items: center; gap: var(--space-lg); margin-left: auto; }
 #who { color: var(--text-dim); font-size: 14px; }
+
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  overflow-x: auto;
+}
+.main-nav-item {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.main-nav-item:hover, .main-nav-item.active { color: var(--text); }
+.main-nav-separator { width: 1px; height: 20px; background: var(--border); }
 
 .user-menu { position: relative; }
 .user-menu-trigger {
@@ -578,6 +598,9 @@ input:focus, select:focus, textarea:focus {
 .pagination-status { color: var(--text-dim); font-size: 13px; }
 
 @media (max-width: 720px) {
+  .topbar { padding: var(--space-md) var(--space-lg); gap: var(--space-md); }
+  .topbar-right { order: 2; }
+  .main-nav { order: 3; flex-basis: 100%; }
   .layout { grid-template-columns: 1fr; padding: var(--space-xl); }
   .filters { position: static; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
