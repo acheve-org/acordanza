@@ -12,6 +12,13 @@ export interface AreaSummary {
   centroidLng: number | null;
 }
 
+export interface AreaBounds {
+  minLat: number;
+  minLng: number;
+  maxLat: number;
+  maxLng: number;
+}
+
 export interface AreaExpert {
   id: number;
   areaId: number;

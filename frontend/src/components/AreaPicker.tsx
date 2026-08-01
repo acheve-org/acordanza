@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as areasApi from '../api/areas';
+import { areaPath as pathFor } from '../api/areas';
 import type { AreaSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
@@ -9,16 +10,6 @@ interface Props {
   onChange: (areaId: number | null) => void;
   allowCreate?: boolean;
   allowClear?: boolean;
-}
-
-function pathFor(area: AreaSummary, byId: Map<number, AreaSummary>): string {
-  const parts: string[] = [];
-  let current: AreaSummary | undefined = area;
-  while (current) {
-    parts.unshift(current.name);
-    current = current.parentAreaId !== null ? byId.get(current.parentAreaId) : undefined;
-  }
-  return parts.join(' › ');
 }
 
 export function AreaPicker({ value, onChange, allowCreate = false, allowClear = false }: Props) {
@@ -31,9 +22,11 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
   const [newName, setNewName] = useState('');
   const [newParentId, setNewParentId] = useState('');
 
-  useEffect(() => {
+  function refresh() {
     areasApi.listAreas().then(setAreas);
-  }, []);
+  }
+
+  useEffect(refresh, []);
 
   const byId = useMemo(() => new Map(areas.map((a) => [a.id, a])), [areas]);
   const selected = value !== null ? byId.get(value) : undefined;
@@ -70,6 +63,7 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
         onFocus={() => {
           setOpen(true);
           setQuery('');
+          refresh();
         }}
         onClick={() => setOpen(true)}
         onChange={(e) => setQuery(e.target.value)}

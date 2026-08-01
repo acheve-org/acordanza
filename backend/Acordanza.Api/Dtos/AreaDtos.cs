@@ -12,4 +12,6 @@ public record AreaDto(
 
 public record CreateAreaRequest(string Name, int? ParentAreaId);
 
+public record UpdateAreaRequest(string Name, int? ParentAreaId);
+
 public record UpdateAreaCoordinatesRequest(List<GeoPointDto> Polygon);

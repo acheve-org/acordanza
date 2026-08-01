@@ -610,6 +610,24 @@ input:focus, select:focus, textarea:focus {
   .users-toolbar { flex-direction: column; }
   .users-toolbar select { width: 100%; }
   .map-page { padding: var(--space-xl); }
+  .areas-page { padding: var(--space-xl); }
+}
+
+/* Areas management page */
+.areas-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--space-xxl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.areas-page h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 1.33;
+  margin: 0;
 }
 
 /* Map page */

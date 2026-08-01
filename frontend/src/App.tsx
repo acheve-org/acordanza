@@ -10,6 +10,7 @@ import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { AcceptInviteScreen } from './pages/AcceptInviteScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
 import { MapPage } from './pages/MapPage';
+import { AreasPage } from './pages/AreasPage';
 import { MyAreasPage } from './pages/MyAreasPage';
 
 function AppLayout() {
@@ -42,13 +43,18 @@ function AppLayout() {
           <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/mapa">
             Mapa
           </NavLink>
+          {(hasPermission(Permissions.areaEdit) || hasPermission(Permissions.userManage)) && (
+            <span className="main-nav-separator" aria-hidden="true" />
+          )}
+          {hasPermission(Permissions.areaEdit) && (
+            <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/sectores">
+              Sectores
+            </NavLink>
+          )}
           {hasPermission(Permissions.userManage) && (
-            <>
-              <span className="main-nav-separator" aria-hidden="true" />
-              <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/users">
-                Usuarios
-              </NavLink>
-            </>
+            <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/users">
+              Usuarios
+            </NavLink>
           )}
         </nav>
         <div className="topbar-right">
@@ -114,6 +120,7 @@ function App() {
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
         <Route path="mapa" element={<MapPage />} />
+        <Route path="sectores" element={<AreasPage />} />
         <Route path="mis-sectores" element={<MyAreasPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
