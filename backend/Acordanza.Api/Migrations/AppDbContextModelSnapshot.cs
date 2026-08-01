@@ -103,6 +103,12 @@ namespace Acordanza.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<double?>("CentroidLat")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("CentroidLng")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -483,7 +489,32 @@ namespace Acordanza.Api.Migrations
                         .HasForeignKey("ParentAreaId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.OwnsMany("Acordanza.Api.Models.GeoPoint", "Polygon", b1 =>
+                        {
+                            b1.Property<int>("AreaId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAdd();
+
+                            b1.Property<double>("Lat");
+
+                            b1.Property<double>("Lng");
+
+                            b1.HasKey("AreaId", "__synthesizedOrdinal");
+
+                            b1.ToTable("Areas", "core");
+
+                            b1
+                                .ToJson("Polygon")
+                                .HasColumnType("jsonb");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AreaId");
+                        });
+
                     b.Navigation("ParentArea");
+
+                    b.Navigation("Polygon");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>

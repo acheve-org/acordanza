@@ -19,7 +19,13 @@ public class AreasController(AppDbContext db) : ControllerBase
     {
         var areas = await db.Areas.AsNoTracking()
             .OrderBy(a => a.Name)
-            .Select(a => new AreaDto(a.Id, a.Name, a.ParentAreaId))
+            .Select(a => new AreaDto(
+                a.Id,
+                a.Name,
+                a.ParentAreaId,
+                a.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
+                a.CentroidLat,
+                a.CentroidLng))
             .ToListAsync();
 
         return Ok(areas);
@@ -48,6 +54,45 @@ public class AreasController(AppDbContext db) : ControllerBase
         area.Slug = $"{Slugify.ToSlug(area.Name)}-{area.Id}";
         await db.SaveChangesAsync();
 
-        return Ok(new AreaDto(area.Id, area.Name, area.ParentAreaId));
+        return Ok(new AreaDto(area.Id, area.Name, area.ParentAreaId, [], null, null));
+    }
+
+    [Authorize(Policy = Permissions.AreaEdit)]
+    [HttpPut("{id}/coordinates")]
+    public async Task<ActionResult<AreaDto>> UpdateAreaCoordinates(int id, UpdateAreaCoordinatesRequest request)
+    {
+        var area = await db.Areas.FindAsync(id);
+        if (area is null)
+        {
+            return NotFound(new { error = "el sector no existe" });
+        }
+
+        if (request.Polygon.Count != 0 && request.Polygon.Count < 3)
+        {
+            return BadRequest(new { error = "el polígono necesita al menos 3 puntos" });
+        }
+
+        area.Polygon = request.Polygon.Select(p => new GeoPoint { Lat = p.Lat, Lng = p.Lng }).ToList();
+
+        if (area.Polygon.Count == 0)
+        {
+            area.CentroidLat = null;
+            area.CentroidLng = null;
+        }
+        else
+        {
+            area.CentroidLat = area.Polygon.Average(p => p.Lat);
+            area.CentroidLng = area.Polygon.Average(p => p.Lng);
+        }
+
+        await db.SaveChangesAsync();
+
+        return Ok(new AreaDto(
+            area.Id,
+            area.Name,
+            area.ParentAreaId,
+            area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
+            area.CentroidLat,
+            area.CentroidLng));
     }
 }

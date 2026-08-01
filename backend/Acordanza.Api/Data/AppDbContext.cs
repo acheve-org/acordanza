@@ -45,6 +45,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .WithMany(a => a.Children)
                 .HasForeignKey(a => a.ParentAreaId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            entity.OwnsMany(a => a.Polygon, p => p.ToJson());
         });
 
         builder.Entity<FirstAscensionist>(entity =>

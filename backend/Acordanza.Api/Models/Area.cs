@@ -13,4 +13,17 @@ public class Area
     public int? ParentAreaId { get; set; }
     public Area? ParentArea { get; set; }
     public List<Area> Children { get; set; } = [];
+
+    // Vertices of the area's boundary, in order; empty means no boundary has been drawn yet.
+    public List<GeoPoint> Polygon { get; set; } = [];
+
+    // Mean of the polygon's vertices, recomputed whenever the polygon is saved (see AreasController).
+    public double? CentroidLat { get; set; }
+    public double? CentroidLng { get; set; }
+}
+
+public class GeoPoint
+{
+    public double Lat { get; set; }
+    public double Lng { get; set; }
 }

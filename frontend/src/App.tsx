@@ -9,6 +9,7 @@ import { UsersPage } from './pages/UsersPage';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { AcceptInviteScreen } from './pages/AcceptInviteScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
+import { MapPage } from './pages/MapPage';
 
 function AppLayout() {
   const { name, hasPermission, logout } = useAuth();
@@ -36,6 +37,9 @@ function AppLayout() {
         <nav className="main-nav">
           <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/" end>
             Rutas
+          </NavLink>
+          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/mapa">
+            Mapa
           </NavLink>
           {hasPermission(Permissions.userManage) && (
             <>
@@ -105,6 +109,7 @@ function App() {
         <Route index element={<MainView />} />
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
+        <Route path="mapa" element={<MapPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

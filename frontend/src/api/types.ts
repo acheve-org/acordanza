@@ -1,7 +1,15 @@
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+}
+
 export interface AreaSummary {
   id: number;
   name: string;
   parentAreaId: number | null;
+  polygon: GeoPoint[];
+  centroidLat: number | null;
+  centroidLng: number | null;
 }
 
 export interface FirstAscensionistSummary {
