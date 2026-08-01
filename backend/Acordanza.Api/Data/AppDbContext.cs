@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<FirstAscensionist> FirstAscensionists => Set<FirstAscensionist>();
     public DbSet<Topo> Topos => Set<Topo>();
+    public DbSet<AreaExpert> AreaExperts => Set<AreaExpert>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -127,6 +128,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasOne(t => t.UploadedBy)
                 .WithMany()
                 .HasForeignKey(t => t.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<AreaExpert>(entity =>
+        {
+            entity.ToTable("AreaExperts", "core");
+
+            entity.HasIndex(e => new { e.AreaId, e.UserId }).IsUnique();
+
+            entity.HasOne(e => e.Area)
+                .WithMany()
+                .HasForeignKey(e => e.AreaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ApprovedBy)
+                .WithMany()
+                .HasForeignKey(e => e.ApprovedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

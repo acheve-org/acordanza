@@ -12,6 +12,17 @@ export interface AreaSummary {
   centroidLng: number | null;
 }
 
+export interface AreaExpert {
+  id: number;
+  areaId: number;
+  areaName: string;
+  userId: string;
+  userName: string;
+  requestedAt: string;
+  approvedAt: string | null;
+  approvedByName: string | null;
+}
+
 export interface FirstAscensionistSummary {
   id: number;
   name: string;
@@ -51,6 +62,7 @@ export interface RouteSummary {
   hasTopos: boolean;
   validatedAt: string | null;
   validatedBy: string | null;
+  canValidate: boolean;
 }
 
 export interface Tick {

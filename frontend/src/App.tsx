@@ -10,6 +10,7 @@ import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { AcceptInviteScreen } from './pages/AcceptInviteScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
 import { MapPage } from './pages/MapPage';
+import { MyAreasPage } from './pages/MyAreasPage';
 
 function AppLayout() {
   const { name, hasPermission, logout } = useAuth();
@@ -68,6 +69,9 @@ function AppLayout() {
             {userMenuOpen && (
               <div className="user-menu-popup">
                 <span className="user-menu-name">{name}</span>
+                <Link className="ghost-btn small full-width" to="/mis-sectores" onClick={() => setUserMenuOpen(false)}>
+                  Mis sectores
+                </Link>
                 <Link className="ghost-btn small full-width" to="/settings" onClick={() => setUserMenuOpen(false)}>
                   Configuración
                 </Link>
@@ -110,6 +114,7 @@ function App() {
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
         <Route path="mapa" element={<MapPage />} />
+        <Route path="mis-sectores" element={<MyAreasPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

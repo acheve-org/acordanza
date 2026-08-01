@@ -18,7 +18,8 @@ public record RouteDto(
     double? AvgRating,
     bool HasTopos,
     DateTimeOffset? ValidatedAt,
-    string? ValidatedBy
+    string? ValidatedBy,
+    bool CanValidate
 );
 
 public record RouteDetailDto(
@@ -38,7 +39,8 @@ public record RouteDetailDto(
     List<TickDto> Ticks,
     List<TopoDto> Topos,
     DateTimeOffset? ValidatedAt,
-    string? ValidatedBy
+    string? ValidatedBy,
+    bool CanValidate
 );
 
 public record UpsertRouteRequest(

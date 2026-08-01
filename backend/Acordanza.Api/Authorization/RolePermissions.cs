@@ -11,7 +11,8 @@ public static class RolePermissions
         Permissions.RouteCreate,
         Permissions.TickCreate,
         Permissions.TickDelete,
-        Permissions.FirstAscensionistCreate
+        Permissions.FirstAscensionistCreate,
+        Permissions.AreaExpertRequest
     ];
 
     private static readonly string[] FirstAscensionistPermissions =
@@ -32,7 +33,8 @@ public static class RolePermissions
         Permissions.TickEdit,
         Permissions.TickValidate,
         Permissions.FirstAscensionistValidate,
-        Permissions.FirstAscensionistDelete
+        Permissions.FirstAscensionistDelete,
+        Permissions.AreaExpertApprove
     ];
 
     private static readonly string[] AdminPermissions = [.. Permissions.All];

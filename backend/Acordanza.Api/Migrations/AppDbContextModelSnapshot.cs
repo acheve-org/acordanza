@@ -132,6 +132,42 @@ namespace Acordanza.Api.Migrations
                     b.ToTable("Areas", "core");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.AreaExpert", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ApprovedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("AreaId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("AreaId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("AreaExperts", "core");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
                 {
                     b.Property<int>("Id")
@@ -515,6 +551,32 @@ namespace Acordanza.Api.Migrations
                     b.Navigation("ParentArea");
 
                     b.Navigation("Polygon");
+                });
+
+            modelBuilder.Entity("Acordanza.Api.Models.AreaExpert", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "ApprovedBy")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Acordanza.Api.Models.Area", "Area")
+                        .WithMany()
+                        .HasForeignKey("AreaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedBy");
+
+                    b.Navigation("Area");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>

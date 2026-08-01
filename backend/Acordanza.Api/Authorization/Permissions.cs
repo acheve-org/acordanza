@@ -24,12 +24,16 @@ public static class Permissions
 
     public const string UserManage = "user.manage";
 
+    public const string AreaExpertRequest = "area-expert.request";
+    public const string AreaExpertApprove = "area-expert.approve";
+
     public static readonly IReadOnlyList<string> All =
     [
         AreaCreate, AreaEdit, AreaValidate, AreaDelete,
         RouteCreate, RouteEdit, RouteValidate, RouteDelete,
         TickCreate, TickEdit, TickValidate, TickDelete,
         FirstAscensionistCreate, FirstAscensionistEdit, FirstAscensionistValidate, FirstAscensionistDelete,
-        UserManage
+        UserManage,
+        AreaExpertRequest, AreaExpertApprove
     ];
 }

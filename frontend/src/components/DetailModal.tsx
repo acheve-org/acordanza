@@ -95,7 +95,7 @@ export function DetailModal({
             )}
           </div>
           <div className="detail-actions">
-            {!route.validatedAt && hasPermission(Permissions.routeValidate) && (
+            {!route.validatedAt && route.canValidate && (
               <button className="ghost-btn small" onClick={onValidate}>
                 Validar
               </button>

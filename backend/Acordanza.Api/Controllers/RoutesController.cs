@@ -69,6 +69,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
         var routes = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
 
+        var canValidateArea = await BuildCanValidateAreaCheckAsync(areaById);
+
         var dtos = routes.Select(r => new RouteDto(
             r.Id, r.Name, r.AreaId, areaById[r.AreaId].Name, AreaPath(areaById, r.AreaId),
             r.Grade, r.Orientation, r.Gear, r.Description, r.Tags,
@@ -77,7 +79,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             r.Ticks.Count,
             r.Ticks.Count == 0 ? null : r.Ticks.Average(t => (double?)t.Rating),
             r.Topos.Count > 0,
-            r.ValidatedAt, r.ValidatedBy?.Name)).ToList();
+            r.ValidatedAt, r.ValidatedBy?.Name,
+            canValidateArea(r.AreaId))).ToList();
 
         return Ok(dtos);
     }
@@ -107,6 +110,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             topoDtos.Add(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, topo.UploadedBy.Name));
         }
 
+        var canValidateArea = await BuildCanValidateAreaCheckAsync(areaById);
+
         var dto = new RouteDetailDto(
             route.Id, route.Name, route.AreaId, areaById[route.AreaId].Name, AreaPath(areaById, route.AreaId),
             route.Grade, route.Orientation, route.Gear, route.Description, route.Tags,
@@ -117,7 +122,8 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
                 .Select(t => new TickDto(t.Id, t.RouteId, t.Climber.Name, t.Date, t.Rating, t.Notes, t.CreatedAt))
                 .ToList(),
             topoDtos,
-            route.ValidatedAt, route.ValidatedBy?.Name);
+            route.ValidatedAt, route.ValidatedBy?.Name,
+            canValidateArea(route.AreaId));
 
         return Ok(dto);
     }
@@ -205,7 +211,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         return Ok(new { ok = true });
     }
 
-    [Authorize(Policy = Permissions.RouteValidate)]
+    [Authorize]
     [HttpPost("{id:int}/validate")]
     public async Task<ActionResult> ValidateRoute(int id)
     {
@@ -213,6 +219,21 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         if (route is null) return NotFound(new { error = "No encontrado" });
 
         var userId = userManager.GetUserId(User)!;
+
+        // Route validation is normally role-gated (route.validate), but an area
+        // expert can also validate routes within the top-level area they're an
+        // approved expert of (and any of its subareas) even without that role.
+        if (!User.HasClaim("permission", Permissions.RouteValidate))
+        {
+            var areas = await db.Areas.AsNoTracking()
+                .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
+                .ToListAsync();
+            var topAreaId = TopLevelAreaId(areas.ToDictionary(a => a.Id), route.AreaId);
+            var isExpert = await db.AreaExperts.AnyAsync(
+                e => e.UserId == userId && e.ApprovedAt != null && e.AreaId == topAreaId);
+            if (!isExpert) return Forbid();
+        }
+
         route.ValidatedAt = DateTimeOffset.UtcNow;
         route.ValidatedByUserId = userId;
 
@@ -381,6 +402,42 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             }
         }
 
+        return result;
+    }
+
+    // Builds a per-route check for the RouteDto.CanValidate flag: users with the
+    // route.validate permission can validate anything; otherwise, only routes
+    // under a top-level area the current user is an approved expert of.
+    private async Task<Func<int, bool>> BuildCanValidateAreaCheckAsync(Dictionary<int, AreaNode> areaById)
+    {
+        if (User.HasClaim("permission", Permissions.RouteValidate))
+        {
+            return _ => true;
+        }
+
+        var userId = userManager.GetUserId(User)!;
+        var expertAreaIds = await db.AreaExperts
+            .Where(e => e.UserId == userId && e.ApprovedAt != null)
+            .Select(e => e.AreaId)
+            .ToListAsync();
+
+        if (expertAreaIds.Count == 0)
+        {
+            return _ => false;
+        }
+
+        return areaId => expertAreaIds.Contains(TopLevelAreaId(areaById, areaId));
+    }
+
+    private static int TopLevelAreaId(Dictionary<int, AreaNode> areaById, int id)
+    {
+        var result = id;
+        int? currentId = id;
+        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
+        {
+            result = aid;
+            currentId = area.ParentAreaId;
+        }
         return result;
     }
 
