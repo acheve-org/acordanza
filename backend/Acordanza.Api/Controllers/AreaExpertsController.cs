@@ -2,6 +2,7 @@ using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
+using Acordanza.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +13,11 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/area-experts")]
-public class AreaExpertsController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
+public class AreaExpertsController(
+    AppDbContext db,
+    UserManager<ApplicationUser> userManager,
+    IEmailSender emailSender,
+    ILogger<AreaExpertsController> logger) : ControllerBase
 {
     [HttpGet("mine")]
     public async Task<ActionResult<List<AreaExpertDto>>> GetMine()
@@ -86,13 +91,31 @@ public class AreaExpertsController(AppDbContext db, UserManager<ApplicationUser>
         }
 
         var saved = await Query().FirstAsync(e => e.Id == id);
+
+        // Best-effort: the approval itself already succeeded, so a delivery
+        // failure here must not fail the response.
+        if (!string.IsNullOrEmpty(saved.User.Email))
+        {
+            try
+            {
+                var (subject, html) = EmailTemplates.AreaExpertApproved(saved.Area.Name);
+                await emailSender.SendAsync(saved.User.Email, subject, html);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to notify {UserEmail} of area-expert approval for area {AreaId}",
+                    saved.User.Email, saved.AreaId);
+            }
+        }
+
         return Ok(ToDto(saved));
     }
 
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> Delete(int id)
     {
-        var expert = await db.AreaExperts.FindAsync(id);
+        var expert = await db.AreaExperts.Include(e => e.Area).Include(e => e.User)
+            .FirstOrDefaultAsync(e => e.Id == id);
         if (expert is null) return NotFound(new { error = "No encontrado" });
 
         var userId = userManager.GetUserId(User)!;
@@ -100,8 +123,28 @@ public class AreaExpertsController(AppDbContext db, UserManager<ApplicationUser>
         var canWithdraw = expert.UserId == userId && expert.ApprovedAt is null;
         if (!canManage && !canWithdraw) return Forbid();
 
+        // A manager rejecting someone else's still-pending request is the "final
+        // decision" the requester should be notified about — not a self-withdrawal,
+        // and not revoking access already granted to an approved expert.
+        var isRejection = canManage && expert.UserId != userId && expert.ApprovedAt is null;
+
         db.AreaExperts.Remove(expert);
         await db.SaveChangesAsync();
+
+        if (isRejection && !string.IsNullOrEmpty(expert.User.Email))
+        {
+            try
+            {
+                var (subject, html) = EmailTemplates.AreaExpertRejected(expert.Area.Name);
+                await emailSender.SendAsync(expert.User.Email, subject, html);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to notify {UserEmail} of area-expert rejection for area {AreaId}",
+                    expert.User.Email, expert.AreaId);
+            }
+        }
+
         return Ok(new { ok = true });
     }
 

@@ -34,6 +34,19 @@ public static class EmailTemplates
             <p style="{ParagraphStyle}"><strong>{WebUtility.HtmlEncode(name)}</strong> ({WebUtility.HtmlEncode(email)})</p>
             """));
 
+    public static (string Subject, string Html) AreaExpertApproved(string areaName) => (
+        "Tu solicitud de experto ha sido aprobada",
+        Layout($"""
+            <p style="{ParagraphStyle}">Tu solicitud para ser experto del sector <strong>{WebUtility.HtmlEncode(areaName)}</strong> ha sido aprobada.</p>
+            <p style="{MutedStyle}">Ya puedes validar vías de este sector.</p>
+            """));
+
+    public static (string Subject, string Html) AreaExpertRejected(string areaName) => (
+        "Tu solicitud de experto ha sido rechazada",
+        Layout($"""
+            <p style="{ParagraphStyle}">Tu solicitud para ser experto del sector <strong>{WebUtility.HtmlEncode(areaName)}</strong> ha sido rechazada.</p>
+            """));
+
     private static string Button(string label, string url)
     {
         var safeUrl = WebUtility.HtmlEncode(url);
