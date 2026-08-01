@@ -2,7 +2,7 @@ import type { RouteFilters } from '../api/types';
 import { gearLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
-import { CragPicker } from './CragPicker';
+import { AreaPicker } from './AreaPicker';
 
 interface Props {
   filters: RouteFilters;
@@ -28,9 +28,9 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
       />
 
       <label className="field-label">Sector</label>
-      <CragPicker
-        value={filters.cragId ? Number(filters.cragId) : null}
-        onChange={(id) => set('cragId', id === null ? '' : String(id))}
+      <AreaPicker
+        value={filters.areaId ? Number(filters.areaId) : null}
+        onChange={(id) => set('areaId', id === null ? '' : String(id))}
         allowClear
       />
 

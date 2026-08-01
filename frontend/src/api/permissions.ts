@@ -1,9 +1,9 @@
 // Mirrors backend/Acordanza.Api/Authorization/Permissions.cs
 export const Permissions = {
-  cragCreate: 'crag.create',
-  cragEdit: 'crag.edit',
-  cragValidate: 'crag.validate',
-  cragDelete: 'crag.delete',
+  areaCreate: 'area.create',
+  areaEdit: 'area.edit',
+  areaValidate: 'area.validate',
+  areaDelete: 'area.delete',
 
   routeCreate: 'route.create',
   routeEdit: 'route.edit',

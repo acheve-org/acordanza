@@ -7,7 +7,7 @@ public static class RolePermissions
 {
     private static readonly string[] UserPermissions =
     [
-        Permissions.CragCreate,
+        Permissions.AreaCreate,
         Permissions.RouteCreate,
         Permissions.TickCreate,
         Permissions.TickDelete,
@@ -25,9 +25,9 @@ public static class RolePermissions
     private static readonly string[] ModeratorPermissions =
     [
         .. FirstAscensionistPermissions,
-        Permissions.CragEdit,
-        Permissions.CragValidate,
-        Permissions.CragDelete,
+        Permissions.AreaEdit,
+        Permissions.AreaValidate,
+        Permissions.AreaDelete,
         Permissions.RouteDelete,
         Permissions.TickEdit,
         Permissions.TickValidate,

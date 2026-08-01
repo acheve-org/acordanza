@@ -7,7 +7,7 @@ import * as routesApi from '../api/routes';
 import * as toposApi from '../api/topos';
 import type { CreateTickInput, RouteDetail, RouteFilters, RouteSummary } from '../api/types';
 
-const emptyFilters: RouteFilters = { q: '', cragId: '', gear: '', tag: '', hasTopo: '' };
+const emptyFilters: RouteFilters = { q: '', areaId: '', gear: '', tag: '', hasTopo: '' };
 
 export function MainView() {
   const navigate = useNavigate();

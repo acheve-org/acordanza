@@ -25,17 +25,17 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     private const long MaxTopoBytes = 15 * 1024 * 1024;
     private static readonly TimeSpan TopoUrlLifetime = TimeSpan.FromMinutes(15);
 
-    private sealed record CragNode(int Id, string Name, string Slug, int? ParentCragId);
+    private sealed record AreaNode(int Id, string Name, string Slug, int? ParentAreaId);
 
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
-        [FromQuery] string? q, [FromQuery] int? cragId, [FromQuery] string? gear, [FromQuery] string? tag,
+        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? gear, [FromQuery] string? tag,
         [FromQuery] bool? hasTopo)
     {
-        var crags = await db.Crags.AsNoTracking()
-            .Select(c => new CragNode(c.Id, c.Name, c.Slug, c.ParentCragId))
+        var areas = await db.Areas.AsNoTracking()
+            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
             .ToListAsync();
-        var cragById = crags.ToDictionary(c => c.Id);
+        var areaById = areas.ToDictionary(a => a.Id);
 
         var query = db.Routes
             .Include(r => r.AddedBy)
@@ -49,10 +49,10 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         {
             query = query.Where(r => r.Name.Contains(q) || r.Description.Contains(q));
         }
-        if (cragId is int requestedCragId)
+        if (areaId is int requestedAreaId)
         {
-            var ids = DescendantCragIds(crags, requestedCragId);
-            query = query.Where(r => ids.Contains(r.CragId));
+            var ids = DescendantAreaIds(areas, requestedAreaId);
+            query = query.Where(r => ids.Contains(r.AreaId));
         }
         if (!string.IsNullOrWhiteSpace(gear))
         {
@@ -70,7 +70,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var routes = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
 
         var dtos = routes.Select(r => new RouteDto(
-            r.Id, r.Name, r.CragId, cragById[r.CragId].Name, CragPath(cragById, r.CragId),
+            r.Id, r.Name, r.AreaId, areaById[r.AreaId].Name, AreaPath(areaById, r.AreaId),
             r.Grade, r.Orientation, r.Gear, r.Description, r.Tags,
             r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             r.AddedBy.Name, r.CreatedAt,
@@ -95,10 +95,10 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
         if (route is null) return NotFound(new { error = "No encontrado" });
 
-        var crags = await db.Crags.AsNoTracking()
-            .Select(c => new CragNode(c.Id, c.Name, c.Slug, c.ParentCragId))
+        var areas = await db.Areas.AsNoTracking()
+            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
             .ToListAsync();
-        var cragById = crags.ToDictionary(c => c.Id);
+        var areaById = areas.ToDictionary(a => a.Id);
 
         var topoDtos = new List<TopoDto>();
         foreach (var topo in route.Topos.OrderBy(t => t.CreatedAt))
@@ -108,7 +108,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         }
 
         var dto = new RouteDetailDto(
-            route.Id, route.Name, route.CragId, cragById[route.CragId].Name, CragPath(cragById, route.CragId),
+            route.Id, route.Name, route.AreaId, areaById[route.AreaId].Name, AreaPath(areaById, route.AreaId),
             route.Grade, route.Orientation, route.Gear, route.Description, route.Tags,
             route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             route.AddedBy.Name, route.CreatedAt,
@@ -131,7 +131,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             return BadRequest(new { error = "el nombre y el grado son obligatorios" });
         }
 
-        if (!await db.Crags.AnyAsync(c => c.Id == request.CragId))
+        if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
         {
             return BadRequest(new { error = "el sector no existe" });
         }
@@ -149,7 +149,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var route = new ClimbingRoute
         {
             Name = request.Name,
-            CragId = request.CragId,
+            AreaId = request.AreaId,
             Grade = request.Grade,
             Orientation = request.Orientation,
             Gear = request.Gear,
@@ -172,7 +172,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var route = await db.Routes.Include(r => r.FirstAscensionists).FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
-        if (!await db.Crags.AnyAsync(c => c.Id == request.CragId))
+        if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
         {
             return BadRequest(new { error = "el sector no existe" });
         }
@@ -187,7 +187,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
         route.Name = request.Name;
-        route.CragId = request.CragId;
+        route.AreaId = request.AreaId;
         route.Grade = request.Grade;
         route.Orientation = request.Orientation;
         route.Gear = request.Gear;
@@ -261,10 +261,10 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var route = await db.Routes.FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
-        var crags = await db.Crags.AsNoTracking()
-            .Select(c => new CragNode(c.Id, c.Name, c.Slug, c.ParentCragId))
+        var areas = await db.Areas.AsNoTracking()
+            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
             .ToListAsync();
-        var cragById = crags.ToDictionary(c => c.Id);
+        var areaById = areas.ToDictionary(a => a.Id);
 
         var currentUser = await userManager.GetUserAsync(User);
         if (currentUser is null) return Unauthorized();
@@ -281,9 +281,9 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         await db.SaveChangesAsync();
 
         // The blob name needs the DB-generated Id, so it's assigned in a
-        // second save — same two-phase pattern as CragsController's Slug.
+        // second save — same two-phase pattern as AreasController's Slug.
         var extension = Path.GetExtension(file.FileName);
-        topo.BlobName = $"{CragSlugPath(cragById, route.CragId)}/route-{route.Id}/{topo.Id}{extension}";
+        topo.BlobName = $"{AreaSlugPath(areaById, route.AreaId)}/route-{route.Id}/{topo.Id}{extension}";
         await db.SaveChangesAsync();
 
         try
@@ -360,12 +360,12 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
     private static FirstAscensionistDto ToFirstAscensionistDto(FirstAscensionist o) => new(o.Id, o.Name, o.UserId, o.User?.Name);
 
-    private static List<int> DescendantCragIds(List<CragNode> crags, int rootId)
+    private static List<int> DescendantAreaIds(List<AreaNode> areas, int rootId)
     {
-        var childrenByParent = crags
-            .Where(c => c.ParentCragId is not null)
-            .GroupBy(c => c.ParentCragId!.Value)
-            .ToDictionary(g => g.Key, g => g.Select(c => c.Id).ToList());
+        var childrenByParent = areas
+            .Where(a => a.ParentAreaId is not null)
+            .GroupBy(a => a.ParentAreaId!.Value)
+            .ToDictionary(g => g.Key, g => g.Select(a => a.Id).ToList());
 
         var result = new List<int> { rootId };
         var queue = new Queue<int>();
@@ -384,29 +384,29 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         return result;
     }
 
-    private static string CragPath(Dictionary<int, CragNode> cragById, int id)
+    private static string AreaPath(Dictionary<int, AreaNode> areaById, int id)
     {
         var parts = new List<string>();
         int? currentId = id;
-        while (currentId is int cid && cragById.TryGetValue(cid, out var crag))
+        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
         {
-            parts.Insert(0, crag.Name);
-            currentId = crag.ParentCragId;
+            parts.Insert(0, area.Name);
+            currentId = area.ParentAreaId;
         }
         return string.Join(" › ", parts);
     }
 
-    // Same ancestor walk as CragPath, but joining Slug (not Name) with "/" —
-    // this is the blob-name prefix topo images for routes under this crag
+    // Same ancestor walk as AreaPath, but joining Slug (not Name) with "/" —
+    // this is the blob-name prefix topo images for routes under this area
     // are stored under.
-    private static string CragSlugPath(Dictionary<int, CragNode> cragById, int id)
+    private static string AreaSlugPath(Dictionary<int, AreaNode> areaById, int id)
     {
         var parts = new List<string>();
         int? currentId = id;
-        while (currentId is int cid && cragById.TryGetValue(cid, out var crag))
+        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
         {
-            parts.Insert(0, crag.Slug);
-            currentId = crag.ParentCragId;
+            parts.Insert(0, area.Slug);
+            currentId = area.ParentAreaId;
         }
         return string.Join("/", parts);
     }

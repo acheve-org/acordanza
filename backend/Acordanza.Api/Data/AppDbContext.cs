@@ -10,7 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ClimbingRoute> Routes => Set<ClimbingRoute>();
     public DbSet<Tick> Ticks => Set<Tick>();
     public DbSet<PasskeyCredential> PasskeyCredentials => Set<PasskeyCredential>();
-    public DbSet<Crag> Crags => Set<Crag>();
+    public DbSet<Area> Areas => Set<Area>();
     public DbSet<FirstAscensionist> FirstAscensionists => Set<FirstAscensionist>();
     public DbSet<Topo> Topos => Set<Topo>();
 
@@ -31,19 +31,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(u => u.Name).HasMaxLength(20).HasDefaultValue("");
         });
 
-        builder.Entity<Crag>(entity =>
+        builder.Entity<Area>(entity =>
         {
-            entity.ToTable("Crags", "core");
+            entity.ToTable("Areas", "core");
 
-            entity.HasIndex(c => c.Name);
+            entity.HasIndex(a => a.Name);
             // Default "" (rather than leaving the column non-nullable with no
             // default) lets the AddColumn migration apply cleanly against
             // rows that predate Slug; Program.cs backfills those on startup.
-            entity.Property(c => c.Slug).HasMaxLength(280).HasDefaultValue("");
+            entity.Property(a => a.Slug).HasMaxLength(280).HasDefaultValue("");
 
-            entity.HasOne(c => c.ParentCrag)
-                .WithMany(c => c.Children)
-                .HasForeignKey(c => c.ParentCragId)
+            entity.HasOne(a => a.ParentArea)
+                .WithMany(a => a.Children)
+                .HasForeignKey(a => a.ParentAreaId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -64,16 +64,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.ToTable("Routes", "core");
 
             entity.HasIndex(r => r.Grade);
-            entity.HasIndex(r => r.CragId);
+            entity.HasIndex(r => r.AreaId);
 
             entity.HasOne(r => r.AddedBy)
                 .WithMany()
                 .HasForeignKey(r => r.AddedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(r => r.Crag)
+            entity.HasOne(r => r.Area)
                 .WithMany()
-                .HasForeignKey(r => r.CragId)
+                .HasForeignKey(r => r.AreaId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(r => r.ValidatedBy)

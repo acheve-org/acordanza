@@ -11,43 +11,43 @@ namespace Acordanza.Api.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/crags")]
-public class CragsController(AppDbContext db) : ControllerBase
+[Route("api/areas")]
+public class AreasController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<CragDto>>> GetCrags()
+    public async Task<ActionResult<List<AreaDto>>> GetAreas()
     {
-        var crags = await db.Crags.AsNoTracking()
-            .OrderBy(c => c.Name)
-            .Select(c => new CragDto(c.Id, c.Name, c.ParentCragId))
+        var areas = await db.Areas.AsNoTracking()
+            .OrderBy(a => a.Name)
+            .Select(a => new AreaDto(a.Id, a.Name, a.ParentAreaId))
             .ToListAsync();
 
-        return Ok(crags);
+        return Ok(areas);
     }
 
-    [Authorize(Policy = Permissions.CragCreate)]
+    [Authorize(Policy = Permissions.AreaCreate)]
     [HttpPost]
-    public async Task<ActionResult<CragDto>> CreateCrag(CreateCragRequest request)
+    public async Task<ActionResult<AreaDto>> CreateArea(CreateAreaRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(new { error = "el nombre es obligatorio" });
         }
 
-        if (request.ParentCragId is int parentId && !await db.Crags.AnyAsync(c => c.Id == parentId))
+        if (request.ParentAreaId is int parentId && !await db.Areas.AnyAsync(a => a.Id == parentId))
         {
             return BadRequest(new { error = "el sector padre no existe" });
         }
 
-        var crag = new Crag { Name = request.Name.Trim(), ParentCragId = request.ParentCragId };
-        db.Crags.Add(crag);
+        var area = new Area { Name = request.Name.Trim(), ParentAreaId = request.ParentAreaId };
+        db.Areas.Add(area);
         await db.SaveChangesAsync();
 
         // The slug needs the DB-generated Id to guarantee uniqueness, so it's
         // set in a second save rather than computed before the insert.
-        crag.Slug = $"{Slugify.ToSlug(crag.Name)}-{crag.Id}";
+        area.Slug = $"{Slugify.ToSlug(area.Name)}-{area.Id}";
         await db.SaveChangesAsync();
 
-        return Ok(new CragDto(crag.Id, crag.Name, crag.ParentCragId));
+        return Ok(new AreaDto(area.Id, area.Name, area.ParentAreaId));
     }
 }

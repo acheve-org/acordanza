@@ -4,12 +4,12 @@ import * as routesApi from '../api/routes';
 import { ApiError } from '../api/client';
 import type { RouteDetail, UpsertRouteInput } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
-import { CragPicker } from '../components/CragPicker';
+import { AreaPicker } from '../components/AreaPicker';
 import { FirstAscensionistPicker } from '../components/FirstAscensionistPicker';
 
 const emptyForm: UpsertRouteInput = {
   name: '',
-  cragId: 0,
+  areaId: 0,
   grade: '',
   orientation: '',
   gear: '',
@@ -35,7 +35,7 @@ export function RouteFormPage() {
         setRoute(r);
         setForm({
           name: r.name,
-          cragId: r.cragId,
+          areaId: r.areaId,
           grade: r.grade,
           orientation: r.orientation ?? '',
           gear: r.gear ?? '',
@@ -107,7 +107,7 @@ export function RouteFormPage() {
           </div>
           <label>
             Sector
-            <CragPicker value={form.cragId || null} onChange={(cragId) => set('cragId', cragId ?? 0)} allowCreate />
+            <AreaPicker value={form.areaId || null} onChange={(areaId) => set('areaId', areaId ?? 0)} allowCreate />
           </label>
           <div className="grid-2">
             <label>
@@ -162,7 +162,7 @@ export function RouteFormPage() {
             <Link to="/" className="ghost-btn">
               Cancelar
             </Link>
-            <button type="submit" className="primary-btn" disabled={!form.cragId}>
+            <button type="submit" className="primary-btn" disabled={!form.areaId}>
               Guardar vía
             </button>
           </div>

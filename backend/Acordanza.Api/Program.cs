@@ -204,14 +204,14 @@ using (var scope = app.Services.CreateScope())
 
     await RoleSeeder.EnsureSeededAsync(scope.ServiceProvider);
 
-    // One-time backfill for crags created before the Slug column existed.
-    // New crags always get one assigned in CragsController.CreateCrag.
-    var unslugged = await db.Crags.Where(c => c.Slug == "").ToListAsync();
+    // One-time backfill for areas created before the Slug column existed.
+    // New areas always get one assigned in AreasController.CreateArea.
+    var unslugged = await db.Areas.Where(a => a.Slug == "").ToListAsync();
     if (unslugged.Count > 0)
     {
-        foreach (var crag in unslugged)
+        foreach (var area in unslugged)
         {
-            crag.Slug = $"{Slugify.ToSlug(crag.Name)}-{crag.Id}";
+            area.Slug = $"{Slugify.ToSlug(area.Name)}-{area.Id}";
         }
         await db.SaveChangesAsync();
     }

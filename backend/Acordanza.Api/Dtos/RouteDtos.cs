@@ -3,9 +3,9 @@ namespace Acordanza.Api.Dtos;
 public record RouteDto(
     int Id,
     string Name,
-    int CragId,
-    string CragName,
-    string CragPath,
+    int AreaId,
+    string AreaName,
+    string AreaPath,
     string Grade,
     string? Orientation,
     string? Gear,
@@ -24,9 +24,9 @@ public record RouteDto(
 public record RouteDetailDto(
     int Id,
     string Name,
-    int CragId,
-    string CragName,
-    string CragPath,
+    int AreaId,
+    string AreaName,
+    string AreaPath,
     string Grade,
     string? Orientation,
     string? Gear,
@@ -43,7 +43,7 @@ public record RouteDetailDto(
 
 public record UpsertRouteRequest(
     string Name,
-    int CragId,
+    int AreaId,
     string Grade,
     string? Orientation,
     string? Gear,

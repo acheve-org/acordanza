@@ -4,8 +4,8 @@ public class ClimbingRoute
 {
     public int Id { get; set; }
     public required string Name { get; set; }
-    public int CragId { get; set; }
-    public Crag Crag { get; set; } = null!;
+    public int AreaId { get; set; }
+    public Area Area { get; set; } = null!;
     public required string Grade { get; set; }
     public string? Orientation { get; set; }
     public string? Gear { get; set; }

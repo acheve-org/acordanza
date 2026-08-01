@@ -1,6 +1,6 @@
 // Drives the Acordanza web app (React frontend + ASP.NET Core API) through
-// its golden path: login -> add route (crag tree, orientation, gear, opener)
-// -> log tick -> edit -> filter (name, crag, gear) -> delete.
+// its golden path: login -> add route (area tree, orientation, gear, opener)
+// -> log tick -> edit -> filter (name, area, gear) -> delete.
 // Requires both dev servers already running (see SKILL.md).
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -16,12 +16,12 @@ const FRONTEND_URL = process.env.ACORDANZA_FRONTEND_URL ?? 'http://localhost:517
 const USERNAME = process.env.ACORDANZA_USER ?? 'hugo@example.com';
 const PASSWORD = process.env.ACORDANZA_PASSWORD ?? 'testpass123';
 
-// Crags/openers have no delete endpoint (by design — no admin page), so repeated runs leave
+// Areas/openers have no delete endpoint (by design — no admin page), so repeated runs leave
 // residual rows behind. Suffix names with a run id so a stale "Riverside Wall" from a previous
 // run never collides with (or gets picked instead of) this run's.
 const RUN_ID = Date.now();
-const CRAG_NAME = `Riverside Wall ${RUN_ID}`;
-const SUBCRAG_NAME = `Sector Norte ${RUN_ID}`;
+const AREA_NAME = `Riverside Wall ${RUN_ID}`;
+const SUBAREA_NAME = `Sector Norte ${RUN_ID}`;
 const OPENER_NAME = `Jane Doe ${RUN_ID}`;
 
 const consoleErrors = [];
@@ -58,22 +58,22 @@ try {
   await addForm.locator('label:has-text("Nombre") input').fill('Sunny Crimper');
   await addForm.locator('label:has-text("Grado") input').fill('5.10a');
 
-  // Sector: create a top-level crag, then a sub-sector under it, via the inline crag-tree picker.
+  // Sector: create a top-level area, then a sub-sector under it, via the inline area-tree picker.
   const sectorField = addForm.locator('label:has-text("Sector")');
   await sectorField.locator('button:has-text("+ Añadir nuevo sector")').click();
-  await sectorField.locator('input[placeholder="Nombre del nuevo sector"]').fill(CRAG_NAME);
+  await sectorField.locator('input[placeholder="Nombre del nuevo sector"]').fill(AREA_NAME);
   await sectorField.locator('.combo-create-form button:has-text("Añadir")').click();
   await page.waitForTimeout(300);
   await sectorField.locator('button:has-text("+ Añadir nuevo sector")').click();
-  await sectorField.locator('input[placeholder="Nombre del nuevo sector"]').fill(SUBCRAG_NAME);
-  await sectorField.locator('.combo-create-form select').selectOption({ label: CRAG_NAME });
+  await sectorField.locator('input[placeholder="Nombre del nuevo sector"]').fill(SUBAREA_NAME);
+  await sectorField.locator('.combo-create-form select').selectOption({ label: AREA_NAME });
   await sectorField.locator('.combo-create-form button:has-text("Añadir")').click();
   await page.waitForTimeout(300);
-  const cragBreadcrumb = `${CRAG_NAME} › ${SUBCRAG_NAME}`;
+  const areaBreadcrumb = `${AREA_NAME} › ${SUBAREA_NAME}`;
   assert.equal(
     await sectorField.locator('input').first().inputValue(),
-    cragBreadcrumb,
-    'sector picker should show the full crag breadcrumb after creating a sub-sector'
+    areaBreadcrumb,
+    'sector picker should show the full area breadcrumb after creating a sub-sector'
   );
 
   await addForm.locator('label:has-text("Orientación") select').selectOption({ label: 'Este' });
@@ -92,8 +92,8 @@ try {
   await page.waitForSelector('text=Sunny Crimper', { timeout: 10000 });
   assert.equal(
     await page.locator('.rc-sub').first().innerText(),
-    cragBreadcrumb,
-    'route card should show the full crag breadcrumb'
+    areaBreadcrumb,
+    'route card should show the full area breadcrumb'
   );
   // .rc-type is styled with text-transform: uppercase, so innerText() reflects that rendering.
   assert.equal(await page.locator('.rc-type').first().innerText(), 'EQUIPADA', 'route card should show the gear label');
@@ -103,7 +103,7 @@ try {
   await page.click('text=Sunny Crimper');
   await page.waitForSelector('text=Registrar un ascenso');
   const detailModal = page.locator('.modal').last();
-  assert.ok((await detailModal.locator('.detail-meta').innerText()).includes(cragBreadcrumb));
+  assert.ok((await detailModal.locator('.detail-meta').innerText()).includes(areaBreadcrumb));
   assert.match(await detailModal.locator('.detail-fa').first().innerText(), /Este.*Equipada/);
   assert.ok((await detailModal.locator('text=Apertura:').innerText()).includes(OPENER_NAME));
   await shot('route-detail');
@@ -126,7 +126,7 @@ try {
   const editForm = page.locator('.settings-section');
   assert.equal(
     await editForm.locator('label:has-text("Sector") input').first().inputValue(),
-    cragBreadcrumb,
+    areaBreadcrumb,
     'edit form should preselect the saved sub-sector'
   );
   assert.equal(await editForm.locator('label:has-text("Orientación") select').inputValue(), 'east');
@@ -137,7 +137,7 @@ try {
   await page.waitForSelector('text=Sunny Crimper (Updated)', { timeout: 10000 });
   await shot('route-edited');
 
-  // Filters: name, then crag (picking the top-level crag should still surface a route filed
+  // Filters: name, then area (picking the top-level area should still surface a route filed
   // under its sub-sector), then gear, then reset.
   const nameFilter = 'input[placeholder="Nombre de la vía o descripción…"]';
   await page.fill(nameFilter, 'Sunny');
@@ -152,14 +152,14 @@ try {
 
   const filters = page.locator('.filters');
   await filters.locator('label:has-text("Sector") + .combo input').click();
-  await filters.locator(`.combo-option:text-is("${CRAG_NAME}")`).click();
+  await filters.locator(`.combo-option:text-is("${AREA_NAME}")`).click();
   await page.waitForTimeout(500);
   assert.equal(
     await page.locator('.route-card').count(),
     1,
-    'filtering by the parent crag should include routes filed under its sub-sector'
+    'filtering by the parent area should include routes filed under its sub-sector'
   );
-  await shot('filter-by-crag');
+  await shot('filter-by-area');
 
   await filters.locator('label:has-text("Equipamiento") + select').selectOption({ label: 'Equipada' });
   await page.waitForTimeout(500);

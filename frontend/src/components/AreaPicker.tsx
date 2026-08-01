@@ -1,30 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import * as cragsApi from '../api/crags';
-import type { CragSummary } from '../api/types';
+import * as areasApi from '../api/areas';
+import type { AreaSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
 
 interface Props {
   value: number | null;
-  onChange: (cragId: number | null) => void;
+  onChange: (areaId: number | null) => void;
   allowCreate?: boolean;
   allowClear?: boolean;
 }
 
-function pathFor(crag: CragSummary, byId: Map<number, CragSummary>): string {
+function pathFor(area: AreaSummary, byId: Map<number, AreaSummary>): string {
   const parts: string[] = [];
-  let current: CragSummary | undefined = crag;
+  let current: AreaSummary | undefined = area;
   while (current) {
     parts.unshift(current.name);
-    current = current.parentCragId !== null ? byId.get(current.parentCragId) : undefined;
+    current = current.parentAreaId !== null ? byId.get(current.parentAreaId) : undefined;
   }
   return parts.join(' › ');
 }
 
-export function CragPicker({ value, onChange, allowCreate = false, allowClear = false }: Props) {
+export function AreaPicker({ value, onChange, allowCreate = false, allowClear = false }: Props) {
   const { hasPermission } = useAuth();
-  const canCreate = allowCreate && hasPermission(Permissions.cragCreate);
-  const [crags, setCrags] = useState<CragSummary[]>([]);
+  const canCreate = allowCreate && hasPermission(Permissions.areaCreate);
+  const [areas, setAreas] = useState<AreaSummary[]>([]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -32,17 +32,17 @@ export function CragPicker({ value, onChange, allowCreate = false, allowClear = 
   const [newParentId, setNewParentId] = useState('');
 
   useEffect(() => {
-    cragsApi.listCrags().then(setCrags);
+    areasApi.listAreas().then(setAreas);
   }, []);
 
-  const byId = useMemo(() => new Map(crags.map((c) => [c.id, c])), [crags]);
+  const byId = useMemo(() => new Map(areas.map((a) => [a.id, a])), [areas]);
   const selected = value !== null ? byId.get(value) : undefined;
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return crags;
-    return crags.filter((c) => pathFor(c, byId).toLowerCase().includes(q));
-  }, [crags, byId, query]);
+    if (!q) return areas;
+    return areas.filter((a) => pathFor(a, byId).toLowerCase().includes(q));
+  }, [areas, byId, query]);
 
   function select(id: number | null) {
     onChange(id);
@@ -53,8 +53,8 @@ export function CragPicker({ value, onChange, allowCreate = false, allowClear = 
   async function handleCreate() {
     const name = newName.trim();
     if (!name) return;
-    const created = await cragsApi.createCrag(name, newParentId ? Number(newParentId) : null);
-    setCrags((prev) => [...prev, created]);
+    const created = await areasApi.createArea(name, newParentId ? Number(newParentId) : null);
+    setAreas((prev) => [...prev, created]);
     setNewName('');
     setNewParentId('');
     setShowCreate(false);
@@ -83,15 +83,15 @@ export function CragPicker({ value, onChange, allowCreate = false, allowClear = 
             </button>
           )}
           {matches.length === 0 && <div className="combo-empty hint">Sin coincidencias</div>}
-          {matches.map((c) => (
+          {matches.map((a) => (
             <button
               type="button"
-              key={c.id}
+              key={a.id}
               className="combo-option"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => select(c.id)}
+              onClick={() => select(a.id)}
             >
-              {pathFor(c, byId)}
+              {pathFor(a, byId)}
             </button>
           ))}
         </div>
@@ -111,9 +111,9 @@ export function CragPicker({ value, onChange, allowCreate = false, allowClear = 
             />
             <select value={newParentId} onChange={(e) => setNewParentId(e.target.value)}>
               <option value="">Sector principal (sin padre)</option>
-              {crags.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {pathFor(c, byId)}
+              {areas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {pathFor(a, byId)}
                 </option>
               ))}
             </select>

@@ -4,8 +4,8 @@ A small private web app for logging and searching climbing routes with a few fri
 ASP.NET Core (.NET 10) Web API + PostgreSQL backend, React + Vite frontend.
 
 ## Features
-- Add routes: name, crag, grade (any grading system), type (sport/trad/boulder/etc.), description, tags, first ascent
-- Search & filter by name/description, crag, type, and tag
+- Add routes: name, area, grade (any grading system), type (sport/trad/boulder/etc.), description, tags, first ascent
+- Search & filter by name/description, area, type, and tag
 - Log ascents ("ticks") per route: who, when, rating, notes
 - Real user accounts (JWT auth, email as username) — everyone who has an account can see and edit everything
 - Accounts are admin-provisioned; there is no public sign-up
@@ -74,7 +74,7 @@ Open `http://localhost:5173` in your browser and log in with an account created 
 ## Extending it
 Some natural next steps if you want to keep building:
 - Photo uploads per route
-- Map view (crag locations via lat/lng + a map library)
+- Map view (area locations via lat/lng + a map library)
 - Per-user "want to climb" wishlist
 - Export routes to CSV/GPX
 - Multi-pitch route support (per-pitch grades/descriptions)

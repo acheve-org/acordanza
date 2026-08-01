@@ -1,7 +1,7 @@
-export interface CragSummary {
+export interface AreaSummary {
   id: number;
   name: string;
-  parentCragId: number | null;
+  parentAreaId: number | null;
 }
 
 export interface FirstAscensionistSummary {
@@ -27,9 +27,9 @@ export interface TopoSummary {
 export interface RouteSummary {
   id: number;
   name: string;
-  cragId: number;
-  cragName: string;
-  cragPath: string;
+  areaId: number;
+  areaName: string;
+  areaPath: string;
   grade: string;
   orientation: string | null;
   gear: string | null;
@@ -62,7 +62,7 @@ export interface RouteDetail extends Omit<RouteSummary, 'tickCount' | 'avgRating
 
 export interface RouteFilters {
   q: string;
-  cragId: string;
+  areaId: string;
   gear: string;
   tag: string;
   hasTopo: string;
@@ -70,7 +70,7 @@ export interface RouteFilters {
 
 export interface UpsertRouteInput {
   name: string;
-  cragId: number;
+  areaId: number;
   grade: string;
   orientation: string;
   gear: string;

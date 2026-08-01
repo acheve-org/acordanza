@@ -2,10 +2,10 @@ namespace Acordanza.Api.Authorization;
 
 public static class Permissions
 {
-    public const string CragCreate = "crag.create";
-    public const string CragEdit = "crag.edit";
-    public const string CragValidate = "crag.validate";
-    public const string CragDelete = "crag.delete";
+    public const string AreaCreate = "area.create";
+    public const string AreaEdit = "area.edit";
+    public const string AreaValidate = "area.validate";
+    public const string AreaDelete = "area.delete";
 
     public const string RouteCreate = "route.create";
     public const string RouteEdit = "route.edit";
@@ -26,7 +26,7 @@ public static class Permissions
 
     public static readonly IReadOnlyList<string> All =
     [
-        CragCreate, CragEdit, CragValidate, CragDelete,
+        AreaCreate, AreaEdit, AreaValidate, AreaDelete,
         RouteCreate, RouteEdit, RouteValidate, RouteDelete,
         TickCreate, TickEdit, TickValidate, TickDelete,
         FirstAscensionistCreate, FirstAscensionistEdit, FirstAscensionistValidate, FirstAscensionistDelete,

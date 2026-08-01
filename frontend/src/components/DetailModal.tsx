@@ -81,7 +81,7 @@ export function DetailModal({
           <div>
             <h2>{route.name}</h2>
             <p className="detail-meta">
-              {route.grade} · {route.cragPath}
+              {route.grade} · {route.areaPath}
             </p>
             <p className="detail-fa">
               {[route.orientation && orientationLabels[route.orientation], route.gear && gearLabels[route.gear]]

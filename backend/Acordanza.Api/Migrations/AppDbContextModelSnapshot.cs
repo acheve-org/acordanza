@@ -95,6 +95,37 @@ namespace Acordanza.Api.Migrations
                     b.ToTable("AspNetUsers", "identity");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.Area", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ParentAreaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)")
+                        .HasDefaultValue("");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("ParentAreaId");
+
+                    b.ToTable("Areas", "core");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
                 {
                     b.Property<int>("Id")
@@ -107,7 +138,7 @@ namespace Acordanza.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("CragId")
+                    b.Property<int>("AreaId")
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("CreatedAt")
@@ -145,44 +176,13 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("AddedByUserId");
 
-                    b.HasIndex("CragId");
+                    b.HasIndex("AreaId");
 
                     b.HasIndex("Grade");
 
                     b.HasIndex("ValidatedByUserId");
 
                     b.ToTable("Routes", "core");
-                });
-
-            modelBuilder.Entity("Acordanza.Api.Models.Crag", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int?>("ParentCragId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Slug")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(280)
-                        .HasColumnType("character varying(280)")
-                        .HasDefaultValue("");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name");
-
-                    b.HasIndex("ParentCragId");
-
-                    b.ToTable("Crags", "core");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.FirstAscensionist", b =>
@@ -476,6 +476,16 @@ namespace Acordanza.Api.Migrations
                     b.ToTable("RouteFirstAscensionists", "core");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.Area", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.Area", "ParentArea")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentAreaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ParentArea");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
                 {
                     b.HasOne("Acordanza.Api.Models.ApplicationUser", "AddedBy")
@@ -484,9 +494,9 @@ namespace Acordanza.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Acordanza.Api.Models.Crag", "Crag")
+                    b.HasOne("Acordanza.Api.Models.Area", "Area")
                         .WithMany()
-                        .HasForeignKey("CragId")
+                        .HasForeignKey("AreaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -497,19 +507,9 @@ namespace Acordanza.Api.Migrations
 
                     b.Navigation("AddedBy");
 
-                    b.Navigation("Crag");
+                    b.Navigation("Area");
 
                     b.Navigation("ValidatedBy");
-                });
-
-            modelBuilder.Entity("Acordanza.Api.Models.Crag", b =>
-                {
-                    b.HasOne("Acordanza.Api.Models.Crag", "ParentCrag")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentCragId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ParentCrag");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.FirstAscensionist", b =>
@@ -637,16 +637,16 @@ namespace Acordanza.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.Area", b =>
+                {
+                    b.Navigation("Children");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
                 {
                     b.Navigation("Ticks");
 
                     b.Navigation("Topos");
-                });
-
-            modelBuilder.Entity("Acordanza.Api.Models.Crag", b =>
-                {
-                    b.Navigation("Children");
                 });
 #pragma warning restore 612, 618
         }

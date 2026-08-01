@@ -12,7 +12,7 @@ export function RouteCard({ route, onClick }: Props) {
       <span className="grade-pill">{route.grade}</span>
       <div className="rc-main">
         <div className="rc-name">{route.name}</div>
-        <div className="rc-sub">{route.cragPath}</div>
+        <div className="rc-sub">{route.areaPath}</div>
       </div>
       {route.gear && <span className="rc-type">{gearLabels[route.gear] ?? route.gear}</span>}
       {route.hasTopos && (
