@@ -12,9 +12,11 @@ import { RouteFormPage } from './pages/RouteFormPage';
 import { MapPage } from './pages/MapPage';
 import { AreasPage } from './pages/AreasPage';
 import { MyAreasPage } from './pages/MyAreasPage';
+import { ClaimFirstAscensionistPage } from './pages/ClaimFirstAscensionistPage';
+import { MyRoutesPage } from './pages/MyRoutesPage';
 
 function AppLayout() {
-  const { name, hasPermission, logout } = useAuth();
+  const { name, hasPermission, isFirstAscensionist, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +80,18 @@ function AppLayout() {
                 <Link className="ghost-btn small full-width" to="/mis-sectores" onClick={() => setUserMenuOpen(false)}>
                   Mis sectores
                 </Link>
+                <Link
+                  className="ghost-btn small full-width"
+                  to="/vincular-aperturista"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  Vincular aperturista
+                </Link>
+                {isFirstAscensionist && (
+                  <Link className="ghost-btn small full-width" to="/mis-vias" onClick={() => setUserMenuOpen(false)}>
+                    Mis vías
+                  </Link>
+                )}
                 <Link className="ghost-btn small full-width" to="/settings" onClick={() => setUserMenuOpen(false)}>
                   Configuración
                 </Link>
@@ -122,6 +136,8 @@ function App() {
         <Route path="mapa" element={<MapPage />} />
         <Route path="sectores" element={<AreasPage />} />
         <Route path="mis-sectores" element={<MyAreasPage />} />
+        <Route path="vincular-aperturista" element={<ClaimFirstAscensionistPage />} />
+        <Route path="mis-vias" element={<MyRoutesPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

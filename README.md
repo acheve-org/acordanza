@@ -41,7 +41,7 @@ dotnet run
 ```
 The API listens on `http://localhost:5073` (see `Properties/launchSettings.json`).
 
-Accounts are created via a CLI command (no public registration endpoint); role defaults to `user` if omitted (other roles: `first-ascensionist`, `moderator`, `admin`):
+Accounts are created via a CLI command (no public registration endpoint); role defaults to `user` if omitted (other roles: `moderator`, `admin`):
 ```
 dotnet run -- create-user <email> <password> [role]
 ```

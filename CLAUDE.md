@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Acordanza is a small private web app for a group of friends to log and search climbing routes. Real accounts only (JWT auth, admin-provisioned) — no public sign-up. Every account can read everything; write access is role-based (`admin`/`moderator`/`first-ascensionist`/`user`, see `backend/CLAUDE.md`).
+Acordanza is a small private web app for a group of friends to log and search climbing routes. Real accounts only (JWT auth, admin-provisioned) — no public sign-up. Every account can read everything; write access is role-based (`admin`/`moderator`/`user`, see `backend/CLAUDE.md`), plus a dynamic grant for users linked to a `FirstAscensionist` record via an approved claim.
 
 - `backend/Acordanza.Api/` — ASP.NET Core (.NET 10) Web API: EF Core + Npgsql, ASP.NET Core Identity, JWT auth. See `backend/CLAUDE.md`.
 - `frontend/` — React 19 + TypeScript, built with Vite, package-managed with Bun. See `frontend/CLAUDE.md`.
@@ -32,7 +32,7 @@ Two independent processes talking over a JSON REST API (`VITE_API_URL`, default 
 
 - The frontend holds no server state beyond a JWT + username in `localStorage` (`AuthContext`); every other piece of data (routes, ticks, passkeys) is fetched fresh from the API per view.
 - The backend is a thin CRUD layer over four EF Core entities — `ApplicationUser` (Identity, email as username), `ClimbingRoute`, `Tick` (a logged ascent of a route, many-to-one with both route and user), `PasskeyCredential` (a user's registered WebAuthn credential) — exposed through `RoutesController`, `AuthController`, `AccountController`, and `PasskeysController`. There is no business-logic layer between controllers and `AppDbContext`.
-- Auth: `AuthController` issues JWTs on login (`JwtTokenService`); the frontend attaches them as `Authorization: Bearer` on every request via `frontend/src/api/client.ts`. Login is optionally two-step — a user with a registered passkey must also complete a WebAuthn assertion (`POST /api/auth/login/passkey`) before a JWT is issued. Accounts are created out-of-band via the `create-user` CLI command in `Program.cs`, never via HTTP. Each account has one role (`admin`/`moderator`/`first-ascensionist`/`user`); the role's permissions (see `backend/Acordanza.Api/Authorization/`) are embedded as JWT claims and enforced via `[Authorize(Policy = ...)]` on write endpoints, and returned from `GET /auth/me` so the frontend (`AuthContext.hasPermission`) can hide actions the current user can't perform.
+- Auth: `AuthController` issues JWTs on login (`JwtTokenService`); the frontend attaches them as `Authorization: Bearer` on every request via `frontend/src/api/client.ts`. Login is optionally two-step — a user with a registered passkey must also complete a WebAuthn assertion (`POST /api/auth/login/passkey`) before a JWT is issued. Accounts are created out-of-band via the `create-user` CLI command in `Program.cs`, never via HTTP. Each account has one role (`admin`/`moderator`/`user`); the role's permissions (see `backend/Acordanza.Api/Authorization/`) plus any dynamic permissions (see `DynamicPermissions` — granted to users linked to a `FirstAscensionist` record) are embedded as JWT claims and enforced via `[Authorize(Policy = ...)]` on write endpoints, and returned from `GET /auth/me` so the frontend (`AuthContext.hasPermission`) can hide actions the current user can't perform.
 
 ## Language
 

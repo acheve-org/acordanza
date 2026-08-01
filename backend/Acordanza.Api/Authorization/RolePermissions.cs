@@ -1,8 +1,12 @@
 namespace Acordanza.Api.Authorization;
 
 // Each role's permission set is defined by extending the role below it in the
-// hierarchy (user < first-ascensionist < moderator < admin), so bumping
-// someone up a role never takes permissions away.
+// hierarchy (user < moderator < admin), so bumping someone up a role never
+// takes permissions away. There used to be a "first-ascensionist" rung
+// between user and moderator; it's gone now — route.edit/route.validate/
+// first-ascensionist.edit are granted dynamically instead, to any user
+// linked to a FirstAscensionist record via an approved
+// FirstAscensionistLinkRequest (see DynamicPermissions), not through a role.
 public static class RolePermissions
 {
     private static readonly string[] UserPermissions =
@@ -12,20 +16,16 @@ public static class RolePermissions
         Permissions.TickCreate,
         Permissions.TickDelete,
         Permissions.FirstAscensionistCreate,
-        Permissions.AreaExpertRequest
-    ];
-
-    private static readonly string[] FirstAscensionistPermissions =
-    [
-        .. UserPermissions,
-        Permissions.RouteEdit,
-        Permissions.RouteValidate,
-        Permissions.FirstAscensionistEdit
+        Permissions.AreaExpertRequest,
+        Permissions.FirstAscensionistLinkRequest
     ];
 
     private static readonly string[] ModeratorPermissions =
     [
-        .. FirstAscensionistPermissions,
+        .. UserPermissions,
+        Permissions.RouteEdit,
+        Permissions.RouteValidate,
+        Permissions.FirstAscensionistEdit,
         Permissions.AreaEdit,
         Permissions.AreaValidate,
         Permissions.AreaDelete,
@@ -34,7 +34,8 @@ public static class RolePermissions
         Permissions.TickValidate,
         Permissions.FirstAscensionistValidate,
         Permissions.FirstAscensionistDelete,
-        Permissions.AreaExpertApprove
+        Permissions.AreaExpertApprove,
+        Permissions.FirstAscensionistLinkApprove
     ];
 
     private static readonly string[] AdminPermissions = [.. Permissions.All];
@@ -42,7 +43,6 @@ public static class RolePermissions
     public static readonly IReadOnlyDictionary<string, string[]> Map = new Dictionary<string, string[]>
     {
         [Roles.User] = UserPermissions,
-        [Roles.FirstAscensionist] = FirstAscensionistPermissions,
         [Roles.Moderator] = ModeratorPermissions,
         [Roles.Admin] = AdminPermissions
     };

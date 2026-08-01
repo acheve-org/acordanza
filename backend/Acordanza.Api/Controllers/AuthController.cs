@@ -132,10 +132,10 @@ public class AuthController(
         if (user is null) return Unauthorized();
 
         var roles = await userManager.GetRolesAsync(user);
-        var permissions = RolePermissions.PermissionsFor(roles);
+        var (permissions, isFirstAscensionist) = await DynamicPermissions.ResolveAsync(db, roles, user.Id);
         var role = roles.FirstOrDefault() ?? Roles.User;
 
-        return Ok(new MeResponse(user.UserName!, user.Name, role, permissions.ToArray()));
+        return Ok(new MeResponse(user.Id, user.UserName!, user.Name, role, permissions.ToArray(), isFirstAscensionist));
     }
 
     [EnableRateLimiting("forgot-password")]

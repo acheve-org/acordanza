@@ -24,4 +24,7 @@ export const Permissions = {
 
   areaExpertRequest: 'area-expert.request',
   areaExpertApprove: 'area-expert.approve',
+
+  firstAscensionistLinkRequest: 'first-ascensionist-link.request',
+  firstAscensionistLinkApprove: 'first-ascensionist-link.approve',
 } as const;

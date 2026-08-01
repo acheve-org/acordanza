@@ -37,9 +37,17 @@ export interface FirstAscensionistSummary {
   linkedUserName: string | null;
 }
 
-export interface UserSummary {
-  id: string;
-  name: string;
+export interface FirstAscensionistLinkRequestSummary {
+  id: number;
+  firstAscensionistId: number;
+  firstAscensionistName: string;
+  userId: string;
+  userName: string;
+  requestedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+  decidedAt: string | null;
+  decidedByName: string | null;
+  rejectionReason: string | null;
 }
 
 export interface TopoSummary {
@@ -121,10 +129,12 @@ export interface LoginResponse {
 }
 
 export interface MeResponse {
+  id: string;
   username: string;
   name: string;
   role: string;
   permissions: string[];
+  isFirstAscensionist: boolean;
 }
 
 export interface PasskeySummary {
@@ -185,6 +195,5 @@ export interface UserFilters {
 export const roleLabels: Record<string, string> = {
   admin: 'Administrador',
   moderator: 'Moderador',
-  'first-ascensionist': 'Aperturista',
   user: 'Usuario',
 };

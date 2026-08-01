@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<FirstAscensionist> FirstAscensionists => Set<FirstAscensionist>();
     public DbSet<Topo> Topos => Set<Topo>();
     public DbSet<AreaExpert> AreaExperts => Set<AreaExpert>();
+    public DbSet<FirstAscensionistLinkRequest> FirstAscensionistLinkRequests => Set<FirstAscensionistLinkRequest>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -150,6 +151,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasOne(e => e.ApprovedBy)
                 .WithMany()
                 .HasForeignKey(e => e.ApprovedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<FirstAscensionistLinkRequest>(entity =>
+        {
+            entity.ToTable("FirstAscensionistLinkRequests", "core");
+
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+
+            // Guards against duplicate concurrent requests for the same
+            // (FirstAscensionist, User) pair while still letting a user try again
+            // after an earlier request was rejected — the filter only covers rows
+            // that are still Pending.
+            entity.HasIndex(e => new { e.FirstAscensionistId, e.UserId })
+                .IsUnique()
+                .HasFilter("\"Status\" = 'Pending'");
+
+            entity.HasOne(e => e.FirstAscensionist)
+                .WithMany()
+                .HasForeignKey(e => e.FirstAscensionistId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.DecidedBy)
+                .WithMany()
+                .HasForeignKey(e => e.DecidedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

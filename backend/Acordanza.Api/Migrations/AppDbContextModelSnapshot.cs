@@ -251,6 +251,51 @@ namespace Acordanza.Api.Migrations
                     b.ToTable("FirstAscensionists", "core");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.FirstAscensionistLinkRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecidedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("FirstAscensionistId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DecidedByUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("FirstAscensionistId", "UserId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Pending'");
+
+                    b.ToTable("FirstAscensionistLinkRequests", "core");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.PasskeyCredential", b =>
                 {
                     b.Property<int>("Id")
@@ -611,6 +656,32 @@ namespace Acordanza.Api.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Acordanza.Api.Models.FirstAscensionistLinkRequest", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "DecidedBy")
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Acordanza.Api.Models.FirstAscensionist", "FirstAscensionist")
+                        .WithMany()
+                        .HasForeignKey("FirstAscensionistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DecidedBy");
+
+                    b.Navigation("FirstAscensionist");
 
                     b.Navigation("User");
                 });

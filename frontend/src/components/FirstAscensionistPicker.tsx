@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
-import type { FirstAscensionistSummary, UserSummary } from '../api/types';
+import type { FirstAscensionistSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
 
@@ -13,16 +13,13 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
   const { hasPermission } = useAuth();
   const canCreate = hasPermission(Permissions.firstAscensionistCreate);
   const [firstAscensionists, setFirstAscensionists] = useState<FirstAscensionistSummary[]>([]);
-  const [users, setUsers] = useState<UserSummary[]>([]);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newUserId, setNewUserId] = useState('');
 
   useEffect(() => {
     firstAscensionistsApi.listFirstAscensionists().then(setFirstAscensionists);
-    firstAscensionistsApi.listLinkableUsers().then(setUsers);
   }, []);
 
   const byId = useMemo(() => new Map(firstAscensionists.map((o) => [o.id, o])), [firstAscensionists]);
@@ -46,10 +43,9 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
   async function handleCreate() {
     const name = newName.trim();
     if (!name) return;
-    const created = await firstAscensionistsApi.createFirstAscensionist(name, newUserId || null);
+    const created = await firstAscensionistsApi.createFirstAscensionist(name);
     setFirstAscensionists((prev) => [...prev, created]);
     setNewName('');
-    setNewUserId('');
     setShowCreate(false);
     onChange([...value, created.id]);
   }
@@ -108,14 +104,6 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
-            <select value={newUserId} onChange={(e) => setNewUserId(e.target.value)}>
-              <option value="">Sin vincular a cuenta</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
             <div className="modal-actions">
               <button type="button" className="ghost-btn small" onClick={() => setShowCreate(false)}>
                 Cancelar

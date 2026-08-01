@@ -27,6 +27,9 @@ public static class Permissions
     public const string AreaExpertRequest = "area-expert.request";
     public const string AreaExpertApprove = "area-expert.approve";
 
+    public const string FirstAscensionistLinkRequest = "first-ascensionist-link.request";
+    public const string FirstAscensionistLinkApprove = "first-ascensionist-link.approve";
+
     public static readonly IReadOnlyList<string> All =
     [
         AreaCreate, AreaEdit, AreaValidate, AreaDelete,
@@ -34,6 +37,7 @@ public static class Permissions
         TickCreate, TickEdit, TickValidate, TickDelete,
         FirstAscensionistCreate, FirstAscensionistEdit, FirstAscensionistValidate, FirstAscensionistDelete,
         UserManage,
-        AreaExpertRequest, AreaExpertApprove
+        AreaExpertRequest, AreaExpertApprove,
+        FirstAscensionistLinkRequest, FirstAscensionistLinkApprove
     ];
 }

@@ -14,10 +14,16 @@ namespace Acordanza.Api.Controllers;
 public class FirstAscensionistsController(AppDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<FirstAscensionistDto>>> GetFirstAscensionists()
+    public async Task<ActionResult<List<FirstAscensionistDto>>> GetFirstAscensionists([FromQuery] string? q)
     {
-        var firstAscensionists = await db.FirstAscensionists.AsNoTracking()
-            .Include(o => o.User)
+        var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            query = query.Where(o => o.Name.Contains(q));
+        }
+
+        var firstAscensionists = await query
             .OrderBy(o => o.Name)
             .Select(o => new FirstAscensionistDto(o.Id, o.Name, o.UserId, o.User != null ? o.User.Name : null))
             .ToListAsync();
@@ -25,17 +31,10 @@ public class FirstAscensionistsController(AppDbContext db) : ControllerBase
         return Ok(firstAscensionists);
     }
 
-    [HttpGet("users")]
-    public async Task<ActionResult<List<UserSummaryDto>>> GetLinkableUsers()
-    {
-        var users = await db.Users.AsNoTracking()
-            .OrderBy(u => u.Name)
-            .Select(u => new UserSummaryDto(u.Id, u.Name))
-            .ToListAsync();
-
-        return Ok(users);
-    }
-
+    // Creates an unlinked FirstAscensionist record (e.g. a historic route opener
+    // with no account yet). Linking one to a user account always goes through
+    // FirstAscensionistLinksController's request/approve flow now, even for
+    // admins/moderators, so who-linked-what-when is always tracked.
     [Authorize(Policy = Permissions.FirstAscensionistCreate)]
     [HttpPost]
     public async Task<ActionResult<FirstAscensionistDto>> CreateFirstAscensionist(CreateFirstAscensionistRequest request)
@@ -45,17 +44,10 @@ public class FirstAscensionistsController(AppDbContext db) : ControllerBase
             return BadRequest(new { error = "el nombre es obligatorio" });
         }
 
-        ApplicationUser? user = null;
-        if (request.UserId is not null)
-        {
-            user = await db.Users.FirstOrDefaultAsync(u => u.Id == request.UserId);
-            if (user is null) return BadRequest(new { error = "el usuario no existe" });
-        }
-
-        var firstAscensionist = new FirstAscensionist { Name = request.Name.Trim(), UserId = user?.Id };
+        var firstAscensionist = new FirstAscensionist { Name = request.Name.Trim() };
         db.FirstAscensionists.Add(firstAscensionist);
         await db.SaveChangesAsync();
 
-        return Ok(new FirstAscensionistDto(firstAscensionist.Id, firstAscensionist.Name, firstAscensionist.UserId, user?.Name));
+        return Ok(new FirstAscensionistDto(firstAscensionist.Id, firstAscensionist.Name, null, null));
     }
 }

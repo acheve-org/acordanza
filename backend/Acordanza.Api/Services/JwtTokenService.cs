@@ -2,13 +2,14 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Acordanza.Api.Authorization;
+using Acordanza.Api.Data;
 using Acordanza.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Acordanza.Api.Services;
 
-public class JwtTokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager)
+public class JwtTokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager, AppDbContext db)
 {
     public async Task<string> CreateToken(ApplicationUser user)
     {
@@ -17,7 +18,7 @@ public class JwtTokenService(IConfiguration configuration, UserManager<Applicati
         var expiryMinutes = jwtSection.GetValue("ExpiryMinutes", 60 * 24 * 7);
 
         var roles = await userManager.GetRolesAsync(user);
-        var permissions = RolePermissions.PermissionsFor(roles);
+        var (permissions, _) = await DynamicPermissions.ResolveAsync(db, roles, user.Id);
 
         var claims = new List<Claim>
         {

@@ -7,10 +7,12 @@ const STORAGE_KEY = 'acordanza.auth';
 
 interface StoredAuth {
   token: string;
+  id: string;
   username: string;
   name: string;
   role: string;
   permissions: string[];
+  isFirstAscensionist: boolean;
 }
 
 export interface PasskeyChallenge {
@@ -19,10 +21,12 @@ export interface PasskeyChallenge {
 }
 
 interface AuthContextValue {
+  id: string | null;
   username: string | null;
   name: string | null;
   role: string | null;
   permissions: string[];
+  isFirstAscensionist: boolean;
   loading: boolean;
   hasPermission: (permission: string) => boolean;
   login: (email: string, password: string) => Promise<PasskeyChallenge | null>;
@@ -34,10 +38,12 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const [id, setId] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
   const [name, setName] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
+  const [isFirstAscensionist, setIsFirstAscensionist] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,10 +59,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api
       .get<MeResponse>('/auth/me')
       .then((me) => {
+        setId(me.id);
         setUsername(me.username);
         setName(me.name);
         setRole(me.role);
         setPermissions(me.permissions);
+        setIsFirstAscensionist(me.isFirstAscensionist);
       })
       .catch(() => {
         localStorage.removeItem(STORAGE_KEY);
@@ -70,12 +78,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const me = await api.get<MeResponse>('/auth/me');
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ token, username: me.username, name: me.name, role: me.role, permissions: me.permissions }),
+      JSON.stringify({
+        token,
+        id: me.id,
+        username: me.username,
+        name: me.name,
+        role: me.role,
+        permissions: me.permissions,
+        isFirstAscensionist: me.isFirstAscensionist,
+      }),
     );
+    setId(me.id);
     setUsername(me.username);
     setName(me.name);
     setRole(me.role);
     setPermissions(me.permissions);
+    setIsFirstAscensionist(me.isFirstAscensionist);
   }
 
   async function login(email: string, password: string): Promise<PasskeyChallenge | null> {
@@ -109,10 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     localStorage.removeItem(STORAGE_KEY);
     setAuthToken(null);
+    setId(null);
     setUsername(null);
     setName(null);
     setRole(null);
     setPermissions([]);
+    setIsFirstAscensionist(false);
   }
 
   function hasPermission(permission: string) {
@@ -122,10 +142,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
+        id,
         username,
         name,
         role,
         permissions,
+        isFirstAscensionist,
         loading,
         hasPermission,
         login,

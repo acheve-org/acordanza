@@ -47,6 +47,20 @@ public static class EmailTemplates
             <p style="{ParagraphStyle}">Tu solicitud para ser experto del sector <strong>{WebUtility.HtmlEncode(areaName)}</strong> ha sido rechazada.</p>
             """));
 
+    public static (string Subject, string Html) FirstAscensionistLinkApproved(string firstAscensionistName) => (
+        "Tu vínculo de aperturista ha sido aprobado",
+        Layout($"""
+            <p style="{ParagraphStyle}">Tu solicitud para vincular tu cuenta con el aperturista <strong>{WebUtility.HtmlEncode(firstAscensionistName)}</strong> ha sido aprobada.</p>
+            <p style="{ParagraphStyle}">Ya puedes editar y validar las vías abiertas por este aperturista.</p>
+            """));
+
+    public static (string Subject, string Html) FirstAscensionistLinkRejected(string firstAscensionistName, string reason) => (
+        "Tu vínculo de aperturista ha sido rechazado",
+        Layout($"""
+            <p style="{ParagraphStyle}">Tu solicitud para vincular tu cuenta con el aperturista <strong>{WebUtility.HtmlEncode(firstAscensionistName)}</strong> ha sido rechazada.</p>
+            <p style="{ParagraphStyle}"><strong>Motivo:</strong> {WebUtility.HtmlEncode(reason)}</p>
+            """));
+
     private static string Button(string label, string url)
     {
         var safeUrl = WebUtility.HtmlEncode(url);
