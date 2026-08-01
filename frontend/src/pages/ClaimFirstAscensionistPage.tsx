@@ -6,6 +6,7 @@ import type { FirstAscensionistLinkRequestSummary, FirstAscensionistSummary } fr
 import { Permissions } from '../api/permissions';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { RejectReasonModal } from '../components/RejectReasonModal';
 
 const statusLabels: Record<FirstAscensionistLinkRequestSummary['status'], string> = {
   pending: 'Pendiente de aprobación',
@@ -22,6 +23,7 @@ export function ClaimFirstAscensionistPage() {
   const [mine, setMine] = useState<FirstAscensionistLinkRequestSummary[]>([]);
   const [pending, setPending] = useState<FirstAscensionistLinkRequestSummary[]>([]);
   const [error, setError] = useState('');
+  const [rejecting, setRejecting] = useState<FirstAscensionistLinkRequestSummary | null>(null);
 
   function refreshFirstAscensionists() {
     firstAscensionistsApi.listFirstAscensionists(q).then(setFirstAscensionists);
@@ -73,10 +75,19 @@ export function ClaimFirstAscensionistPage() {
     refreshAll();
   }
 
-  async function handleReject(id: number) {
-    const reason = prompt('Motivo del rechazo:');
-    if (!reason || !reason.trim()) return;
-    await firstAscensionistLinksApi.rejectFirstAscensionistLink(id, reason.trim());
+  async function handleReject(reason: string) {
+    if (!rejecting) return;
+    await firstAscensionistLinksApi.rejectFirstAscensionistLink(rejecting.id, reason);
+    setRejecting(null);
+    refreshRequests();
+  }
+
+  async function handleCancel(id: number) {
+    try {
+      await firstAscensionistLinksApi.cancelFirstAscensionistLink(id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo retirar la solicitud');
+    }
     refreshRequests();
   }
 
@@ -133,6 +144,16 @@ export function ClaimFirstAscensionistPage() {
                     {r.status === 'rejected' && r.rejectionReason && ` · Motivo: ${r.rejectionReason}`}
                   </div>
                 </div>
+                {r.status === 'pending' && (
+                  <button
+                    type="button"
+                    className="tick-remove"
+                    aria-label="Retirar solicitud"
+                    onClick={() => handleCancel(r.id)}
+                  >
+                    &times;
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -158,7 +179,7 @@ export function ClaimFirstAscensionistPage() {
                     <button type="button" className="ghost-btn small" onClick={() => handleApprove(r.id)}>
                       Aprobar
                     </button>
-                    <button type="button" className="ghost-btn small danger" onClick={() => handleReject(r.id)}>
+                    <button type="button" className="ghost-btn small danger" onClick={() => setRejecting(r)}>
                       Rechazar
                     </button>
                   </div>
@@ -167,6 +188,14 @@ export function ClaimFirstAscensionistPage() {
             </ul>
           )}
         </section>
+      )}
+
+      {rejecting && (
+        <RejectReasonModal
+          title={`Rechazar solicitud de ${rejecting.userName}`}
+          onClose={() => setRejecting(null)}
+          onReject={handleReject}
+        />
       )}
 
       <Link to="/" className="ghost-btn small">

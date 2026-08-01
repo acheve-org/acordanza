@@ -230,7 +230,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
                 .ToListAsync();
             var topAreaId = TopLevelAreaId(areas.ToDictionary(a => a.Id), route.AreaId);
             var isExpert = await db.AreaExperts.AnyAsync(
-                e => e.UserId == userId && e.ApprovedAt != null && e.AreaId == topAreaId);
+                e => e.UserId == userId && e.Status == AreaExpertStatus.Approved && e.AreaId == topAreaId);
             if (!isExpert) return Forbid();
         }
 
@@ -417,7 +417,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
         var userId = userManager.GetUserId(User)!;
         var expertAreaIds = await db.AreaExperts
-            .Where(e => e.UserId == userId && e.ApprovedAt != null)
+            .Where(e => e.UserId == userId && e.Status == AreaExpertStatus.Approved)
             .Select(e => e.AreaId)
             .ToListAsync();
 

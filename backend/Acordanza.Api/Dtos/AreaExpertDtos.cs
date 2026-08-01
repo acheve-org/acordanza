@@ -7,7 +7,11 @@ public record AreaExpertDto(
     string UserId,
     string UserName,
     DateTimeOffset RequestedAt,
-    DateTimeOffset? ApprovedAt,
-    string? ApprovedByName);
+    string Status,
+    DateTimeOffset? DecidedAt,
+    string? DecidedByName,
+    string? RejectionReason);
 
 public record CreateAreaExpertRequest(int AreaId);
+
+public record RejectAreaExpertRequest(string Reason);

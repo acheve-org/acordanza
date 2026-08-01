@@ -41,10 +41,11 @@ public static class EmailTemplates
             <p style="{MutedStyle}">Ya puedes validar vías de este sector.</p>
             """));
 
-    public static (string Subject, string Html) AreaExpertRejected(string areaName) => (
+    public static (string Subject, string Html) AreaExpertRejected(string areaName, string reason) => (
         "Tu solicitud de experto ha sido rechazada",
         Layout($"""
             <p style="{ParagraphStyle}">Tu solicitud para ser experto del sector <strong>{WebUtility.HtmlEncode(areaName)}</strong> ha sido rechazada.</p>
+            <p style="{ParagraphStyle}"><strong>Motivo:</strong> {WebUtility.HtmlEncode(reason)}</p>
             """));
 
     public static (string Subject, string Html) FirstAscensionistLinkApproved(string firstAscensionistName) => (

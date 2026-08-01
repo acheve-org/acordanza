@@ -140,17 +140,25 @@ namespace Acordanza.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTimeOffset?>("ApprovedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ApprovedByUserId")
-                        .HasColumnType("text");
-
                     b.Property<int>("AreaId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecidedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text");
+
                     b.Property<DateTimeOffset>("RequestedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("UserId")
                         .IsRequired()
@@ -158,12 +166,13 @@ namespace Acordanza.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ApprovedByUserId");
+                    b.HasIndex("DecidedByUserId");
 
                     b.HasIndex("UserId");
 
                     b.HasIndex("AreaId", "UserId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Pending'");
 
                     b.ToTable("AreaExperts", "core");
                 });
@@ -600,16 +609,16 @@ namespace Acordanza.Api.Migrations
 
             modelBuilder.Entity("Acordanza.Api.Models.AreaExpert", b =>
                 {
-                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "ApprovedBy")
-                        .WithMany()
-                        .HasForeignKey("ApprovedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("Acordanza.Api.Models.Area", "Area")
                         .WithMany()
                         .HasForeignKey("AreaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "DecidedBy")
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
                         .WithMany()
@@ -617,9 +626,9 @@ namespace Acordanza.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ApprovedBy");
-
                     b.Navigation("Area");
+
+                    b.Navigation("DecidedBy");
 
                     b.Navigation("User");
                 });

@@ -6,6 +6,13 @@ import type { AreaExpert, AreaSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { RejectReasonModal } from '../components/RejectReasonModal';
+
+const statusLabels: Record<AreaExpert['status'], string> = {
+  pending: 'Solicitud pendiente de aprobación',
+  approved: 'Experto aprobado',
+  rejected: 'Solicitud rechazada',
+};
 
 export function MyAreasPage() {
   const { hasPermission } = useAuth();
@@ -16,6 +23,7 @@ export function MyAreasPage() {
   const [pending, setPending] = useState<AreaExpert[]>([]);
   const [selectedAreaId, setSelectedAreaId] = useState('');
   const [error, setError] = useState('');
+  const [rejecting, setRejecting] = useState<AreaExpert | null>(null);
 
   function refresh() {
     areasApi.listAreas().then(setAreas);
@@ -30,8 +38,8 @@ export function MyAreasPage() {
 
   useEffect(refresh, [canApprove]);
 
-  const requestedAreaIds = new Set(mine.map((e) => e.areaId));
-  const availableAreas = areas.filter((a) => a.parentAreaId === null && !requestedAreaIds.has(a.id));
+  const activeRequestAreaIds = new Set(mine.filter((e) => e.status !== 'rejected').map((e) => e.areaId));
+  const availableAreas = areas.filter((a) => a.parentAreaId === null && !activeRequestAreaIds.has(a.id));
 
   async function handleRequest(e: FormEvent) {
     e.preventDefault();
@@ -47,7 +55,11 @@ export function MyAreasPage() {
   }
 
   async function handleWithdraw(id: number) {
-    await areaExpertsApi.deleteAreaExpert(id);
+    try {
+      await areaExpertsApi.cancelAreaExpert(id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo retirar la solicitud');
+    }
     refresh();
   }
 
@@ -56,8 +68,10 @@ export function MyAreasPage() {
     refresh();
   }
 
-  async function handleReject(id: number) {
-    await areaExpertsApi.deleteAreaExpert(id);
+  async function handleReject(reason: string) {
+    if (!rejecting) return;
+    await areaExpertsApi.rejectAreaExpert(rejecting.id, reason);
+    setRejecting(null);
     refresh();
   }
 
@@ -75,12 +89,12 @@ export function MyAreasPage() {
                 <div>
                   <div className="tr-who">{e.areaName}</div>
                   <div className="tr-notes">
-                    {e.approvedAt
-                      ? `Experto desde el ${new Date(e.approvedAt).toLocaleDateString('es-ES')} · aprobado por ${e.approvedByName}`
-                      : 'Solicitud pendiente de aprobación'}
+                    {statusLabels[e.status]}
+                    {e.status !== 'pending' && e.decidedByName && ` · ${e.decidedByName}`}
+                    {e.status === 'rejected' && e.rejectionReason && ` · Motivo: ${e.rejectionReason}`}
                   </div>
                 </div>
-                {!e.approvedAt && (
+                {e.status === 'pending' && (
                   <button
                     type="button"
                     className="tick-remove"
@@ -140,7 +154,7 @@ export function MyAreasPage() {
                     <button type="button" className="ghost-btn small" onClick={() => handleApprove(e.id)}>
                       Aprobar
                     </button>
-                    <button type="button" className="ghost-btn small danger" onClick={() => handleReject(e.id)}>
+                    <button type="button" className="ghost-btn small danger" onClick={() => setRejecting(e)}>
                       Rechazar
                     </button>
                   </div>
@@ -149,6 +163,14 @@ export function MyAreasPage() {
             </ul>
           )}
         </section>
+      )}
+
+      {rejecting && (
+        <RejectReasonModal
+          title={`Rechazar solicitud de ${rejecting.userName}`}
+          onClose={() => setRejecting(null)}
+          onReject={handleReject}
+        />
       )}
 
       <Link to="/" className="ghost-btn small">

@@ -172,18 +172,38 @@ public class FirstAscensionistLinksController(
         return Ok(ToDto(link));
     }
 
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> Cancel(int id)
+    {
+        var userId = userManager.GetUserId(User)!;
+
+        var deleted = await db.FirstAscensionistLinkRequests
+            .Where(l => l.Id == id && l.UserId == userId && l.Status == FirstAscensionistLinkStatus.Pending)
+            .ExecuteDeleteAsync();
+
+        if (deleted == 0)
+        {
+            var exists = await db.FirstAscensionistLinkRequests.AnyAsync(l => l.Id == id);
+            return exists ? Forbid() : NotFound(new { error = "No encontrado" });
+        }
+
+        return Ok(new { ok = true });
+    }
+
     // Best-effort email notification (try/catch + log, same pattern as
     // AuthController.AcceptInvite's admin notification) shared by Approve
     // (including its auto-reject-on-conflict path) and Reject, so the two
     // decisions can't drift in how they notify the requester.
     private async Task NotifyDecisionAsync(FirstAscensionistLinkRequest link, bool approved, string? reason)
     {
+        if (string.IsNullOrEmpty(link.User.Email)) return;
+
         try
         {
             var (subject, html) = approved
                 ? EmailTemplates.FirstAscensionistLinkApproved(link.FirstAscensionist.Name)
                 : EmailTemplates.FirstAscensionistLinkRejected(link.FirstAscensionist.Name, reason!);
-            await emailSender.SendAsync(link.User.Email!, subject, html);
+            await emailSender.SendAsync(link.User.Email, subject, html);
         }
         catch (Exception ex)
         {

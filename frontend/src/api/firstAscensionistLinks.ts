@@ -20,3 +20,7 @@ export function approveFirstAscensionistLink(id: number): Promise<FirstAscension
 export function rejectFirstAscensionistLink(id: number, reason: string): Promise<FirstAscensionistLinkRequestSummary> {
   return api.post<FirstAscensionistLinkRequestSummary>(`/first-ascensionist-links/${id}/reject`, { reason });
 }
+
+export function cancelFirstAscensionistLink(id: number): Promise<{ ok: true }> {
+  return api.delete<{ ok: true }>(`/first-ascensionist-links/${id}`);
+}

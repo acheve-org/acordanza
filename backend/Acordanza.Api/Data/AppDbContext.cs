@@ -136,7 +136,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             entity.ToTable("AreaExperts", "core");
 
-            entity.HasIndex(e => new { e.AreaId, e.UserId }).IsUnique();
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+
+            // Guards against duplicate concurrent requests for the same
+            // (Area, User) pair while still letting a user try again after an
+            // earlier request was rejected — the filter only covers rows that
+            // are still Pending.
+            entity.HasIndex(e => new { e.AreaId, e.UserId })
+                .IsUnique()
+                .HasFilter("\"Status\" = 'Pending'");
 
             entity.HasOne(e => e.Area)
                 .WithMany()
@@ -148,9 +156,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(e => e.ApprovedBy)
+            entity.HasOne(e => e.DecidedBy)
                 .WithMany()
-                .HasForeignKey(e => e.ApprovedByUserId)
+                .HasForeignKey(e => e.DecidedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

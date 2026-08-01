@@ -26,8 +26,10 @@ export interface AreaExpert {
   userId: string;
   userName: string;
   requestedAt: string;
-  approvedAt: string | null;
-  approvedByName: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  decidedAt: string | null;
+  decidedByName: string | null;
+  rejectionReason: string | null;
 }
 
 export interface FirstAscensionistSummary {
