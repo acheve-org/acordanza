@@ -4,12 +4,13 @@ import { ApiError } from '../api/client';
 
 interface Props {
   parentAreaId: number | null;
+  area?: { id: number; name: string };
   onClose: () => void;
-  onCreated: () => void;
+  onSaved: () => void;
 }
 
-export function AreaNameModal({ parentAreaId, onClose, onCreated }: Props) {
-  const [name, setName] = useState('');
+export function AreaNameModal({ parentAreaId, area, onClose, onSaved }: Props) {
+  const [name, setName] = useState(area?.name ?? '');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,10 +21,14 @@ export function AreaNameModal({ parentAreaId, onClose, onCreated }: Props) {
     setError('');
     setSubmitting(true);
     try {
-      await areasApi.createArea(trimmed, parentAreaId);
-      onCreated();
+      if (area) {
+        await areasApi.updateArea(area.id, trimmed, parentAreaId);
+      } else {
+        await areasApi.createArea(trimmed, parentAreaId);
+      }
+      onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo crear el sector');
+      setError(err instanceof ApiError ? err.message : area ? 'No se pudo actualizar el sector' : 'No se pudo crear el sector');
     } finally {
       setSubmitting(false);
     }
@@ -37,7 +42,7 @@ export function AreaNameModal({ parentAreaId, onClose, onCreated }: Props) {
       }}
     >
       <div className="modal">
-        <h2>{parentAreaId === null ? 'Nuevo sector principal' : 'Nuevo subsector'}</h2>
+        <h2>{area ? 'Editar sector' : parentAreaId === null ? 'Nuevo sector principal' : 'Nuevo subsector'}</h2>
         <form onSubmit={handleSubmit}>
           <label>
             Nombre
@@ -49,7 +54,7 @@ export function AreaNameModal({ parentAreaId, onClose, onCreated }: Props) {
               Cancelar
             </button>
             <button type="submit" className="primary-btn" disabled={submitting}>
-              {submitting ? 'Creando…' : 'Crear'}
+              {submitting ? (area ? 'Guardando…' : 'Creando…') : area ? 'Guardar' : 'Crear'}
             </button>
           </div>
         </form>
