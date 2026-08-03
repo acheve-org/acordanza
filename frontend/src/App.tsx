@@ -42,14 +42,14 @@ function AppLayout() {
           <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/" end>
             Rutas
           </NavLink>
-          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/mapa">
+          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/map">
             Mapa
           </NavLink>
           {(hasPermission(Permissions.areaEdit) || hasPermission(Permissions.userManage)) && (
             <span className="main-nav-separator" aria-hidden="true" />
           )}
           {hasPermission(Permissions.areaEdit) && (
-            <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/sectores">
+            <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/areas">
               Sectores
             </NavLink>
           )}
@@ -77,18 +77,18 @@ function AppLayout() {
             {userMenuOpen && (
               <div className="user-menu-popup">
                 <span className="user-menu-name">{name}</span>
-                <Link className="ghost-btn small full-width" to="/mis-sectores" onClick={() => setUserMenuOpen(false)}>
+                <Link className="ghost-btn small full-width" to="/my-areas" onClick={() => setUserMenuOpen(false)}>
                   Mis sectores
                 </Link>
                 <Link
                   className="ghost-btn small full-width"
-                  to="/vincular-aperturista"
+                  to="/claim-first-ascensionist"
                   onClick={() => setUserMenuOpen(false)}
                 >
                   Vincular aperturista
                 </Link>
                 {isFirstAscensionist && (
-                  <Link className="ghost-btn small full-width" to="/mis-vias" onClick={() => setUserMenuOpen(false)}>
+                  <Link className="ghost-btn small full-width" to="/my-routes" onClick={() => setUserMenuOpen(false)}>
                     Mis vías
                   </Link>
                 )}
@@ -133,11 +133,11 @@ function App() {
         <Route index element={<MainView />} />
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
-        <Route path="mapa" element={<MapPage />} />
-        <Route path="sectores" element={<AreasPage />} />
-        <Route path="mis-sectores" element={<MyAreasPage />} />
-        <Route path="vincular-aperturista" element={<ClaimFirstAscensionistPage />} />
-        <Route path="mis-vias" element={<MyRoutesPage />} />
+        <Route path="map" element={<MapPage />} />
+        <Route path="areas" element={<AreasPage />} />
+        <Route path="my-areas" element={<MyAreasPage />} />
+        <Route path="claim-first-ascensionist" element={<ClaimFirstAscensionistPage />} />
+        <Route path="my-routes" element={<MyRoutesPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
