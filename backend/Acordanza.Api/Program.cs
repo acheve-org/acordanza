@@ -4,8 +4,12 @@ using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
+using Azure.Identity;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Fido2NetLib;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -116,6 +120,50 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddSingleton<BlobStorageService>();
+
+// Data Protection keys default to local disk, which doesn't survive Container
+// Apps' scale-to-zero restarts — a fresh key ring on every cold start would
+// invalidate any password-reset token issued before the previous restart.
+// Persisted to the same Blob Storage account as topo images (a dedicated
+// container, since it's unrelated data), via the same dual-credential
+// pattern as BlobStorageService: Azurite locally through a connection
+// string, the real account via the container app's managed identity in
+// production. The container-existence check (Azurite only — see below) is
+// deferred until the full app startup block further down, so it doesn't
+// turn the `create-user` CLI branch into something that also needs Azurite
+// reachable.
+var storageSection = builder.Configuration.GetSection("Storage");
+var dataProtectionContainerName = storageSection["DataProtectionContainerName"]
+    ?? throw new InvalidOperationException("Missing Storage:DataProtectionContainerName configuration");
+var storageConnectionString = storageSection["ConnectionString"];
+
+BlobContainerClient dataProtectionContainer;
+if (!string.IsNullOrEmpty(storageConnectionString))
+{
+    dataProtectionContainer = new BlobContainerClient(storageConnectionString, dataProtectionContainerName);
+}
+else
+{
+    var accountName = storageSection["AccountName"]
+        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
+    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
+        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
+
+    var credential = new DefaultAzureCredential(
+        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
+    dataProtectionContainer = new BlobContainerClient(
+        new Uri($"https://{accountName}.blob.core.windows.net/{dataProtectionContainerName}"), credential);
+}
+
+// No .ProtectKeysWithAzureKeyVault(...) — the "No XML encryptor configured"
+// warning this produces is accepted, not an oversight. See "Decisions made
+// and why" in infra/README.md for the trade-off (Key Vault would encrypt
+// the key material at rest, but the private container + managed-identity-only
+// RBAC already gates access; a second Azure resource for this app's blast
+// radius isn't worth it).
+builder.Services.AddDataProtection()
+    .SetApplicationName("Acordanza")
+    .PersistKeysToAzureBlobStorage(dataProtectionContainer.GetBlobClient("keys.xml"));
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
@@ -265,6 +313,13 @@ using (var scope = app.Services.CreateScope())
 
     var blobStorage = scope.ServiceProvider.GetRequiredService<BlobStorageService>();
     await blobStorage.EnsureContainerExistsAsync();
+
+    // Only relevant locally (Azurite) — in production the container is
+    // provisioned by Terraform, matching BlobStorageService's topos container.
+    if (!string.IsNullOrEmpty(storageConnectionString))
+    {
+        await dataProtectionContainer.CreateIfNotExistsAsync(PublicAccessType.None);
+    }
 }
 
 if (app.Environment.IsDevelopment())

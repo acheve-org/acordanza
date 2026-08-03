@@ -197,6 +197,11 @@ resource "azurerm_container_app" "main" {
       }
 
       env {
+        name  = "Storage__DataProtectionContainerName"
+        value = azurerm_storage_container.dataprotection.name
+      }
+
+      env {
         name  = "Storage__ManagedIdentityClientId"
         value = azurerm_user_assigned_identity.container_app.client_id
       }

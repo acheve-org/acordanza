@@ -91,6 +91,18 @@ certificates — see "Custom domains" below.
   friends-only app needs. The connection is still password-authenticated and
   TLS-encrypted. If the trust model ever changes, tightening this to a
   private endpoint is a contained follow-up.
+- **No Key Vault encryption for the Data Protection key ring**
+  (`storage.tf`'s `dataprotection` container, wired up in `Program.cs`) —
+  ASP.NET Core logs "No XML encryptor configured" as a result, and that's
+  accepted. The keys are protected by the same access control as everything
+  else in that storage account: a private container, no anonymous path in,
+  reachable only with an Azure AD token from the container app's managed
+  identity. `ProtectKeysWithAzureKeyVault` would wrap each key with a Key
+  Vault key before it's written, so a leaked blob alone wouldn't be usable —
+  but that's a second Azure resource, an RBAC grant, and ongoing cost for a
+  key ring whose worst-case blast radius (a forged password-reset token) is
+  already narrow for a handful of trusted friends. Revisit if a Key Vault
+  ever gets provisioned for another reason.
 
 ## One-time setup
 

@@ -45,6 +45,19 @@ resource "azurerm_storage_container" "topos" {
   container_access_type = "private"
 }
 
+# ASP.NET Core Data Protection keys (see Program.cs) — a separate container
+# from "topos" since it's unrelated data, but the same storage account, so
+# the role assignment below (scoped to the whole account) already covers it;
+# no separate RBAC grant needed. Without this, keys default to the
+# container's local disk, which doesn't survive Container Apps' scale-to-zero
+# restarts — every cold start would mint a fresh key ring and invalidate any
+# password-reset token issued before the previous restart.
+resource "azurerm_storage_container" "dataprotection" {
+  name                  = "dataprotection-keys"
+  storage_account_id    = azurerm_storage_account.topos.id
+  container_access_type = "private"
+}
+
 resource "azurerm_role_assignment" "topos_blob_contributor" {
   scope                = azurerm_storage_account.topos.id
   role_definition_name = "Storage Blob Data Contributor"
