@@ -113,6 +113,11 @@ certificates — see "Custom domains" below.
      both added automatically (see the "Architecture" section above). Fine
      to leave as `[]` unless something else needs to call the API, e.g.
      `["https://acordanza.example.com"]`.
+   - `GRAFANA_OTLP_ENDPOINT` — the Grafana Cloud OTLP gateway URL for the
+     stack traces/metrics/logs are exported to (Grafana Cloud UI →
+     Connections → OpenTelemetry), e.g.
+     `https://otlp-gateway-prod-xx-xxx.grafana.net/otlp`. Not secret — it's
+     just an endpoint, the credential is the header below.
 
 3. **Set GitHub Actions repo secrets** (same page, Secrets tab):
    - `POSTGRES_ADMIN_PASSWORD` — a strong password (e.g.
@@ -128,6 +133,11 @@ certificates — see "Custom domains" below.
      as long as you merge Resend's `include:` into the existing SPF TXT
      record rather than adding a second one). Without a verified domain,
      `Resend:FromEmail` will fail to send or land in spam.
+   - `GRAFANA_OTLP_HEADERS` — the OTLP auth header for the Grafana Cloud
+     stack above, in `Authorization=Basic <base64 instanceId:token>` form
+     (generate the token alongside the endpoint in the same Grafana Cloud
+     screen). Grafana isn't provisioned by Terraform — create the stack and
+     token yourself.
 
 4. **Push to `main`, or run the workflow manually** (Actions → "CI/CD" → Run
    workflow). The first run applies the Terraform plan (creating the ACR,

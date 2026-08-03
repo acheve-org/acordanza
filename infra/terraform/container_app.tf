@@ -81,6 +81,11 @@ resource "azurerm_container_app" "main" {
     value = var.resend_api_key
   }
 
+  secret {
+    name  = "grafana-otlp-headers"
+    value = var.grafana_otlp_headers
+  }
+
   ingress {
     external_enabled = true
     target_port      = 8080
@@ -159,6 +164,26 @@ resource "azurerm_container_app" "main" {
       env {
         name  = "Resend__FromName"
         value = "Acordanza"
+      }
+
+      env {
+        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+        value = var.grafana_otlp_endpoint
+      }
+
+      env {
+        name        = "OTEL_EXPORTER_OTLP_HEADERS"
+        secret_name = "grafana-otlp-headers"
+      }
+
+      env {
+        name  = "OTEL_EXPORTER_OTLP_PROTOCOL"
+        value = "http/protobuf"
+      }
+
+      env {
+        name  = "OTEL_RESOURCE_ATTRIBUTES"
+        value = "deployment.environment=production"
       }
 
       env {

@@ -82,6 +82,17 @@ variable "resend_from_email" {
   default     = "noreply@acordanza.eu"
 }
 
+variable "grafana_otlp_endpoint" {
+  description = "Grafana Cloud OTLP gateway endpoint (Connections -> OpenTelemetry in the Grafana Cloud UI) traces/metrics/logs are exported to, e.g. https://otlp-gateway-prod-xx-xxx.grafana.net/otlp."
+  type        = string
+}
+
+variable "grafana_otlp_headers" {
+  description = "OTLP auth header sent with every export, in \"Authorization=Basic <base64 instanceId:token>\" form. Supply via TF_VAR_grafana_otlp_headers (a GitHub Actions secret) — never commit this."
+  type        = string
+  sensitive   = true
+}
+
 variable "cors_allowed_origins" {
   description = "Additional origins allowed to call the API, beyond the deployed frontend Container App's own URL and var.frontend_custom_domain (both added automatically)."
   type        = list(string)

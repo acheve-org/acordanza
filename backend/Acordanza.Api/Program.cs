@@ -12,8 +12,42 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Threading.RateLimiting;
+using Npgsql;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Traces + metrics + app logs all export via OTLP to whatever
+// OTEL_EXPORTER_OTLP_ENDPOINT/HEADERS point at (Grafana Cloud in
+// production — see infra/terraform/container_app.tf); unset locally, so
+// the exporters just have nowhere to send and dev is unaffected.
+var otelResource = ResourceBuilder.CreateDefault().AddService("acordanza-api");
+
+builder.Logging.AddOpenTelemetry(options =>
+{
+    options.SetResourceBuilder(otelResource);
+    options.IncludeFormattedMessage = true;
+    options.IncludeScopes = true;
+    options.AddOtlpExporter();
+});
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .SetResourceBuilder(otelResource)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddNpgsql()
+        .AddOtlpExporter())
+    .WithMetrics(metrics => metrics
+        .SetResourceBuilder(otelResource)
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddNpgsqlInstrumentation()
+        .AddOtlpExporter());
 
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("Missing ConnectionStrings:Default configuration");
