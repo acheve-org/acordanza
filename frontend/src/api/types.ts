@@ -19,6 +19,19 @@ export interface AreaBounds {
   maxLng: number;
 }
 
+export interface AreaNode {
+  id: number;
+  name: string;
+  hasChildren: boolean;
+}
+
+export interface PagedAreaNodes {
+  items: AreaNode[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface AreaExpert {
   id: number;
   areaId: number;

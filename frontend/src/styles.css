@@ -667,6 +667,39 @@ input:focus, select:focus, textarea:focus {
 .area-map-editor .combo { width: 260px; }
 .area-map-editor .hint { margin: 0; }
 
+.area-tree-wrap { display: flex; flex-direction: column; gap: var(--space-md); }
+.area-tree-header { display: flex; justify-content: flex-end; }
+.area-tree, .area-tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.area-tree-children { padding-left: var(--space-xl); margin-top: var(--space-xs); }
+.area-tree-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-card-hover);
+  border-radius: var(--radius-md);
+}
+.area-tree-toggle {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  flex-shrink: 0;
+}
+.area-tree-toggle-spacer { width: 20px; flex-shrink: 0; }
+.area-tree-name { flex: 1; }
+.area-tree-children .hint { padding: var(--space-xs) var(--space-md); }
+
 /* Leaflet's default popup chrome is styled for a light page; re-skin it for the dark theme. */
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
   background: var(--bg-card);

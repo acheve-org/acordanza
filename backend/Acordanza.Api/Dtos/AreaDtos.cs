@@ -15,3 +15,8 @@ public record CreateAreaRequest(string Name, int? ParentAreaId);
 public record UpdateAreaRequest(string Name, int? ParentAreaId);
 
 public record UpdateAreaCoordinatesRequest(List<GeoPointDto> Polygon);
+
+// Slim projection for the areas-management tree: no polygon/vertex data, per issue #52.
+public record AreaNodeDto(int Id, string Name, bool HasChildren);
+
+public record PagedAreaNodesResponse(List<AreaNodeDto> Items, int TotalCount, int Page, int PageSize);

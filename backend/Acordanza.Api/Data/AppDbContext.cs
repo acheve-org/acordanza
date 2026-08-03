@@ -38,6 +38,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.ToTable("Areas", "core");
 
             entity.HasIndex(a => a.Name);
+            // Backstops AreasController.CreateArea's case-insensitive AnyAsync check against
+            // a race between two concurrent creates under the same parent — exact-case only
+            // (an expression index would be needed for full case-insensitivity), since it's a
+            // last-resort safety net, not the primary (friendlier, case-insensitive) validation.
+            // NULLs must compare equal here so two root areas (ParentAreaId == null) collide too.
+            entity.HasIndex(a => new { a.ParentAreaId, a.Name }).IsUnique().AreNullsDistinct(false);
             // Default "" (rather than leaving the column non-nullable with no
             // default) lets the AddColumn migration apply cleanly against
             // rows that predate Slug; Program.cs backfills those on startup.

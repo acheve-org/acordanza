@@ -1,5 +1,14 @@
 import { api } from './client';
-import type { AreaBounds, AreaSummary, GeoPoint } from './types';
+import type { AreaBounds, AreaNode, AreaSummary, GeoPoint, PagedAreaNodes } from './types';
+
+export function listRootAreas(page: number, pageSize = 10): Promise<PagedAreaNodes> {
+  const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  return api.get<PagedAreaNodes>(`/areas/roots?${params}`);
+}
+
+export function listAreaChildren(id: number): Promise<AreaNode[]> {
+  return api.get<AreaNode[]>(`/areas/${id}/children`);
+}
 
 export function listAreas(bounds?: AreaBounds): Promise<AreaSummary[]> {
   if (!bounds) return api.get<AreaSummary[]>('/areas');

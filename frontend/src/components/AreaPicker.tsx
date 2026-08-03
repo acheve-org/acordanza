@@ -10,9 +10,12 @@ interface Props {
   onChange: (areaId: number | null) => void;
   allowCreate?: boolean;
   allowClear?: boolean;
+  // Bump this from a parent that mutates areas elsewhere (e.g. AreasPage's area tree) to
+  // force a refetch — this component otherwise only refreshes on mount/focus.
+  refreshToken?: number;
 }
 
-export function AreaPicker({ value, onChange, allowCreate = false, allowClear = false }: Props) {
+export function AreaPicker({ value, onChange, allowCreate = false, allowClear = false, refreshToken }: Props) {
   const { hasPermission } = useAuth();
   const canCreate = allowCreate && hasPermission(Permissions.areaCreate);
   const [areas, setAreas] = useState<AreaSummary[]>([]);
@@ -26,7 +29,7 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
     areasApi.listAreas().then(setAreas);
   }
 
-  useEffect(refresh, []);
+  useEffect(refresh, [refreshToken]);
 
   const byId = useMemo(() => new Map(areas.map((a) => [a.id, a])), [areas]);
   const selected = value !== null ? byId.get(value) : undefined;
