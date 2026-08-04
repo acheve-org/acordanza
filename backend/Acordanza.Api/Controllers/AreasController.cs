@@ -135,6 +135,16 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
 
         var slug = await GenerateUniqueAreaSlugAsync(request.ParentAreaId, name);
         var area = new Area { Name = name, Slug = slug, ParentAreaId = request.ParentAreaId };
+
+        // A creator who can also validate areas (moderator/admin) has their new
+        // area auto-validated; everyone else's (users, first-ascensionists) is
+        // left pending for a moderator/admin to review via POST /{id}/validate.
+        if (User.HasClaim("permission", Permissions.AreaValidate))
+        {
+            area.ValidatedAt = DateTimeOffset.UtcNow;
+            area.ValidatedByUserId = userManager.GetUserId(User)!;
+        }
+
         db.Areas.Add(area);
         try
         {
@@ -147,7 +157,15 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             return Conflict(new { error = "ya existe un sector con ese nombre en este nivel" });
         }
 
-        return Ok(new AreaDto(area.Id, area.Name, area.ParentAreaId, [], null, null, null, null));
+        return Ok(new AreaDto(
+            area.Id,
+            area.Name,
+            area.ParentAreaId,
+            [],
+            null,
+            null,
+            area.ValidatedAt,
+            await GetValidatedByNameAsync(area.ValidatedByUserId)));
     }
 
     [Authorize(Policy = Permissions.AreaEdit)]
