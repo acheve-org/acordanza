@@ -1,3 +1,4 @@
+using Azure;
 using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -67,12 +68,17 @@ public class BlobStorageService
         }
     }
 
-    public async Task UploadAsync(string blobName, Stream content, string contentType)
+    // overwrite: false fails with a 412 (via RequestFailedException) instead of silently
+    // replacing an existing blob at that name — used by RoutesController.UploadTopo to
+    // detect a name collision (e.g. a racing upload) and retry under a different name
+    // rather than clobbering someone else's topo image.
+    public async Task UploadAsync(string blobName, Stream content, string contentType, bool overwrite = true)
     {
         var blob = _container.GetBlobClient(blobName);
         await blob.UploadAsync(content, new BlobUploadOptions
         {
-            HttpHeaders = new BlobHttpHeaders { ContentType = contentType }
+            HttpHeaders = new BlobHttpHeaders { ContentType = contentType },
+            Conditions = overwrite ? null : new BlobRequestConditions { IfNoneMatch = ETag.All }
         });
     }
 

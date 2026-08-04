@@ -132,6 +132,11 @@ namespace Acordanza.Api.Migrations
 
                     NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ParentAreaId", "Name"), false);
 
+                    b.HasIndex("ParentAreaId", "Slug")
+                        .IsUnique();
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("ParentAreaId", "Slug"), false);
+
                     b.ToTable("Areas", "core");
                 });
 

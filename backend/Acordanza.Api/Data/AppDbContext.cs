@@ -48,6 +48,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // default) lets the AddColumn migration apply cleanly against
             // rows that predate Slug; Program.cs backfills those on startup.
             entity.Property(a => a.Slug).HasMaxLength(280).HasDefaultValue("");
+            // Backstops AreasController.CreateArea's own slug-collision check for two
+            // sibling areas whose names differ (Name is already unique per sibling) but
+            // slugify to the same value, e.g. differing only in diacritics/punctuation —
+            // a collision would otherwise make two different areas share the same topo
+            // storage prefix. NULLs must compare equal here so two root areas collide too.
+            entity.HasIndex(a => new { a.ParentAreaId, a.Slug }).IsUnique().AreNullsDistinct(false);
 
             entity.HasOne(a => a.ParentArea)
                 .WithMany(a => a.Children)

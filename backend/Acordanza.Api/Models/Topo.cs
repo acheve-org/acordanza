@@ -7,7 +7,7 @@ public class Topo
     public ClimbingRoute Route { get; set; } = null!;
 
     // Full path within the "topos" blob container, e.g.
-    // "pena-rua-12/route-34/56.jpg" — see BlobStorageService.
+    // "pena-rua/some-route-01.jpg" — see BlobStorageService.
     public required string BlobName { get; set; }
     public required string ContentType { get; set; }
     public required string FileName { get; set; }

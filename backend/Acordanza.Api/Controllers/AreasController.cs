@@ -130,7 +130,8 @@ public class AreasController(AppDbContext db) : ControllerBase
             return Conflict(new { error = "ya existe un sector con ese nombre en este nivel" });
         }
 
-        var area = new Area { Name = name, ParentAreaId = request.ParentAreaId };
+        var slug = await GenerateUniqueAreaSlugAsync(request.ParentAreaId, name);
+        var area = new Area { Name = name, Slug = slug, ParentAreaId = request.ParentAreaId };
         db.Areas.Add(area);
         try
         {
@@ -142,11 +143,6 @@ public class AreasController(AppDbContext db) : ControllerBase
             // case of two concurrent creates racing past it for the same parent/name.
             return Conflict(new { error = "ya existe un sector con ese nombre en este nivel" });
         }
-
-        // The slug needs the DB-generated Id to guarantee uniqueness, so it's
-        // set in a second save rather than computed before the insert.
-        area.Slug = $"{Slugify.ToSlug(area.Name)}-{area.Id}";
-        await db.SaveChangesAsync();
 
         return Ok(new AreaDto(area.Id, area.Name, area.ParentAreaId, [], null, null));
     }
@@ -230,6 +226,23 @@ public class AreasController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    // Two sibling areas can never share a Name (checked above), but different names can
+    // still slugify to the same value (e.g. "Peña Rúa" vs "Pena-Rua") — append "-2", "-3"
+    // etc. until the slug is actually unique among this area's siblings, rather than
+    // letting two areas collide onto the same topo storage prefix.
+    private async Task<string> GenerateUniqueAreaSlugAsync(int? parentAreaId, string name)
+    {
+        var baseSlug = Slugify.ToSlug(name);
+        var slug = baseSlug;
+        var suffix = 2;
+        while (await db.Areas.AnyAsync(a => a.ParentAreaId == parentAreaId && a.Slug == slug))
+        {
+            slug = $"{baseSlug}-{suffix}";
+            suffix++;
+        }
+        return slug;
     }
 
     private record AreaIdParent(int Id, int? ParentAreaId);
