@@ -41,7 +41,6 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             .Include(r => r.AddedBy)
             .Include(r => r.ValidatedBy)
             .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
-            .Include(r => r.Ticks)
             .Include(r => r.Topos)
             .AsQueryable();
 
@@ -71,13 +70,18 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
         var canValidateArea = await BuildCanValidateAreaCheckAsync(areaById);
 
+        var userId = userManager.GetUserId(User)!;
+        var tickedRouteIds = (await db.Ticks
+            .Where(t => t.ClimberUserId == userId)
+            .Select(t => t.RouteId)
+            .ToListAsync()).ToHashSet();
+
         var dtos = routes.Select(r => new RouteDto(
             r.Id, r.Name, r.AreaId, areaById[r.AreaId].Name, AreaPath(areaById, r.AreaId),
             r.Grade, r.Orientation, r.Gear, r.Description, r.Tags,
             r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             r.AddedBy.Name, r.CreatedAt,
-            r.Ticks.Count,
-            r.Ticks.Count == 0 ? null : r.Ticks.Average(t => (double?)t.Rating),
+            tickedRouteIds.Contains(r.Id),
             r.Topos.Count > 0,
             r.ValidatedAt, r.ValidatedBy?.Name,
             canValidateArea(r.AreaId))).ToList();
@@ -92,7 +96,6 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             .Include(r => r.AddedBy)
             .Include(r => r.ValidatedBy)
             .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
-            .Include(r => r.Ticks).ThenInclude(t => t.Climber)
             .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
             .FirstOrDefaultAsync(r => r.Id == id);
 
@@ -112,15 +115,15 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
         var canValidateArea = await BuildCanValidateAreaCheckAsync(areaById);
 
+        var userId = userManager.GetUserId(User)!;
+        var hasTick = await db.Ticks.AnyAsync(t => t.RouteId == route.Id && t.ClimberUserId == userId);
+
         var dto = new RouteDetailDto(
             route.Id, route.Name, route.AreaId, areaById[route.AreaId].Name, AreaPath(areaById, route.AreaId),
             route.Grade, route.Orientation, route.Gear, route.Description, route.Tags,
             route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             route.AddedBy.Name, route.CreatedAt,
-            route.Ticks
-                .OrderByDescending(t => t.Date)
-                .Select(t => new TickDto(t.Id, t.RouteId, t.Climber.Name, t.Date, t.Rating, t.Notes, t.CreatedAt))
-                .ToList(),
+            hasTick,
             topoDtos,
             route.ValidatedAt, route.ValidatedBy?.Name,
             canValidateArea(route.AreaId));

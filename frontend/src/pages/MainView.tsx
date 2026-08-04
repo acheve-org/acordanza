@@ -55,11 +55,6 @@ export function MainView() {
     refreshRoutes();
   }
 
-  async function handleDeleteTick(tickId: number) {
-    await routesApi.deleteTick(tickId);
-    refreshDetail();
-  }
-
   async function handleUploadTopo(file: File) {
     if (!detailRouteId) return;
     await toposApi.uploadTopo(detailRouteId, file);
@@ -96,7 +91,6 @@ export function MainView() {
         onDelete={handleDeleteRoute}
         onValidate={handleValidateRoute}
         onAddTick={handleAddTick}
-        onDeleteTick={handleDeleteTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}
       />

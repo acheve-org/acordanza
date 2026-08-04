@@ -87,26 +87,14 @@ export interface RouteSummary {
   firstAscensionists: FirstAscensionistSummary[];
   addedBy: string;
   createdAt: string;
-  tickCount: number;
-  avgRating: number | null;
+  hasTick: boolean;
   hasTopos: boolean;
   validatedAt: string | null;
   validatedBy: string | null;
   canValidate: boolean;
 }
 
-export interface Tick {
-  id: number;
-  routeId: number;
-  climber: string;
-  date: string;
-  rating: number | null;
-  notes: string;
-  createdAt: string;
-}
-
-export interface RouteDetail extends Omit<RouteSummary, 'tickCount' | 'avgRating' | 'hasTopos'> {
-  ticks: Tick[];
+export interface RouteDetail extends Omit<RouteSummary, 'hasTopos'> {
   topos: TopoSummary[];
 }
 
@@ -116,6 +104,37 @@ export interface RouteFilters {
   gear: string;
   tag: string;
   hasTopo: string;
+}
+
+export interface TickFilters {
+  q: string;
+  areaId: string;
+  gear: string;
+  tag: string;
+}
+
+export interface TickedRoute {
+  tickId: number;
+  routeId: number;
+  routeName: string;
+  areaId: number;
+  areaName: string;
+  areaPath: string;
+  grade: string;
+  orientation: string | null;
+  gear: string | null;
+  tags: string;
+  date: string;
+  rating: number | null;
+  notes: string;
+  createdAt: string;
+}
+
+export interface PagedTicks {
+  items: TickedRoute[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
 }
 
 export interface UpsertRouteInput {

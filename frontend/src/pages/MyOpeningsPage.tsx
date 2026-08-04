@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 
 const emptyFilters = { q: '', areaId: '', gear: '', tag: '', hasTopo: '' };
 
-export function MyRoutesPage() {
+export function MyOpeningsPage() {
   const { id, isFirstAscensionist } = useAuth();
   const [routes, setRoutes] = useState<RouteSummary[]>([]);
 
@@ -55,11 +55,6 @@ export function MyRoutesPage() {
     refreshRoutes();
   }
 
-  async function handleDeleteTick(tickId: number) {
-    await routesApi.deleteTick(tickId);
-    refreshDetail();
-  }
-
   async function handleUploadTopo(file: File) {
     if (!detailRouteId) return;
     await toposApi.uploadTopo(detailRouteId, file);
@@ -99,7 +94,6 @@ export function MyRoutesPage() {
         onDelete={handleDeleteRoute}
         onValidate={handleValidateRoute}
         onAddTick={handleAddTick}
-        onDeleteTick={handleDeleteTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}
       />

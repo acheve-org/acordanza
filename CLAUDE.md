@@ -38,7 +38,7 @@ Two independent processes talking over a JSON REST API (`VITE_API_URL`, default 
 
 All user-facing text — frontend UI (labels, buttons, placeholders, empty states, `confirm()`/error messages) and any string that can surface in the frontend (e.g. backend `{ error }` payloads returned to the client) — must be in Spanish. Code, comments, identifiers, commit messages, and CLAUDE.md docs stay in English. `frontend/src/api/types.ts` has a `routeTypeLabels` map for translating the backend's English `type` enum values (`sport`, `trad`, …) at display time; reuse it rather than hardcoding translations per component.
 
-Route slugs (the `path`/`to` values in `frontend/src/App.tsx`'s `<Route>`/`<Link>`/`<NavLink>` elements) count as identifiers, not user-facing text — keep them in English (`/map`, `/areas`, `/my-areas`, `/claim-first-ascensionist`, `/my-routes`) even though the label rendered inside the link stays Spanish (`Mapa`, `Sectores`, ...).
+Route slugs (the `path`/`to` values in `frontend/src/App.tsx`'s `<Route>`/`<Link>`/`<NavLink>` elements) count as identifiers, not user-facing text — keep them in English (`/map`, `/areas`, `/my-areas`, `/claim-first-ascensionist`, `/my-routes`, `/my-openings`) even though the label rendered inside the link stays Spanish (`Mapa`, `Sectores`, ...). Note `/my-routes` ("Mis vías") is the current user's tick history, not the routes they opened — that's `/my-openings` ("Mis aperturas").
 
 ## Cross-cutting notes
 

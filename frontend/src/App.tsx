@@ -13,7 +13,8 @@ import { MapPage } from './pages/MapPage';
 import { AreasPage } from './pages/AreasPage';
 import { MyAreasPage } from './pages/MyAreasPage';
 import { ClaimFirstAscensionistPage } from './pages/ClaimFirstAscensionistPage';
-import { MyRoutesPage } from './pages/MyRoutesPage';
+import { MyOpeningsPage } from './pages/MyOpeningsPage';
+import { MyTicksPage } from './pages/MyTicksPage';
 
 function AppLayout() {
   const { name, hasPermission, isFirstAscensionist, logout } = useAuth();
@@ -87,9 +88,12 @@ function AppLayout() {
                 >
                   Vincular aperturista
                 </Link>
+                <Link className="ghost-btn small full-width" to="/my-routes" onClick={() => setUserMenuOpen(false)}>
+                  Mis vías
+                </Link>
                 {isFirstAscensionist && (
-                  <Link className="ghost-btn small full-width" to="/my-routes" onClick={() => setUserMenuOpen(false)}>
-                    Mis vías
+                  <Link className="ghost-btn small full-width" to="/my-openings" onClick={() => setUserMenuOpen(false)}>
+                    Mis aperturas
                   </Link>
                 )}
                 <Link className="ghost-btn small full-width" to="/settings" onClick={() => setUserMenuOpen(false)}>
@@ -137,7 +141,8 @@ function App() {
         <Route path="areas" element={<AreasPage />} />
         <Route path="my-areas" element={<MyAreasPage />} />
         <Route path="claim-first-ascensionist" element={<ClaimFirstAscensionistPage />} />
-        <Route path="my-routes" element={<MyRoutesPage />} />
+        <Route path="my-routes" element={<MyTicksPage />} />
+        <Route path="my-openings" element={<MyOpeningsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
