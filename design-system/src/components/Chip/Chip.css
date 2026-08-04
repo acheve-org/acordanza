@@ -2,7 +2,7 @@
   font-family: var(--font-body);
   font-size: 13px;
   color: var(--text-dim);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--chip-bg);
   border-radius: var(--radius-full);
   padding: 4px var(--space-md);
 }

@@ -1,32 +1,39 @@
 :root {
   /* Color tokens, from DESIGN.md `colors.*` */
-  --color-primary: #494fdf;
-  --color-primary-bright: #4f55f1;
-  --color-primary-deep: #3a40c4;
+  --color-primary: #3f3fe0;
+  --color-primary-deep: #3634c4;
   --color-on-primary: #ffffff;
-  --color-canvas-dark: #000000;
-  --color-surface-elevated: #16181a;
-  --color-on-dark: #ffffff;
-  --color-on-dark-mute: rgba(255, 255, 255, 0.72);
-  --color-hairline-dark: rgba(255, 255, 255, 0.12);
-  --color-faint: #c9c9cd;
-  --color-accent-teal: #00a87e;
-  --color-accent-danger: #e23b4a;
+  --color-canvas: #eef1f5;
+  --color-surface: #f8f9fb;
+  --color-surface-hover: #eef0f4;
+  --color-ink: #181b22;
+  --color-ink-dim: #5b6270;
+  --color-ink-faint: #7d8492;
+  --color-hairline: rgba(0, 0, 0, 0.07);
+  --color-hairline-strong: rgba(0, 0, 0, 0.15);
+  --color-accent-teal: #007a63;
+  --color-accent-danger: #d13a4a;
 
-  /* App surfaces: only two dark steps per DESIGN.md (canvas-dark + surface-elevated) */
-  --bg: var(--color-canvas-dark);
-  --bg-card: var(--color-surface-elevated);
-  --bg-card-hover: color-mix(in srgb, var(--color-surface-elevated) 90%, white);
-  --bg-input: var(--color-canvas-dark);
-  --text: var(--color-on-dark);
-  --text-dim: var(--color-on-dark-mute);
+  /* App surfaces: a cool light canvas + a near-white elevated card, per DESIGN.md */
+  --bg: var(--color-canvas);
+  --bg-card: var(--color-surface);
+  --bg-card-hover: var(--color-surface-hover);
+  --bg-input: #ffffff;
+  --text: var(--color-ink);
+  --text-dim: var(--color-ink-dim);
+  --dim: var(--color-ink-faint);
   --accent: var(--color-primary);
+  --on-accent: var(--color-on-primary);
   --accent-2: var(--color-accent-teal);
+  --accent-2-bg: rgba(0, 122, 99, 0.08);
+  --accent-2-border: rgba(0, 122, 99, 0.24);
   --danger: var(--color-accent-danger);
-  --border: var(--color-hairline-dark);
+  --border: var(--color-hairline);
+  --border-strong: var(--color-hairline-strong);
+  --chip-bg: rgba(0, 0, 0, 0.04);
 
-  /* Typography, from DESIGN.md `typography.*` (Aeonik Pro substituted with Inter per doc's own guidance) */
-  --font-display: 'Inter', sans-serif;
+  /* Typography, from DESIGN.md `typography.*` — Archivo for display, Inter for body/UI */
+  --font-display: 'Archivo', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 

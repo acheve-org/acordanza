@@ -37,7 +37,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-canvas-dark);
+  background: var(--bg);
 }
 .login-card {
   background: var(--bg-card);
@@ -139,7 +139,7 @@ input:focus, select:focus, textarea:focus {
   border-radius: var(--radius-full);
 }
 .user-menu-trigger svg { width: 20px; height: 20px; }
-.user-menu-trigger:hover { border-color: var(--color-on-dark); color: var(--text); }
+.user-menu-trigger:hover { border-color: var(--text); color: var(--text); }
 .user-menu-popup {
   position: absolute;
   top: calc(100% + var(--space-xs));
@@ -187,10 +187,10 @@ input:focus, select:focus, textarea:focus {
 
 .routes-header h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 24px;
-  line-height: 1.33;
-  letter-spacing: 0;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   margin: 0 0 var(--space-xl);
 }
 
@@ -338,7 +338,7 @@ input:focus, select:focus, textarea:focus {
   height: 22px;
   border-radius: var(--radius-full);
   background: rgba(0, 0, 0, 0.6);
-  color: var(--color-on-dark);
+  color: #ffffff;
   border: none;
   cursor: pointer;
   font-size: 14px;
@@ -382,9 +382,10 @@ input:focus, select:focus, textarea:focus {
 }
 .settings-page h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 24px;
-  line-height: 1.33;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 .settings-section {
@@ -421,9 +422,10 @@ input:focus, select:focus, textarea:focus {
 }
 .users-page h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 24px;
-  line-height: 1.33;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 .users-page-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
@@ -483,9 +485,10 @@ input:focus, select:focus, textarea:focus {
 }
 .areas-page h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 24px;
-  line-height: 1.33;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -500,9 +503,10 @@ input:focus, select:focus, textarea:focus {
 }
 .map-page h1 {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 700;
   font-size: 24px;
-  line-height: 1.33;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
   margin: 0;
 }
 
@@ -559,7 +563,7 @@ input:focus, select:focus, textarea:focus {
 .area-tree-name { flex: 1; }
 .area-tree-children .hint { padding: var(--space-xs) var(--space-md); }
 
-/* Leaflet's default popup chrome is styled for a light page; re-skin it for the dark theme. */
+/* Leaflet's default popup chrome doesn't pick up our tokens; re-skin it to match. */
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
   background: var(--bg-card);
   color: var(--text);
