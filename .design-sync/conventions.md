@@ -1,12 +1,12 @@
 ## Conventions
 
-**This is a dark-canvas component set — always mount it on a dark page, never a light one.** Every component reads `--text`/`--text-dim`/`--border` for its own foreground, and those resolve to near-white values. There is no light theme and no theme switch. Set the page/frame background before placing any component:
+**This is a light, "Cool Minimal" component set — mount it on a light page.** `--bg` is a cool light-gray canvas, `--text` is near-black; every component's own foreground/background already resolves correctly against that pairing. There is no dark theme and no theme switch. Set the page/frame background before placing any component:
 
 ```css
 body { background: var(--bg); color: var(--text); }
 ```
 
-`--bg` is pure black (`#000`). A `Modal` is the one exception — it paints its own opaque `--bg-card` panel, so it reads correctly even dropped onto a lighter canvas. Everything else (`Button` ghost variant, `Chip`, `EmptyState`, `Pagination`'s status text) will render invisible-on-white if you skip this.
+`--bg` is `#eef1f5`. `Modal` paints its own opaque `--bg-card` panel (near-white, `#f8f9fb`), so it reads correctly even dropped onto a different canvas.
 
 No provider, no context, no hooks — every component is a plain function of props. Import styles once via `acordanza-design-system/styles.css`; nothing else to wire up.
 
@@ -16,16 +16,18 @@ Components carry their own built-in styling (internal class names like `.primary
 
 | Token | Value | Use |
 |---|---|---|
-| `--bg` / `--bg-card` | `#000` / `#16181a` | page canvas / elevated card surface |
-| `--text` / `--text-dim` | white / 72% white | primary / secondary foreground |
-| `--accent` / `--accent-2` | `#494fdf` / `#00a87e` | brand violet / success teal |
-| `--danger` | `#e23b4a` | destructive state |
-| `--border` | 12% white | hairline dividers, ghost-button borders |
+| `--bg` / `--bg-card` | `#eef1f5` / `#f8f9fb` | page canvas / elevated card surface |
+| `--bg-card-hover` / `--bg-input` | `#eef0f4` / `#ffffff` | hovered card / input fields |
+| `--text` / `--text-dim` / `--dim` | `#181b22` / `#5b6270` / `#7d8492` | primary / secondary / faint foreground |
+| `--accent` / `--on-accent` | `#3f3fe0` / `#ffffff` | brand violet-blue (loudest action) / text on it |
+| `--accent-2` | `#007a63` | success teal — used by `GradePill` |
+| `--danger` | `#d13a4a` | destructive state |
+| `--border` / `--border-strong` | 7% black / 15% black | hairline dividers, ghost-button borders |
 | `--radius-sm/md/lg/full` | 8 / 12 / 20 / 9999px | inputs·chips / cards / pills |
 | `--space-xxs…xxxl` | 4 / 6 / 8 / 14 / 16 / 24 / 32 / 48px | the only spacing scale — never a raw px gap |
-| `--font-display` / `--font-body` / `--font-mono` | Inter / Inter / JetBrains Mono | headings / body & UI text / grades |
+| `--font-display` / `--font-body` / `--font-mono` | Archivo / Inter / JetBrains Mono | headings / body & UI text / grades |
 
-`--font-display` and `--font-body` both resolve to Inter today — the type system doesn't yet split display from body weight, so don't invent a second display face. `--font-mono` is reserved for climbing grades (`GradePill`) — don't reuse it elsewhere.
+`--font-display` (Archivo, weights 500–800) is used for `Modal`'s `h2`/`h3` only — everything else reads `--font-body` (Inter). `--font-mono` is reserved for climbing grades (`GradePill`) — don't reuse it elsewhere.
 
 ### Where the truth lives
 
@@ -48,4 +50,4 @@ The canonical composition is a form inside a `Modal`, actions right-aligned via 
 </Modal>
 ```
 
-`Button`'s default variant is a filled white pill (the loudest action — use once per view); `variant="ghost"` is the low-emphasis default for everything else, with `small` for compact placements and `danger` for destructive ghost actions.
+`Button`'s default variant is a filled violet-blue pill (the loudest action — use once per view); `variant="ghost"` is the low-emphasis default for everything else, with `small` for compact placements and `danger` for destructive ghost actions.

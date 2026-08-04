@@ -5,7 +5,7 @@
   "globalName": "AcordanzaDesignSystem",
   "buildCmd": "cd design-system && bun run build",
   "cssEntry": "dist/style.css",
-  "runtimeFontPrefixes": ["Inter", "JetBrains Mono"],
+  "runtimeFontPrefixes": ["Inter", "JetBrains Mono", "Archivo"],
   "readmeHeader": ".design-sync/conventions.md",
   "overrides": {
     "Modal": { "cardMode": "single", "viewport": "600x520" }
