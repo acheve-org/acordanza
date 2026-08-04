@@ -125,14 +125,18 @@ export function AreaMap() {
 
         {activeTopLevelArea && activeTopLevelArea.polygon.length > 0 && (
           <Polygon
-            positions={activeTopLevelArea.polygon.map((p) => [p.lat, p.lng])}
+            positions={activeTopLevelArea.polygon.map((p): [number, number] => [p.lat, p.lng])}
             pathOptions={{ color: '#3182ce' }}
           />
         )}
 
         {subareas.map((area) =>
           area.polygon.length > 0 ? (
-            <Polygon key={area.id} positions={area.polygon.map((p) => [p.lat, p.lng])} pathOptions={{ color: '#38a169' }}>
+            <Polygon
+              key={area.id}
+              positions={area.polygon.map((p): [number, number] => [p.lat, p.lng])}
+              pathOptions={{ color: '#38a169' }}
+            >
               <Popup>{area.name}</Popup>
             </Polygon>
           ) : null,
