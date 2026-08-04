@@ -18,7 +18,7 @@ public class JwtTokenService(IConfiguration configuration, UserManager<Applicati
         var expiryMinutes = jwtSection.GetValue("ExpiryMinutes", 60 * 24 * 7);
 
         var roles = await userManager.GetRolesAsync(user);
-        var (permissions, _) = await DynamicPermissions.ResolveAsync(db, roles, user.Id);
+        var (permissions, _, _) = await DynamicPermissions.ResolveAsync(db, roles, user.Id);
 
         var claims = new List<Claim>
         {

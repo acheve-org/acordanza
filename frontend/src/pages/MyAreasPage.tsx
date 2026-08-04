@@ -7,7 +7,7 @@ import type { AreaExpert, AreaSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { RejectReasonModal } from '../components/RejectReasonModal';
+import { PendingAreaExpertRequests } from '../components/PendingAreaExpertRequests';
 
 const statusLabels: Record<AreaExpert['status'], string> = {
   pending: 'Solicitud pendiente de aprobación',
@@ -24,7 +24,6 @@ export function MyAreasPage() {
   const [pending, setPending] = useState<AreaExpert[]>([]);
   const [selectedAreaId, setSelectedAreaId] = useState('');
   const [error, setError] = useState('');
-  const [rejecting, setRejecting] = useState<AreaExpert | null>(null);
 
   function refresh() {
     areasApi.listAreas().then(setAreas);
@@ -61,18 +60,6 @@ export function MyAreasPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo retirar la solicitud');
     }
-    refresh();
-  }
-
-  async function handleApprove(id: number) {
-    await areaExpertsApi.approveAreaExpert(id);
-    refresh();
-  }
-
-  async function handleReject(reason: string) {
-    if (!rejecting) return;
-    await areaExpertsApi.rejectAreaExpert(rejecting.id, reason);
-    setRejecting(null);
     refresh();
   }
 
@@ -139,39 +126,8 @@ export function MyAreasPage() {
       {canApprove && (
         <section className="settings-section">
           <h2>Solicitudes pendientes</h2>
-          {pending.length === 0 ? (
-            <EmptyState>No hay solicitudes pendientes</EmptyState>
-          ) : (
-            <ul className="passkey-list">
-              {pending.map((e) => (
-                <li key={e.id} className="tick-row">
-                  <div>
-                    <div className="tr-who">
-                      {e.userName} · {e.areaName}
-                    </div>
-                    <div className="tr-notes">Solicitado el {new Date(e.requestedAt).toLocaleDateString('es-ES')}</div>
-                  </div>
-                  <div className="detail-actions">
-                    <Button variant="ghost" small type="button" onClick={() => handleApprove(e.id)}>
-                      Aprobar
-                    </Button>
-                    <Button variant="ghost" small danger type="button" onClick={() => setRejecting(e)}>
-                      Rechazar
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <PendingAreaExpertRequests items={pending} onChange={refresh} />
         </section>
-      )}
-
-      {rejecting && (
-        <RejectReasonModal
-          title={`Rechazar solicitud de ${rejecting.userName}`}
-          onClose={() => setRejecting(null)}
-          onReject={handleReject}
-        />
       )}
 
       <Button as={Link} variant="ghost" small to="/">

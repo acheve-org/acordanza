@@ -1,4 +1,5 @@
 using Acordanza.Api.Data;
+using Acordanza.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordanza.Api.Authorization;
@@ -17,16 +18,17 @@ public static class DynamicPermissions
         Permissions.FirstAscensionistEdit
     ];
 
-    public static async Task<(IReadOnlyCollection<string> Permissions, bool IsFirstAscensionist)> ResolveAsync(
+    public static async Task<(IReadOnlyCollection<string> Permissions, bool IsFirstAscensionist, bool IsAreaExpert)> ResolveAsync(
         AppDbContext db, IEnumerable<string> roles, string userId)
     {
         var isFirstAscensionist = await db.FirstAscensionists.AnyAsync(f => f.UserId == userId);
+        var isAreaExpert = await db.AreaExperts.AnyAsync(e => e.UserId == userId && e.Status == AreaExpertStatus.Approved);
         IReadOnlyCollection<string> permissions = RolePermissions.PermissionsFor(roles);
         if (isFirstAscensionist)
         {
             permissions = permissions.Union(FirstAscensionistLinkGrant).ToArray();
         }
 
-        return (permissions, isFirstAscensionist);
+        return (permissions, isFirstAscensionist, isAreaExpert);
     }
 }

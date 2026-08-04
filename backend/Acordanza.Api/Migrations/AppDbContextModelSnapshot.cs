@@ -123,9 +123,17 @@ namespace Acordanza.Api.Migrations
                         .HasColumnType("character varying(280)")
                         .HasDefaultValue("");
 
+                    b.Property<DateTimeOffset?>("ValidatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ValidatedByUserId")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("ValidatedByUserId");
 
                     b.HasIndex("ParentAreaId", "Name")
                         .IsUnique();
@@ -587,6 +595,11 @@ namespace Acordanza.Api.Migrations
                         .HasForeignKey("ParentAreaId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "ValidatedBy")
+                        .WithMany()
+                        .HasForeignKey("ValidatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.OwnsMany("Acordanza.Api.Models.GeoPoint", "Polygon", b1 =>
                         {
                             b1.Property<int>("AreaId");
@@ -613,6 +626,8 @@ namespace Acordanza.Api.Migrations
                     b.Navigation("ParentArea");
 
                     b.Navigation("Polygon");
+
+                    b.Navigation("ValidatedBy");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.AreaExpert", b =>

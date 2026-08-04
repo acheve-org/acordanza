@@ -20,6 +20,10 @@ public class Area
     // Mean of the polygon's vertices, recomputed whenever the polygon is saved (see AreasController).
     public double? CentroidLat { get; set; }
     public double? CentroidLng { get; set; }
+
+    public DateTimeOffset? ValidatedAt { get; set; }
+    public string? ValidatedByUserId { get; set; }
+    public ApplicationUser? ValidatedBy { get; set; }
 }
 
 public class GeoPoint

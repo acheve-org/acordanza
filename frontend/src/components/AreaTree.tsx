@@ -60,6 +60,8 @@ function AreaTreeNode({
     polygon: [],
     centroidLat: null,
     centroidLng: null,
+    validatedAt: null,
+    validatedBy: null,
   };
 
   function loadChildren() {

@@ -37,6 +37,10 @@ export function updateAreaCoordinates(id: number, polygon: GeoPoint[]): Promise<
   return api.put<AreaSummary>(`/areas/${id}/coordinates`, { polygon });
 }
 
+export function validateArea(id: number): Promise<{ ok: true }> {
+  return api.post<{ ok: true }>(`/areas/${id}/validate`);
+}
+
 // Builds the "Padre › Hijo › Nieto" breadcrumb for an area given a lookup of all areas by id.
 export function areaPath(area: AreaSummary, byId: Map<number, AreaSummary>): string {
   const parts: string[] = [];

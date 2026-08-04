@@ -8,7 +8,9 @@ public record AreaDto(
     int? ParentAreaId,
     List<GeoPointDto> Polygon,
     double? CentroidLat,
-    double? CentroidLng);
+    double? CentroidLng,
+    DateTimeOffset? ValidatedAt,
+    string? ValidatedBy);
 
 public record CreateAreaRequest(string Name, int? ParentAreaId);
 

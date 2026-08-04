@@ -4,6 +4,7 @@ using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -13,7 +14,7 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/areas")]
-public class AreasController(AppDbContext db) : ControllerBase
+public class AreasController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
@@ -62,7 +63,9 @@ public class AreasController(AppDbContext db) : ControllerBase
                 a.ParentAreaId,
                 a.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
                 a.CentroidLat,
-                a.CentroidLng))
+                a.CentroidLng,
+                a.ValidatedAt,
+                a.ValidatedBy != null ? a.ValidatedBy.Name : null))
             .ToListAsync();
 
         return Ok(areas);
@@ -144,7 +147,7 @@ public class AreasController(AppDbContext db) : ControllerBase
             return Conflict(new { error = "ya existe un sector con ese nombre en este nivel" });
         }
 
-        return Ok(new AreaDto(area.Id, area.Name, area.ParentAreaId, [], null, null));
+        return Ok(new AreaDto(area.Id, area.Name, area.ParentAreaId, [], null, null, null, null));
     }
 
     [Authorize(Policy = Permissions.AreaEdit)]
@@ -188,8 +191,22 @@ public class AreasController(AppDbContext db) : ControllerBase
             }
         }
 
-        area.Name = request.Name.Trim();
+        var newName = request.Name.Trim();
+        var changed = newName != area.Name || request.ParentAreaId != area.ParentAreaId;
+
+        area.Name = newName;
         area.ParentAreaId = request.ParentAreaId;
+
+        // An edit invalidates any prior validation of the area's info, same rule
+        // as RoutesController.UpdateRoute — but only when something actually
+        // changed, so re-saving the form as-is doesn't generate a spurious
+        // pending-validation task.
+        if (changed)
+        {
+            area.ValidatedAt = null;
+            area.ValidatedByUserId = null;
+        }
+
         await db.SaveChangesAsync();
 
         return Ok(new AreaDto(
@@ -198,7 +215,9 @@ public class AreasController(AppDbContext db) : ControllerBase
             area.ParentAreaId,
             area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
             area.CentroidLat,
-            area.CentroidLng));
+            area.CentroidLng,
+            area.ValidatedAt,
+            await GetValidatedByNameAsync(area.ValidatedByUserId)));
     }
 
     [Authorize(Policy = Permissions.AreaDelete)]
@@ -245,6 +264,11 @@ public class AreasController(AppDbContext db) : ControllerBase
         return slug;
     }
 
+    private async Task<string?> GetValidatedByNameAsync(string? validatedByUserId) =>
+        validatedByUserId is null
+            ? null
+            : await db.Users.Where(u => u.Id == validatedByUserId).Select(u => u.Name).FirstOrDefaultAsync();
+
     private record AreaIdParent(int Id, int? ParentAreaId);
 
     // Breadth-first walk collecting `rootId` and every descendant, so callers can check
@@ -289,7 +313,11 @@ public class AreasController(AppDbContext db) : ControllerBase
             return BadRequest(new { error = "el polígono necesita al menos 3 puntos" });
         }
 
-        area.Polygon = request.Polygon.Select(p => new GeoPoint { Lat = p.Lat, Lng = p.Lng }).ToList();
+        var newPolygon = request.Polygon.Select(p => new GeoPoint { Lat = p.Lat, Lng = p.Lng }).ToList();
+        var changed = newPolygon.Count != area.Polygon.Count ||
+            newPolygon.Zip(area.Polygon, (a, b) => a.Lat != b.Lat || a.Lng != b.Lng).Any(different => different);
+
+        area.Polygon = newPolygon;
 
         if (area.Polygon.Count == 0)
         {
@@ -302,6 +330,16 @@ public class AreasController(AppDbContext db) : ControllerBase
             area.CentroidLng = area.Polygon.Average(p => p.Lng);
         }
 
+        // An edit invalidates any prior validation of the area's info, same rule
+        // as RoutesController.UpdateRoute — but only when the polygon actually
+        // changed, so re-saving it as-is doesn't generate a spurious
+        // pending-validation task.
+        if (changed)
+        {
+            area.ValidatedAt = null;
+            area.ValidatedByUserId = null;
+        }
+
         await db.SaveChangesAsync();
 
         return Ok(new AreaDto(
@@ -310,6 +348,22 @@ public class AreasController(AppDbContext db) : ControllerBase
             area.ParentAreaId,
             area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
             area.CentroidLat,
-            area.CentroidLng));
+            area.CentroidLng,
+            area.ValidatedAt,
+            await GetValidatedByNameAsync(area.ValidatedByUserId)));
+    }
+
+    [Authorize(Policy = Permissions.AreaValidate)]
+    [HttpPost("{id:int}/validate")]
+    public async Task<ActionResult> ValidateArea(int id)
+    {
+        var area = await db.Areas.FindAsync(id);
+        if (area is null) return NotFound(new { error = "el sector no existe" });
+
+        area.ValidatedAt = DateTimeOffset.UtcNow;
+        area.ValidatedByUserId = userManager.GetUserId(User)!;
+
+        await db.SaveChangesAsync();
+        return Ok(new { ok = true });
     }
 }

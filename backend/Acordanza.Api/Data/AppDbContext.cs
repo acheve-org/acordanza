@@ -60,6 +60,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(a => a.ParentAreaId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(a => a.ValidatedBy)
+                .WithMany()
+                .HasForeignKey(a => a.ValidatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.OwnsMany(a => a.Polygon, p => p.ToJson());
         });
 

@@ -10,6 +10,8 @@ export interface AreaSummary {
   polygon: GeoPoint[];
   centroidLat: number | null;
   centroidLng: number | null;
+  validatedAt: string | null;
+  validatedBy: string | null;
 }
 
 export interface AreaBounds {
@@ -169,6 +171,7 @@ export interface MeResponse {
   role: string;
   permissions: string[];
   isFirstAscensionist: boolean;
+  isAreaExpert: boolean;
 }
 
 export interface PasskeySummary {

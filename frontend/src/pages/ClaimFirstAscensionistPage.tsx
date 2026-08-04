@@ -7,7 +7,7 @@ import type { FirstAscensionistLinkRequestSummary, FirstAscensionistSummary } fr
 import { Permissions } from '../api/permissions';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { RejectReasonModal } from '../components/RejectReasonModal';
+import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
 
 const statusLabels: Record<FirstAscensionistLinkRequestSummary['status'], string> = {
   pending: 'Pendiente de aprobación',
@@ -24,7 +24,6 @@ export function ClaimFirstAscensionistPage() {
   const [mine, setMine] = useState<FirstAscensionistLinkRequestSummary[]>([]);
   const [pending, setPending] = useState<FirstAscensionistLinkRequestSummary[]>([]);
   const [error, setError] = useState('');
-  const [rejecting, setRejecting] = useState<FirstAscensionistLinkRequestSummary | null>(null);
 
   function refreshFirstAscensionists() {
     firstAscensionistsApi.listFirstAscensionists(q).then(setFirstAscensionists);
@@ -69,18 +68,6 @@ export function ClaimFirstAscensionistPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo solicitar el vínculo');
     }
-  }
-
-  async function handleApprove(id: number) {
-    await firstAscensionistLinksApi.approveFirstAscensionistLink(id);
-    refreshAll();
-  }
-
-  async function handleReject(reason: string) {
-    if (!rejecting) return;
-    await firstAscensionistLinksApi.rejectFirstAscensionistLink(rejecting.id, reason);
-    setRejecting(null);
-    refreshRequests();
   }
 
   async function handleCancel(id: number) {
@@ -164,39 +151,8 @@ export function ClaimFirstAscensionistPage() {
       {canApprove && (
         <section className="settings-section">
           <h2>Solicitudes pendientes</h2>
-          {pending.length === 0 ? (
-            <EmptyState>No hay solicitudes pendientes</EmptyState>
-          ) : (
-            <ul className="passkey-list">
-              {pending.map((r) => (
-                <li key={r.id} className="tick-row">
-                  <div>
-                    <div className="tr-who">
-                      {r.userName} · {r.firstAscensionistName}
-                    </div>
-                    <div className="tr-notes">Solicitado el {new Date(r.requestedAt).toLocaleDateString('es-ES')}</div>
-                  </div>
-                  <div className="detail-actions">
-                    <Button variant="ghost" small type="button" onClick={() => handleApprove(r.id)}>
-                      Aprobar
-                    </Button>
-                    <Button variant="ghost" small danger type="button" onClick={() => setRejecting(r)}>
-                      Rechazar
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          <PendingFirstAscensionistLinkRequests items={pending} onChange={refreshAll} />
         </section>
-      )}
-
-      {rejecting && (
-        <RejectReasonModal
-          title={`Rechazar solicitud de ${rejecting.userName}`}
-          onClose={() => setRejecting(null)}
-          onReject={handleReject}
-        />
       )}
 
       <Button as={Link} variant="ghost" small to="/">

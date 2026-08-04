@@ -8,7 +8,7 @@ public record LoginResponse(string? Token, string? Username, bool MfaRequired, s
 
 public record PasskeyLoginRequest(string SessionId, AuthenticatorAssertionRawResponse AssertionResponse);
 
-public record MeResponse(string Id, string Username, string Name, string Role, IReadOnlyList<string> Permissions, bool IsFirstAscensionist);
+public record MeResponse(string Id, string Username, string Name, string Role, IReadOnlyList<string> Permissions, bool IsFirstAscensionist, bool IsAreaExpert);
 
 public record ForgotPasswordRequest(string Email);
 

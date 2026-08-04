@@ -13,6 +13,7 @@ interface StoredAuth {
   role: string;
   permissions: string[];
   isFirstAscensionist: boolean;
+  isAreaExpert: boolean;
 }
 
 export interface PasskeyChallenge {
@@ -27,6 +28,7 @@ interface AuthContextValue {
   role: string | null;
   permissions: string[];
   isFirstAscensionist: boolean;
+  isAreaExpert: boolean;
   loading: boolean;
   hasPermission: (permission: string) => boolean;
   login: (email: string, password: string) => Promise<PasskeyChallenge | null>;
@@ -44,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isFirstAscensionist, setIsFirstAscensionist] = useState(false);
+  const [isAreaExpert, setIsAreaExpert] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(me.role);
         setPermissions(me.permissions);
         setIsFirstAscensionist(me.isFirstAscensionist);
+        setIsAreaExpert(me.isAreaExpert);
       })
       .catch(() => {
         localStorage.removeItem(STORAGE_KEY);
@@ -86,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: me.role,
         permissions: me.permissions,
         isFirstAscensionist: me.isFirstAscensionist,
+        isAreaExpert: me.isAreaExpert,
       }),
     );
     setId(me.id);
@@ -94,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(me.role);
     setPermissions(me.permissions);
     setIsFirstAscensionist(me.isFirstAscensionist);
+    setIsAreaExpert(me.isAreaExpert);
   }
 
   async function login(email: string, password: string): Promise<PasskeyChallenge | null> {
@@ -133,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRole(null);
     setPermissions([]);
     setIsFirstAscensionist(false);
+    setIsAreaExpert(false);
   }
 
   function hasPermission(permission: string) {
@@ -148,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         permissions,
         isFirstAscensionist,
+        isAreaExpert,
         loading,
         hasPermission,
         login,

@@ -124,6 +124,38 @@ input:focus, select:focus, textarea:focus {
 .main-nav-item:hover, .main-nav-item.active { color: var(--text); }
 .main-nav-separator { width: 1px; height: 20px; background: var(--border); }
 
+.notif-bell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+}
+.notif-bell svg { width: 20px; height: 20px; }
+.notif-bell:hover { border-color: var(--color-on-dark); color: var(--text); }
+.notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--danger);
+  color: var(--color-on-dark);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+}
+
 .user-menu { position: relative; }
 .user-menu-trigger {
   display: flex;
