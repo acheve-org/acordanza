@@ -15,7 +15,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Threading.RateLimiting;
 using Npgsql;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;

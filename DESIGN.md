@@ -124,7 +124,7 @@ reserved for `GradePill` and success/positive states.
 
 - **Spacing scale**: `{spacing.xxs}` 4px · `{spacing.xs}` 6px · `{spacing.sm}` 8px · `{spacing.md}` 14px · `{spacing.lg}` 16px · `{spacing.xl}` 24px · `{spacing.xxl}` 32px · `{spacing.xxxl}` 48px. This is the only spacing scale — never a raw px gap in new CSS.
 - **Radius scale**: `{rounded.sm}` 8px (inputs, grade pills) · `{rounded.md}` 12px (cards, dropdowns) · `{rounded.lg}` 20px (modals, empty states) · `{rounded.full}` (buttons, chips).
-- **Max content width**: 1200px, centered, with `{spacing.xxl}` (32px) page padding.
+- **Content width**: mostly fluid, not a fixed centered column. List/grid views (routes list) reflow into more columns as the viewport widens (`repeat(auto-fill, minmax(280px, 1fr))`) and the map page has no cap at all, since both benefit from extra width. The remaining "boxed" pages — settings, and the admin manage section (sectores/usuarios/tareas pendientes, under a shared left-nav layout) — are centered content that doesn't scale usefully past a point (a form, a table, a tree), so they share one common cap, `--page-max-width` (1100px), rather than each picking its own number. All boxed and fluid pages alike use `{spacing.xxl}` page padding.
 
 ## Elevation
 

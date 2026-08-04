@@ -11,7 +11,21 @@ interface Props {
 export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
   return (
     <div className="route-card" onClick={onSelect}>
-      <GradePill>{tick.grade}</GradePill>
+      <div className="rc-top">
+        <GradePill>{tick.grade}</GradePill>
+        {onDelete && (
+          <button
+            className="tick-remove"
+            title="Eliminar registro"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+          >
+            &times;
+          </button>
+        )}
+      </div>
       <div className="rc-main">
         <div className="rc-name">{tick.routeName}</div>
         <div className="rc-sub">{tick.areaPath}</div>
@@ -24,18 +38,6 @@ export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
         </span>
         {tick.notes && <span className="trc-notes">{tick.notes}</span>}
       </div>
-      {onDelete && (
-        <button
-          className="tick-remove"
-          title="Eliminar registro"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-        >
-          &times;
-        </button>
-      )}
     </div>
   );
 }

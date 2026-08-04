@@ -1,10 +1,13 @@
-import { Link, Navigate } from 'react-router';
+import { useState } from 'react';
+import { Navigate } from 'react-router';
 import { Button, EmptyState } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
 import { usePendingTasks } from '../context/PendingTasksContext';
 import { PendingAreaExpertRequests } from '../components/PendingAreaExpertRequests';
 import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
+
+type Tab = 'routes' | 'areas' | 'areaExperts' | 'firstAscensionistLinks';
 
 export function PendingTasksPage() {
   const {
@@ -20,6 +23,27 @@ export function PendingTasksPage() {
     refresh,
   } = usePendingTasks();
 
+  const tabs: { key: Tab; label: string; count: number }[] = [
+    ...(showRoutes ? [{ key: 'routes' as const, label: 'Vías', count: pendingRoutes.length }] : []),
+    ...(showAreas ? [{ key: 'areas' as const, label: 'Sectores', count: pendingAreas.length }] : []),
+    ...(showAreaExperts
+      ? [{ key: 'areaExperts' as const, label: 'Expertos de sector', count: pendingAreaExperts.length }]
+      : []),
+    ...(showFirstAscensionistLinks
+      ? [
+          {
+            key: 'firstAscensionistLinks' as const,
+            label: 'Vínculos de aperturista',
+            count: pendingFirstAscensionistLinks.length,
+          },
+        ]
+      : []),
+  ];
+
+  // Permissions (and so tab availability) are stable for the life of this page, so a plain
+  // useState initializer is enough — no effect needed to keep it in sync.
+  const [activeTab, setActiveTab] = useState<Tab | null>(tabs[0]?.key ?? null);
+
   if (!visible) return <Navigate to="/" replace />;
 
   async function handleValidateRoute(id: number) {
@@ -33,12 +57,25 @@ export function PendingTasksPage() {
   }
 
   return (
-    <main className="settings-page">
+    <>
       <h1>Tareas pendientes</h1>
 
-      {showRoutes && (
+      <div className="tab-bar">
+        {tabs.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            className={`tab-item${activeTab === t.key ? ' active' : ''}`}
+            onClick={() => setActiveTab(t.key)}
+          >
+            {t.label}
+            {t.count > 0 && <span className="tab-badge">{t.count > 99 ? '99+' : t.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'routes' && (
         <section className="settings-section">
-          <h2>Vías pendientes de validación</h2>
           {pendingRoutes.length === 0 ? (
             <EmptyState>No hay vías pendientes de validación</EmptyState>
           ) : (
@@ -61,9 +98,8 @@ export function PendingTasksPage() {
         </section>
       )}
 
-      {showAreas && (
+      {activeTab === 'areas' && (
         <section className="settings-section">
-          <h2>Sectores pendientes de validación</h2>
           {pendingAreas.length === 0 ? (
             <EmptyState>No hay sectores pendientes de validación</EmptyState>
           ) : (
@@ -81,23 +117,17 @@ export function PendingTasksPage() {
         </section>
       )}
 
-      {showAreaExperts && (
+      {activeTab === 'areaExperts' && (
         <section className="settings-section">
-          <h2>Solicitudes de expertos de sector</h2>
           <PendingAreaExpertRequests items={pendingAreaExperts} onChange={refresh} />
         </section>
       )}
 
-      {showFirstAscensionistLinks && (
+      {activeTab === 'firstAscensionistLinks' && (
         <section className="settings-section">
-          <h2>Solicitudes de vínculo de aperturista</h2>
           <PendingFirstAscensionistLinkRequests items={pendingFirstAscensionistLinks} onChange={refresh} />
         </section>
       )}
-
-      <Button as={Link} variant="ghost" small to="/">
-        Volver
-      </Button>
-    </main>
+    </>
   );
 }

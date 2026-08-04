@@ -4,6 +4,12 @@
    and the pieces not yet migrated (forms, combobox). */
 @import 'acordanza-design-system/styles.css';
 
+:root {
+  /* Shared width cap for the app's "boxed" pages (settings/users/areas) — routes/map
+     are fluid instead, see DESIGN.md's Layout section. */
+  --page-max-width: 1100px;
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -122,7 +128,6 @@ input:focus, select:focus, textarea:focus {
   transition: color 0.15s ease;
 }
 .main-nav-item:hover, .main-nav-item.active { color: var(--text); }
-.main-nav-separator { width: 1px; height: 20px; background: var(--border); }
 
 .notif-bell {
   position: relative;
@@ -150,7 +155,7 @@ input:focus, select:focus, textarea:focus {
   height: 18px;
   padding: 0 4px;
   background: var(--danger);
-  color: var(--color-on-dark);
+  color: var(--on-accent);
   font-size: 11px;
   font-weight: 700;
   border-radius: var(--radius-full);
@@ -193,8 +198,6 @@ input:focus, select:focus, textarea:focus {
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: var(--space-xxl);
-  max-width: 1200px;
-  margin: 0 auto;
   padding: var(--space-xxl);
 }
 
@@ -226,47 +229,37 @@ input:focus, select:focus, textarea:focus {
   margin: 0 0 var(--space-xl);
 }
 
-.routes-list { display: flex; flex-direction: column; gap: 2px; }
+.routes-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
 
-/* Route card — topo-line signature element, using the accent-teal illustration color per DESIGN.md's
-   allowance for the wide accent palette inside product iconography */
+/* Route card — the left accent border is the topo-line signature element, using the
+   accent-teal illustration color per DESIGN.md's allowance for the wide accent palette
+   inside product iconography */
 .route-card {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: var(--space-lg);
+  flex-direction: column;
+  gap: var(--space-xs);
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-left: none;
-  padding: var(--space-lg) var(--space-xl) var(--space-lg) var(--space-xl);
+  border-left: 3px solid var(--accent-2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
-.route-card::before {
-  content: "";
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: repeating-linear-gradient(to bottom, var(--accent-2) 0, var(--accent-2) 4px, transparent 4px, transparent 9px);
-}
-.route-card::after {
-  content: "";
-  position: absolute;
-  left: -3.5px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--accent-2);
-}
-.route-card:hover { background: var(--bg-card-hover); }
-.route-card:first-child { border-top-left-radius: var(--radius-lg); border-top-right-radius: var(--radius-lg); }
-.route-card:last-child { border-bottom-left-radius: var(--radius-lg); border-bottom-right-radius: var(--radius-lg); }
+.route-card:hover { background: var(--bg-card-hover); border-color: var(--border-strong); border-left-color: var(--accent-2); }
 
-.rc-main { flex: 1; min-width: 0; }
+.rc-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.rc-icons { display: flex; align-items: center; gap: var(--space-sm); flex-shrink: 0; }
+.rc-main { min-width: 0; margin-top: var(--space-xs); }
 .rc-name { font-weight: 600; font-size: 15px; }
 .rc-sub { color: var(--text-dim); font-size: 13px; line-height: 1.4; margin-top: 2px; }
 .rc-type {
+  align-self: flex-start;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -276,18 +269,19 @@ input:focus, select:focus, textarea:focus {
   padding: 3px var(--space-xs);
 }
 .rc-tick-icon { width: 16px; height: 16px; color: var(--accent-2); flex-shrink: 0; }
+.rc-topo-icon { width: 16px; height: 16px; color: var(--text-dim); flex-shrink: 0; }
 
 .trc-tick {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   gap: 2px;
   font-size: 12px;
   color: var(--text-dim);
-  text-align: right;
-  white-space: nowrap;
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--border);
 }
-.trc-notes { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trc-notes { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--space-md); align-items: end; }
@@ -339,7 +333,6 @@ input:focus, select:focus, textarea:focus {
   border-radius: var(--radius-md);
   padding: var(--space-md);
 }
-.rc-topo-icon { width: 16px; height: 16px; color: var(--text-dim); flex-shrink: 0; }
 
 .checkbox-field {
   flex-direction: row;
@@ -403,9 +396,11 @@ input:focus, select:focus, textarea:focus {
 
 .login-mfa { display: flex; flex-direction: column; gap: var(--space-md); }
 
-/* Settings page */
+/* Settings page — shares --page-max-width with .users-page/.areas-page so the
+   app's "boxed" (non-fluid) pages read as one consistent width, not three
+   arbitrary ones. */
 .settings-page {
-  max-width: 640px;
+  max-width: var(--page-max-width);
   margin: 0 auto;
   padding: var(--space-xxl);
   display: flex;
@@ -443,23 +438,6 @@ input:focus, select:focus, textarea:focus {
 .passkey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
 .passkey-form { border-top: 1px solid var(--border); padding-top: var(--space-md); }
 
-/* Users management page */
-.users-page {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: var(--space-xxl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-.users-page h1 {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 24px;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-  margin: 0;
-}
 .users-page-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
 .users-toolbar { display: flex; gap: var(--space-md); }
 .users-toolbar input { flex: 1; }
@@ -490,32 +468,64 @@ input:focus, select:focus, textarea:focus {
   white-space: nowrap;
 }
 
-@media (max-width: 720px) {
-  .topbar { padding: var(--space-md) var(--space-lg); gap: var(--space-md); }
-  .topbar-right { order: 2; }
-  .main-nav { order: 3; flex-basis: 100%; }
-  .layout { grid-template-columns: 1fr; padding: var(--space-xl); }
-  .filters { position: static; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .settings-page { padding: var(--space-xl); }
-  .users-page { padding: var(--space-xl); }
-  .users-page-header { flex-direction: column; align-items: stretch; }
-  .users-toolbar { flex-direction: column; }
-  .users-toolbar select { width: 100%; }
-  .map-page { padding: var(--space-xl); }
-  .areas-page { padding: var(--space-xl); }
-}
-
-/* Areas management page */
-.areas-page {
-  max-width: 1100px;
-  margin: 0 auto;
+/* Manage section (admin) — sectores/usuarios/tareas pendientes share one shell with a
+   left nav, see --page-max-width note on .settings-page for why the width matches.
+   Left-aligned (no auto margin), unlike settings/that note's other boxed pages, since
+   its own left nav reads as a menu and should hug the page edge like routes/map do. */
+.manage-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: var(--space-xxl);
+  max-width: var(--page-max-width);
   padding: var(--space-xxl);
+}
+.manage-nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: var(--space-xs);
+  position: sticky;
+  top: var(--space-xxl);
+  align-self: start;
 }
-.areas-page h1 {
+.manage-nav h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin: 0 0 var(--space-xs);
+}
+.manage-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.manage-nav-item:hover { background: var(--bg-card-hover); color: var(--text); }
+.manage-nav-item.active { background: var(--bg-card); color: var(--text); }
+.manage-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--danger);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+}
+.manage-content { min-width: 0; display: flex; flex-direction: column; gap: var(--space-lg); }
+.manage-content h1 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 24px;
@@ -524,10 +534,48 @@ input:focus, select:focus, textarea:focus {
   margin: 0;
 }
 
-/* Map page */
+/* Horizontal tab switcher — e.g. Tareas pendientes' four sections, only one shown at a time. */
+.tab-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+.tab-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: var(--space-sm) 0 var(--space-md);
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.tab-item:hover { color: var(--text); }
+.tab-item.active { color: var(--text); border-bottom-color: var(--accent); }
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--danger);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+}
+
+/* Map page — no max-width: the map canvas is the one surface that benefits from
+   using the full viewport width. */
 .map-page {
-  max-width: 1100px;
-  margin: 0 auto;
   padding: var(--space-xxl);
   display: flex;
   flex-direction: column;
@@ -601,3 +649,22 @@ input:focus, select:focus, textarea:focus {
   color: var(--text);
 }
 .leaflet-container a.leaflet-popup-close-button { color: var(--text-dim); }
+
+/* Keep this block last: at equal specificity, a same-selector rule declared later in the
+   cascade wins regardless of the media query, so every base rule it overrides must appear
+   above this point in the file. */
+@media (max-width: 720px) {
+  .topbar { padding: var(--space-md) var(--space-lg); gap: var(--space-md); }
+  .topbar-right { order: 2; }
+  .main-nav { order: 3; flex-basis: 100%; }
+  .layout { grid-template-columns: 1fr; padding: var(--space-xl); }
+  .filters { position: static; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .settings-page { padding: var(--space-xl); }
+  .manage-layout { grid-template-columns: 1fr; padding: var(--space-xl); }
+  .manage-nav { position: static; flex-direction: row; flex-wrap: wrap; }
+  .users-page-header { flex-direction: column; align-items: stretch; }
+  .users-toolbar { flex-direction: column; }
+  .users-toolbar select { width: 100%; }
+  .map-page { padding: var(--space-xl); }
+}

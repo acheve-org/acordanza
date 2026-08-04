@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router';
-import { Button } from 'acordanza-design-system';
+import { Navigate } from 'react-router';
 import * as areasApi from '../api/areas';
 import type { AreaSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -35,19 +34,14 @@ export function AreasPage() {
   if (!canEdit) return <Navigate to="/" replace />;
 
   return (
-    <main className="areas-page">
-      <h1>Gestionar sectores</h1>
+    <>
+      <h1>Sectores</h1>
 
       <section className="settings-section">
-        <h2>Sectores</h2>
         <AreaTree canCreate={canCreate} canEdit={canEdit} canDelete={canDelete} areas={areas} onChange={refresh} />
       </section>
 
       {error && <p className="error-text">{error}</p>}
-
-      <Button as={Link} variant="ghost" small to="/">
-        Volver
-      </Button>
-    </main>
+    </>
   );
 }

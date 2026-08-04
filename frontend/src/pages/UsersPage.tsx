@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Navigate } from 'react-router';
 import { Button, Chip, EmptyState, Pagination } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
 import type { PagedUsers, UserFilters } from '../api/types';
@@ -85,9 +85,9 @@ export function UsersPage() {
   const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
 
   return (
-    <main className="users-page">
+    <>
       <div className="users-page-header">
-        <h1>Gestionar usuarios</h1>
+        <h1>Usuarios</h1>
         <Button type="button" onClick={() => setInviteOpen(true)}>
           Invitar usuario
         </Button>
@@ -146,16 +146,12 @@ export function UsersPage() {
 
       <Pagination page={filters.page} pageCount={totalPages} onPageChange={(page) => set('page', page)} />
 
-      <Button as={Link} variant="ghost" small to="/">
-        Volver
-      </Button>
-
       {inviteOpen && (
         <InviteUserModal
           onClose={() => setInviteOpen(false)}
           onInvited={handleInvited}
         />
       )}
-    </main>
+    </>
   );
 }

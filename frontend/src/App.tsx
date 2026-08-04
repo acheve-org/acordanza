@@ -18,6 +18,7 @@ import { ClaimFirstAscensionistPage } from './pages/ClaimFirstAscensionistPage';
 import { MyOpeningsPage } from './pages/MyOpeningsPage';
 import { MyTicksPage } from './pages/MyTicksPage';
 import { PendingTasksPage } from './pages/PendingTasksPage';
+import { ManageLayout, ManageIndexRedirect } from './pages/ManageLayout';
 
 function AppLayout() {
   const { name, hasPermission, isFirstAscensionist, logout } = useAuth();
@@ -50,23 +51,20 @@ function AppLayout() {
           <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/map">
             Mapa
           </NavLink>
-          {(hasPermission(Permissions.areaEdit) || hasPermission(Permissions.userManage)) && (
-            <span className="main-nav-separator" aria-hidden="true" />
-          )}
-          {hasPermission(Permissions.areaEdit) && (
-            <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/areas">
-              Sectores
-            </NavLink>
-          )}
-          {hasPermission(Permissions.userManage) && (
-            <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/users">
-              Usuarios
-            </NavLink>
-          )}
         </nav>
         <div className="topbar-right">
+          {(hasPermission(Permissions.areaEdit) || hasPermission(Permissions.userManage)) && (
+            <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/manage">
+              Gestionar
+            </NavLink>
+          )}
           {pendingTasksVisible && (
-            <Link to="/pending-tasks" className="notif-bell" aria-label="Tareas pendientes" title="Tareas pendientes">
+            <Link
+              to="/manage/pending-tasks"
+              className="notif-bell"
+              aria-label="Tareas pendientes"
+              title="Tareas pendientes"
+            >
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
               </svg>
@@ -157,14 +155,17 @@ function App() {
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
         <Route path="map" element={<MapPage />} />
-        <Route path="areas" element={<AreasPage />} />
         <Route path="my-areas" element={<MyAreasPage />} />
         <Route path="claim-first-ascensionist" element={<ClaimFirstAscensionistPage />} />
         <Route path="my-routes" element={<MyTicksPage />} />
         <Route path="my-openings" element={<MyOpeningsPage />} />
-        <Route path="pending-tasks" element={<PendingTasksPage />} />
         <Route path="settings" element={<SettingsPage />} />
-        <Route path="users" element={<UsersPage />} />
+        <Route path="manage" element={<ManageLayout />}>
+          <Route index element={<ManageIndexRedirect />} />
+          <Route path="areas" element={<AreasPage />} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="pending-tasks" element={<PendingTasksPage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
