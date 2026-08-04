@@ -1,0 +1,13 @@
+{
+  "projectId": "23c1200e-bc16-4533-9f47-03883515a3a8",
+  "shape": "package",
+  "pkg": "acordanza-design-system",
+  "globalName": "AcordanzaDesignSystem",
+  "buildCmd": "cd design-system && bun run build",
+  "cssEntry": "dist/style.css",
+  "runtimeFontPrefixes": ["Inter", "JetBrains Mono"],
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "Modal": { "cardMode": "single", "viewport": "600x520" }
+  }
+}

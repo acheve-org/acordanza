@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Button, EmptyState, Pagination } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import type { AreaNode, AreaSummary, PagedAreaNodes } from '../api/types';
 import { ApiError } from '../api/client';
@@ -109,19 +110,20 @@ function AreaTreeNode({
         <span className="area-tree-name">{node.name}</span>
         <div className="detail-actions">
           {canEdit && (
-            <button type="button" className="ghost-btn small" onClick={() => setEditModal(true)}>
+            <Button variant="ghost" small type="button" onClick={() => setEditModal(true)}>
               Editar
-            </button>
+            </Button>
           )}
           {canEdit && (
-            <button type="button" className="ghost-btn small" onClick={() => setPolygonModal(true)}>
+            <Button variant="ghost" small type="button" onClick={() => setPolygonModal(true)}>
               {(ownArea ?? polygonAreaFallback).polygon.length > 0 ? 'Editar polígono' : 'Dibujar polígono'}
-            </button>
+            </Button>
           )}
           {canCreate && (
-            <button
+            <Button
+              variant="ghost"
+              small
               type="button"
-              className="ghost-btn small"
               onClick={() =>
                 onRequestCreate(node.id, () => {
                   loadChildren();
@@ -130,12 +132,12 @@ function AreaTreeNode({
               }
             >
               + Subsector
-            </button>
+            </Button>
           )}
           {canDelete && (
-            <button type="button" className="ghost-btn small danger" onClick={handleDelete}>
+            <Button variant="ghost" small danger type="button" onClick={handleDelete}>
               Eliminar
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -249,16 +251,16 @@ export function AreaTree({ canCreate, canEdit, canDelete, areas, onChange }: Pro
     <div className="area-tree-wrap">
       <div className="area-tree-header">
         {canCreate && (
-          <button type="button" className="primary-btn" onClick={() => openCreateModal(null, refreshRoots)}>
+          <Button type="button" onClick={() => openCreateModal(null, refreshRoots)}>
             Añadir sector principal
-          </button>
+          </Button>
         )}
       </div>
 
       {error && <p className="error-text">{error}</p>}
 
       {result.items.length === 0 ? (
-        <p className="empty-state">No hay sectores todavía</p>
+        <EmptyState>No hay sectores todavía</EmptyState>
       ) : (
         <ul className="area-tree">
           {result.items.map((node) => (
@@ -279,22 +281,7 @@ export function AreaTree({ canCreate, canEdit, canDelete, areas, onChange }: Pro
         </ul>
       )}
 
-      <div className="pagination">
-        <button type="button" className="ghost-btn small" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-          Anterior
-        </button>
-        <span className="pagination-status">
-          Página {page} de {totalPages}
-        </span>
-        <button
-          type="button"
-          className="ghost-btn small"
-          disabled={page >= totalPages}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Siguiente
-        </button>
-      </div>
+      <Pagination page={page} pageCount={totalPages} onPageChange={setPage} />
 
       {createModal && (
         <AreaNameModal parentAreaId={createModal.parentAreaId} onClose={() => setCreateModal(null)} onSaved={handleCreated} />

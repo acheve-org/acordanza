@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import type { CreateTickInput } from '../api/types';
 import { ApiError } from '../api/client';
 
@@ -30,46 +31,39 @@ export function AddTickModal({ routeName, onClose, onSubmit }: Props) {
   }
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal">
-        <h2>Registrar ascenso</h2>
-        <p className="detail-meta">{routeName}</p>
-        <form onSubmit={handleSubmit}>
-          <div className="grid-3">
-            <label>
-              Fecha
-              <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
-            </label>
-            <label>
-              Puntuación <span className="hint">(1–5)</span>
-              <input type="number" min={1} max={5} value={rating} onChange={(e) => setRating(e.target.value)} />
-            </label>
-          </div>
+    <Modal onClose={onClose}>
+      <h2>Registrar ascenso</h2>
+      <p className="detail-meta">{routeName}</p>
+      <form onSubmit={handleSubmit}>
+        <div className="grid-3">
           <label>
-            Notas
-            <input
-              type="text"
-              placeholder="Encadenada al segundo intento, el paso clave fue la regleta…"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
+            Fecha
+            <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} />
           </label>
-          <p className="error-text">{error}</p>
-          <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={onClose}>
-              Cancelar
-            </button>
-            <button type="submit" className="primary-btn" disabled={submitting}>
-              {submitting ? 'Registrando…' : 'Registrar'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+          <label>
+            Puntuación <span className="hint">(1–5)</span>
+            <input type="number" min={1} max={5} value={rating} onChange={(e) => setRating(e.target.value)} />
+          </label>
+        </div>
+        <label>
+          Notas
+          <input
+            type="text"
+            placeholder="Encadenada al segundo intento, el paso clave fue la regleta…"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+        </label>
+        <p className="error-text">{error}</p>
+        <ModalActions>
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? 'Registrando…' : 'Registrar'}
+          </Button>
+        </ModalActions>
+      </form>
+    </Modal>
   );
 }

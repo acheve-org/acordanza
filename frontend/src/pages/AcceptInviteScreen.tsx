@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { Button } from 'acordanza-design-system';
 import * as authApi from '../api/auth';
 import { ApiError } from '../api/client';
 
@@ -23,9 +24,9 @@ export function AcceptInviteScreen() {
             <span className="brand-name">Acordanza</span>
           </div>
           <p className="login-sub">El enlace no es válido.</p>
-          <Link to="/" className="ghost-btn small full-width">
+          <Button as={Link} variant="ghost" small fullWidth to="/">
             Volver al inicio de sesión
-          </Link>
+          </Button>
         </div>
       </div>
     );
@@ -58,9 +59,9 @@ export function AcceptInviteScreen() {
         {success ? (
           <>
             <p className="success-text">Cuenta creada. Ya puedes iniciar sesión.</p>
-            <Link to="/" className="primary-btn full-width">
+            <Button as={Link} fullWidth to="/">
               Iniciar sesión
-            </Link>
+            </Button>
           </>
         ) : (
           <>
@@ -90,9 +91,7 @@ export function AcceptInviteScreen() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </label>
-              <button type="submit" className="primary-btn">
-                Crear cuenta
-              </button>
+              <Button type="submit">Crear cuenta</Button>
               <p className="error-text">{error}</p>
             </form>
           </>

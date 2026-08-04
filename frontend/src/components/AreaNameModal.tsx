@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import { ApiError } from '../api/client';
 
@@ -35,30 +36,23 @@ export function AreaNameModal({ parentAreaId, area, onClose, onSaved }: Props) {
   }
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal">
-        <h2>{area ? 'Editar sector' : parentAreaId === null ? 'Nuevo sector principal' : 'Nuevo subsector'}</h2>
-        <form onSubmit={handleSubmit}>
-          <label>
-            Nombre
-            <input type="text" required autoFocus value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <p className="error-text">{error}</p>
-          <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={onClose}>
-              Cancelar
-            </button>
-            <button type="submit" className="primary-btn" disabled={submitting}>
-              {submitting ? (area ? 'Guardando…' : 'Creando…') : area ? 'Guardar' : 'Crear'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal onClose={onClose}>
+      <h2>{area ? 'Editar sector' : parentAreaId === null ? 'Nuevo sector principal' : 'Nuevo subsector'}</h2>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Nombre
+          <input type="text" required autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+        </label>
+        <p className="error-text">{error}</p>
+        <ModalActions>
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? (area ? 'Guardando…' : 'Creando…') : area ? 'Guardar' : 'Crear'}
+          </Button>
+        </ModalActions>
+      </form>
+    </Modal>
   );
 }

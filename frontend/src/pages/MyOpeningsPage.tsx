@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
+import { Button } from 'acordanza-design-system';
 import { RoutesList } from '../components/RoutesList';
 import { DetailModal } from '../components/DetailModal';
 import * as routesApi from '../api/routes';
@@ -81,9 +82,9 @@ export function MyOpeningsPage() {
         <RoutesList routes={routes} onSelect={setDetailRouteId} />
       </main>
 
-      <Link to="/" className="ghost-btn small">
+      <Button as={Link} variant="ghost" small to="/">
         Volver
-      </Link>
+      </Button>
 
       <DetailModal
         route={detailRoute}

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
+import { Button } from 'acordanza-design-system';
 import * as authApi from '../api/auth';
 import { ApiError } from '../api/client';
 
@@ -22,9 +23,9 @@ export function ResetPasswordScreen() {
             <span className="brand-name">Acordanza</span>
           </div>
           <p className="login-sub">El enlace no es válido.</p>
-          <Link to="/" className="ghost-btn small full-width">
+          <Button as={Link} variant="ghost" small fullWidth to="/">
             Volver al inicio de sesión
-          </Link>
+          </Button>
         </div>
       </div>
     );
@@ -57,9 +58,9 @@ export function ResetPasswordScreen() {
         {success ? (
           <>
             <p className="success-text">Contraseña actualizada. Ya puedes iniciar sesión.</p>
-            <Link to="/" className="primary-btn full-width">
+            <Button as={Link} fullWidth to="/">
               Iniciar sesión
-            </Link>
+            </Button>
           </>
         ) : (
           <>
@@ -83,9 +84,7 @@ export function ResetPasswordScreen() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </label>
-              <button type="submit" className="primary-btn">
-                Guardar contraseña
-              </button>
+              <Button type="submit">Guardar contraseña</Button>
               <p className="error-text">{error}</p>
             </form>
           </>

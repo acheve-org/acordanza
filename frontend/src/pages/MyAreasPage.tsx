@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
+import { Button, EmptyState } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
 import * as areasApi from '../api/areas';
 import type { AreaExpert, AreaSummary } from '../api/types';
@@ -81,7 +82,7 @@ export function MyAreasPage() {
 
       <section className="settings-section">
         {mine.length === 0 ? (
-          <p className="empty-state">Todavía no eres experto de ningún sector</p>
+          <EmptyState>Todavía no eres experto de ningún sector</EmptyState>
         ) : (
           <ul className="passkey-list">
             {mine.map((e) => (
@@ -127,9 +128,9 @@ export function MyAreasPage() {
                 ))}
               </select>
             </label>
-            <button type="submit" className="primary-btn" disabled={!selectedAreaId}>
+            <Button type="submit" disabled={!selectedAreaId}>
               Solicitar
-            </button>
+            </Button>
           </form>
         )}
         {error && <p className="error-text">{error}</p>}
@@ -139,7 +140,7 @@ export function MyAreasPage() {
         <section className="settings-section">
           <h2>Solicitudes pendientes</h2>
           {pending.length === 0 ? (
-            <p className="empty-state">No hay solicitudes pendientes</p>
+            <EmptyState>No hay solicitudes pendientes</EmptyState>
           ) : (
             <ul className="passkey-list">
               {pending.map((e) => (
@@ -151,12 +152,12 @@ export function MyAreasPage() {
                     <div className="tr-notes">Solicitado el {new Date(e.requestedAt).toLocaleDateString('es-ES')}</div>
                   </div>
                   <div className="detail-actions">
-                    <button type="button" className="ghost-btn small" onClick={() => handleApprove(e.id)}>
+                    <Button variant="ghost" small type="button" onClick={() => handleApprove(e.id)}>
                       Aprobar
-                    </button>
-                    <button type="button" className="ghost-btn small danger" onClick={() => setRejecting(e)}>
+                    </Button>
+                    <Button variant="ghost" small danger type="button" onClick={() => setRejecting(e)}>
                       Rechazar
-                    </button>
+                    </Button>
                   </div>
                 </li>
               ))}
@@ -173,9 +174,9 @@ export function MyAreasPage() {
         />
       )}
 
-      <Link to="/" className="ghost-btn small">
+      <Button as={Link} variant="ghost" small to="/">
         Volver
-      </Link>
+      </Button>
     </main>
   );
 }

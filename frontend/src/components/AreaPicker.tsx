@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Button, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import { areaPath as pathFor } from '../api/areas';
 import type { AreaSummary } from '../api/types';
@@ -95,9 +96,9 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
       )}
       {canCreate &&
         (!showCreate ? (
-          <button type="button" className="ghost-btn small" onClick={() => setShowCreate(true)}>
+          <Button variant="ghost" small type="button" onClick={() => setShowCreate(true)}>
             + Añadir nuevo sector
-          </button>
+          </Button>
         ) : (
           <div className="combo-create-form">
             <input
@@ -114,14 +115,14 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
                 </option>
               ))}
             </select>
-            <div className="modal-actions">
-              <button type="button" className="ghost-btn small" onClick={() => setShowCreate(false)}>
+            <ModalActions>
+              <Button variant="ghost" small type="button" onClick={() => setShowCreate(false)}>
                 Cancelar
-              </button>
-              <button type="button" className="primary-btn" onClick={handleCreate}>
+              </Button>
+              <Button type="button" onClick={handleCreate}>
                 Añadir
-              </button>
-            </div>
+              </Button>
+            </ModalActions>
           </div>
         ))}
     </div>

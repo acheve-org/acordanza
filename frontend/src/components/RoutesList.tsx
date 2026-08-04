@@ -1,3 +1,4 @@
+import { EmptyState } from 'acordanza-design-system';
 import type { RouteSummary } from '../api/types';
 import { RouteCard } from './RouteCard';
 
@@ -18,7 +19,7 @@ export function RoutesList({ routes, onSelect }: Props) {
         ))}
       </div>
       {routes.length === 0 && (
-        <p className="empty-state">No hay vías que coincidan. Añade la primera o amplía tu búsqueda.</p>
+        <EmptyState>No hay vías que coincidan. Añade la primera o amplía tu búsqueda.</EmptyState>
       )}
     </section>
   );

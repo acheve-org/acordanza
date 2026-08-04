@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
+import { Button } from 'acordanza-design-system';
 import { useAuth } from './context/AuthContext';
 import { Permissions } from './api/permissions';
 import { LoginScreen } from './components/LoginScreen';
@@ -78,36 +79,41 @@ function AppLayout() {
             {userMenuOpen && (
               <div className="user-menu-popup">
                 <span className="user-menu-name">{name}</span>
-                <Link className="ghost-btn small full-width" to="/my-areas" onClick={() => setUserMenuOpen(false)}>
+                <Button as={Link} variant="ghost" small fullWidth to="/my-areas" onClick={() => setUserMenuOpen(false)}>
                   Mis sectores
-                </Link>
-                <Link
-                  className="ghost-btn small full-width"
+                </Button>
+                <Button
+                  as={Link}
+                  variant="ghost"
+                  small
+                  fullWidth
                   to="/claim-first-ascensionist"
                   onClick={() => setUserMenuOpen(false)}
                 >
                   Vincular aperturista
-                </Link>
-                <Link className="ghost-btn small full-width" to="/my-routes" onClick={() => setUserMenuOpen(false)}>
+                </Button>
+                <Button as={Link} variant="ghost" small fullWidth to="/my-routes" onClick={() => setUserMenuOpen(false)}>
                   Mis vías
-                </Link>
+                </Button>
                 {isFirstAscensionist && (
-                  <Link className="ghost-btn small full-width" to="/my-openings" onClick={() => setUserMenuOpen(false)}>
+                  <Button as={Link} variant="ghost" small fullWidth to="/my-openings" onClick={() => setUserMenuOpen(false)}>
                     Mis aperturas
-                  </Link>
+                  </Button>
                 )}
-                <Link className="ghost-btn small full-width" to="/settings" onClick={() => setUserMenuOpen(false)}>
+                <Button as={Link} variant="ghost" small fullWidth to="/settings" onClick={() => setUserMenuOpen(false)}>
                   Configuración
-                </Link>
-                <button
-                  className="ghost-btn small full-width"
+                </Button>
+                <Button
+                  variant="ghost"
+                  small
+                  fullWidth
                   onClick={() => {
                     setUserMenuOpen(false);
                     logout();
                   }}
                 >
                   Cerrar sesión
-                </button>
+                </Button>
               </div>
             )}
           </div>

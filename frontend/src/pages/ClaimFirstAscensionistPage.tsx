@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
+import { Button, EmptyState } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type { FirstAscensionistLinkRequestSummary, FirstAscensionistSummary } from '../api/types';
@@ -104,7 +105,7 @@ export function ClaimFirstAscensionistPage() {
           onChange={(e) => setQ(e.target.value)}
         />
         {firstAscensionists.length === 0 ? (
-          <p className="empty-state">No se han encontrado aperturistas</p>
+          <EmptyState>No se han encontrado aperturistas</EmptyState>
         ) : (
           <ul className="passkey-list">
             {firstAscensionists.map((fa) => (
@@ -117,9 +118,9 @@ export function ClaimFirstAscensionistPage() {
                   )}
                 </div>
                 {!fa.linkedUserName && !activeRequestFirstAscensionistIds.has(fa.id) && (
-                  <button type="button" className="ghost-btn small" onClick={() => handleRequest(fa.id)}>
+                  <Button variant="ghost" small type="button" onClick={() => handleRequest(fa.id)}>
                     Solicitar vínculo
-                  </button>
+                  </Button>
                 )}
               </li>
             ))}
@@ -131,7 +132,7 @@ export function ClaimFirstAscensionistPage() {
       <section className="settings-section">
         <h2>Mis solicitudes</h2>
         {mine.length === 0 ? (
-          <p className="empty-state">Todavía no has solicitado ningún vínculo</p>
+          <EmptyState>Todavía no has solicitado ningún vínculo</EmptyState>
         ) : (
           <ul className="passkey-list">
             {mine.map((r) => (
@@ -164,7 +165,7 @@ export function ClaimFirstAscensionistPage() {
         <section className="settings-section">
           <h2>Solicitudes pendientes</h2>
           {pending.length === 0 ? (
-            <p className="empty-state">No hay solicitudes pendientes</p>
+            <EmptyState>No hay solicitudes pendientes</EmptyState>
           ) : (
             <ul className="passkey-list">
               {pending.map((r) => (
@@ -176,12 +177,12 @@ export function ClaimFirstAscensionistPage() {
                     <div className="tr-notes">Solicitado el {new Date(r.requestedAt).toLocaleDateString('es-ES')}</div>
                   </div>
                   <div className="detail-actions">
-                    <button type="button" className="ghost-btn small" onClick={() => handleApprove(r.id)}>
+                    <Button variant="ghost" small type="button" onClick={() => handleApprove(r.id)}>
                       Aprobar
-                    </button>
-                    <button type="button" className="ghost-btn small danger" onClick={() => setRejecting(r)}>
+                    </Button>
+                    <Button variant="ghost" small danger type="button" onClick={() => setRejecting(r)}>
                       Rechazar
-                    </button>
+                    </Button>
                   </div>
                 </li>
               ))}
@@ -198,9 +199,9 @@ export function ClaimFirstAscensionistPage() {
         />
       )}
 
-      <Link to="/" className="ghost-btn small">
+      <Button as={Link} variant="ghost" small to="/">
         Volver
-      </Link>
+      </Button>
     </main>
   );
 }

@@ -1,0 +1,11 @@
+.grade-pill {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--accent-2);
+  background: rgba(0, 168, 126, 0.1);
+  border: 1px solid rgba(0, 168, 126, 0.3);
+  border-radius: var(--radius-sm);
+  padding: var(--space-xxs) var(--space-sm);
+  white-space: nowrap;
+}

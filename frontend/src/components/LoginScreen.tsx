@@ -1,4 +1,5 @@
 import { useState, type SubmitEvent } from 'react';
+import { Button } from 'acordanza-design-system';
 import { useAuth, type PasskeyChallenge } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 import * as authApi from '../api/auth';
@@ -83,9 +84,9 @@ export function LoginScreen() {
               <p className="login-sub">
                 Si existe una cuenta con ese correo, te hemos enviado un enlace para restablecer la contraseña.
               </p>
-              <button type="button" className="ghost-btn small full-width" onClick={backToLogin}>
+              <Button variant="ghost" small fullWidth type="button" onClick={backToLogin}>
                 Volver
-              </button>
+              </Button>
             </>
           ) : (
             <>
@@ -101,13 +102,11 @@ export function LoginScreen() {
                     onChange={(e) => setForgotEmail(e.target.value)}
                   />
                 </label>
-                <button type="submit" className="primary-btn">
-                  Enviar enlace
-                </button>
+                <Button type="submit">Enviar enlace</Button>
                 <p className="error-text">{forgotError}</p>
-                <button type="button" className="ghost-btn small full-width" onClick={backToLogin}>
+                <Button variant="ghost" small fullWidth type="button" onClick={backToLogin}>
                   Volver
-                </button>
+                </Button>
               </form>
             </>
           )}
@@ -126,18 +125,13 @@ export function LoginScreen() {
           </div>
           <p className="login-sub">Confirma tu identidad con tu llave de acceso.</p>
           <div className="login-mfa">
-            <button
-              type="button"
-              className="primary-btn full-width"
-              disabled={verifying}
-              onClick={() => confirmPasskey(challenge)}
-            >
+            <Button fullWidth type="button" disabled={verifying} onClick={() => confirmPasskey(challenge)}>
               {verifying ? 'Verificando…' : 'Usar llave de acceso'}
-            </button>
+            </Button>
             <p className="error-text">{error}</p>
-            <button type="button" className="ghost-btn small full-width" onClick={() => setChallenge(null)}>
+            <Button variant="ghost" small fullWidth type="button" onClick={() => setChallenge(null)}>
               Volver
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -173,20 +167,18 @@ export function LoginScreen() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
-          <button type="submit" className="primary-btn">
-            Entrar
-          </button>
+          <Button type="submit">Entrar</Button>
           <p className="error-text">{error}</p>
-          <button type="button" className="ghost-btn small full-width" onClick={() => setForgotMode(true)}>
+          <Button variant="ghost" small fullWidth type="button" onClick={() => setForgotMode(true)}>
             ¿Olvidaste tu contraseña?
-          </button>
+          </Button>
         </form>
         <div className="login-divider">
           <span>o</span>
         </div>
-        <button type="button" className="ghost-btn full-width" onClick={handlePasskeyLogin}>
+        <Button variant="ghost" fullWidth type="button" onClick={handlePasskeyLogin}>
           Usar llave de acceso
-        </button>
+        </Button>
       </div>
     </div>
   );

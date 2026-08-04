@@ -1,3 +1,4 @@
+import { GradePill } from 'acordanza-design-system';
 import type { RouteSummary } from '../api/types';
 import { gearLabels } from '../api/types';
 
@@ -9,7 +10,7 @@ interface Props {
 export function RouteCard({ route, onClick }: Props) {
   return (
     <div className="route-card" onClick={onClick}>
-      <span className="grade-pill">{route.grade}</span>
+      <GradePill>{route.grade}</GradePill>
       <div className="rc-main">
         <div className="rc-name">{route.name}</div>
         <div className="rc-sub">{route.areaPath}</div>

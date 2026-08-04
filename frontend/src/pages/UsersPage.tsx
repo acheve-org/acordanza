@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router';
+import { Button, Chip, EmptyState, Pagination } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
 import type { PagedUsers, UserFilters } from '../api/types';
 import { roleLabels } from '../api/types';
@@ -87,9 +88,9 @@ export function UsersPage() {
     <main className="users-page">
       <div className="users-page-header">
         <h1>Gestionar usuarios</h1>
-        <button type="button" className="primary-btn" onClick={() => setInviteOpen(true)}>
+        <Button type="button" onClick={() => setInviteOpen(true)}>
           Invitar usuario
-        </button>
+        </Button>
       </div>
 
       {inviteSuccess && <p className="success-text">Invitación enviada.</p>}
@@ -114,7 +115,7 @@ export function UsersPage() {
       {error && <p className="error-text">{error}</p>}
 
       {result.items.length === 0 ? (
-        <p className="empty-state">No se han encontrado usuarios</p>
+        <EmptyState>No se han encontrado usuarios</EmptyState>
       ) : (
         <div className="users-table-wrap">
           <table className="users-table">
@@ -133,9 +134,7 @@ export function UsersPage() {
             <tbody>
               {result.items.map((u) => (
                 <tr key={u.id}>
-                  <td>
-                    {u.pending ? <span className="tag-chip">Pendiente</span> : u.name}
-                  </td>
+                  <td>{u.pending ? <Chip>Pendiente</Chip> : u.name}</td>
                   <td>{u.email}</td>
                   <td>{roleLabels[u.role] ?? u.role}</td>
                 </tr>
@@ -145,31 +144,11 @@ export function UsersPage() {
         </div>
       )}
 
-      <div className="pagination">
-        <button
-          type="button"
-          className="ghost-btn small"
-          disabled={filters.page <= 1}
-          onClick={() => set('page', filters.page - 1)}
-        >
-          Anterior
-        </button>
-        <span className="pagination-status">
-          Página {filters.page} de {totalPages}
-        </span>
-        <button
-          type="button"
-          className="ghost-btn small"
-          disabled={filters.page >= totalPages}
-          onClick={() => set('page', filters.page + 1)}
-        >
-          Siguiente
-        </button>
-      </div>
+      <Pagination page={filters.page} pageCount={totalPages} onPageChange={(page) => set('page', page)} />
 
-      <Link to="/" className="ghost-btn small">
+      <Button as={Link} variant="ghost" small to="/">
         Volver
-      </Link>
+      </Button>
 
       {inviteOpen && (
         <InviteUserModal

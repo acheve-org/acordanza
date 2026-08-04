@@ -1,0 +1,2 @@
+.pagination { display: flex; align-items: center; justify-content: center; gap: var(--space-lg); }
+.pagination-status { color: var(--text-dim); font-size: 13px; }

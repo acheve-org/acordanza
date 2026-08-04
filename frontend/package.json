@@ -4,13 +4,16 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "bun run --cwd ../design-system build",
     "dev": "vite",
+    "prebuild": "bun run --cwd ../design-system build",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
     "@github/webauthn-json": "^2.1.1",
+    "acordanza-design-system": "workspace:*",
     "leaflet": "^1.9.4",
     "leaflet-draw": "^1.0.4",
     "react": "^19.2.7",

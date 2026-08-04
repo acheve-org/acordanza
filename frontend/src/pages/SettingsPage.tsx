@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { create, type CredentialCreationOptionsJSON } from '@github/webauthn-json';
+import { Button, EmptyState, ModalActions } from 'acordanza-design-system';
 import * as accountApi from '../api/account';
 import * as passkeysApi from '../api/passkeys';
 import type { PasskeySummary } from '../api/types';
@@ -14,9 +15,9 @@ export function SettingsPage() {
       <ProfileSection />
       <PasswordSection />
       <PasskeysSection />
-      <Link to="/" className="ghost-btn small">
+      <Button as={Link} variant="ghost" small to="/">
         Volver
-      </Link>
+      </Button>
     </main>
   );
 }
@@ -91,11 +92,9 @@ function PasswordSection() {
             />
           </label>
         </div>
-        <div className="modal-actions">
-          <button type="submit" className="primary-btn">
-            Guardar contraseña
-          </button>
-        </div>
+        <ModalActions>
+          <Button type="submit">Guardar contraseña</Button>
+        </ModalActions>
         <p className="error-text">{error}</p>
         {success && <p className="success-text">Contraseña actualizada</p>}
       </form>
@@ -145,7 +144,7 @@ function PasskeysSection() {
       </p>
 
       {passkeys.length === 0 ? (
-        <p className="empty-state">No tienes ninguna llave de acceso registrada</p>
+        <EmptyState>No tienes ninguna llave de acceso registrada</EmptyState>
       ) : (
         <ul className="passkey-list">
           {passkeys.map((p) => (
@@ -178,9 +177,9 @@ function PasskeysSection() {
             onChange={(e) => setNewPasskeyName(e.target.value)}
           />
         </label>
-        <button type="submit" className="primary-btn" disabled={registering}>
+        <Button type="submit" disabled={registering}>
           {registering ? 'Esperando confirmación…' : 'Añadir llave de acceso'}
-        </button>
+        </Button>
         <p className="error-text">{error}</p>
       </form>
     </section>

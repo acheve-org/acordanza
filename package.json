@@ -1,0 +1,8 @@
+{
+  "name": "acordanza",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "design-system"
+  ]
+}

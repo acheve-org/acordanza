@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import { ApiError } from '../api/client';
 
 interface Props {
@@ -26,36 +27,23 @@ export function RejectReasonModal({ title, onClose, onReject }: Props) {
   }
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal">
-        <h2>{title}</h2>
-        <form onSubmit={handleSubmit}>
-          <label>
-            Motivo del rechazo
-            <textarea
-              required
-              rows={3}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              autoFocus
-            />
-          </label>
-          <p className="error-text">{error}</p>
-          <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={onClose}>
-              Cancelar
-            </button>
-            <button type="submit" className="primary-btn" disabled={submitting || !reason.trim()}>
-              {submitting ? 'Rechazando…' : 'Rechazar solicitud'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <Modal onClose={onClose}>
+      <h2>{title}</h2>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Motivo del rechazo
+          <textarea required rows={3} value={reason} onChange={(e) => setReason(e.target.value)} autoFocus />
+        </label>
+        <p className="error-text">{error}</p>
+        <ModalActions>
+          <Button variant="ghost" type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={submitting || !reason.trim()}>
+            {submitting ? 'Rechazando…' : 'Rechazar solicitud'}
+          </Button>
+        </ModalActions>
+      </form>
+    </Modal>
   );
 }

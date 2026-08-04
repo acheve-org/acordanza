@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router';
+import { Button } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import type { AreaSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -44,9 +45,9 @@ export function AreasPage() {
 
       {error && <p className="error-text">{error}</p>}
 
-      <Link to="/" className="ghost-btn small">
+      <Button as={Link} variant="ghost" small to="/">
         Volver
-      </Link>
+      </Button>
     </main>
   );
 }

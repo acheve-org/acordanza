@@ -1,3 +1,4 @@
+import { GradePill } from 'acordanza-design-system';
 import type { TickedRoute } from '../api/types';
 import { gearLabels } from '../api/types';
 
@@ -10,7 +11,7 @@ interface Props {
 export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
   return (
     <div className="route-card" onClick={onSelect}>
-      <span className="grade-pill">{tick.grade}</span>
+      <GradePill>{tick.grade}</GradePill>
       <div className="rc-main">
         <div className="rc-name">{tick.routeName}</div>
         <div className="rc-sub">{tick.areaPath}</div>

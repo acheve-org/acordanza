@@ -6,6 +6,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "design-system/**"
       - "landing/**"
       - "infra/terraform/**"
       - ".github/workflows/ci-cd.yml"
@@ -14,6 +15,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "design-system/**"
       - "landing/**"
       - "infra/terraform/**"
       - ".github/workflows/ci-cd.yml"
@@ -294,7 +296,7 @@ jobs:
         run: |
           docker build \
             --build-arg VITE_API_URL="https://${{ needs.terraform.outputs.backend_custom_domain }}/api" \
-            -t "$IMAGE" -f frontend/Dockerfile frontend
+            -t "$IMAGE" -f frontend/Dockerfile .
           docker push "$IMAGE"
 
       - name: Deploy new image to Container App

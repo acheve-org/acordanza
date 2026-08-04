@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { EmptyState } from 'acordanza-design-system';
 import { AreaPicker } from '../components/AreaPicker';
 import { TickedRouteCard } from '../components/TickedRouteCard';
 import { DetailModal } from '../components/DetailModal';
@@ -192,7 +193,7 @@ export function MyTicksPage() {
             ))}
           </div>
           {items.length === 0 && !loading && (
-            <p className="empty-state">Todavía no has registrado ningún ascenso.</p>
+            <EmptyState>Todavía no has registrado ningún ascenso.</EmptyState>
           )}
           <div ref={sentinelRef} />
           {loading && (

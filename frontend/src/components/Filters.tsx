@@ -1,3 +1,4 @@
+import { Button } from 'acordanza-design-system';
 import type { RouteFilters } from '../api/types';
 import { gearLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -62,9 +63,9 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
       </label>
 
       {hasPermission(Permissions.routeCreate) && (
-        <button className="primary-btn full-width" style={{ marginTop: 24 }} onClick={onAddRoute}>
+        <Button fullWidth style={{ marginTop: 24 }} onClick={onAddRoute}>
           + Añadir vía
-        </button>
+        </Button>
       )}
     </aside>
   );

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { Button, ModalActions } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import { ApiError } from '../api/client';
 import type { RouteDetail, UpsertRouteInput } from '../api/types';
@@ -54,9 +55,9 @@ export function RouteFormPage() {
       <main className="settings-page">
         <h1>Editar vía</h1>
         <p className="error-text">{loadError}</p>
-        <Link to="/" className="ghost-btn small">
+        <Button as={Link} variant="ghost" small to="/">
           Volver
-        </Link>
+        </Button>
       </main>
     );
   }
@@ -158,14 +159,14 @@ export function RouteFormPage() {
               onChange={(firstAscensionistIds) => set('firstAscensionistIds', firstAscensionistIds)}
             />
           </label>
-          <div className="modal-actions">
-            <Link to="/" className="ghost-btn">
+          <ModalActions>
+            <Button as={Link} variant="ghost" to="/">
               Cancelar
-            </Link>
-            <button type="submit" className="primary-btn" disabled={!form.areaId}>
+            </Button>
+            <Button type="submit" disabled={!form.areaId}>
               Guardar vía
-            </button>
-          </div>
+            </Button>
+          </ModalActions>
         </form>
       </section>
     </main>

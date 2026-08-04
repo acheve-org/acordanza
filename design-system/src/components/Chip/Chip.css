@@ -1,0 +1,11 @@
+.tag-chip {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+  padding: 4px var(--space-md);
+}
+.chip-removable { display: inline-flex; align-items: center; gap: 6px; }
+.chip-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
+.chip-remove:hover { color: var(--danger); }

@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet-draw';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
+import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import type { AreaSummary, GeoPoint } from '../api/types';
 import { ApiError } from '../api/client';
@@ -90,62 +91,55 @@ export function AreaPolygonModal({ area, parentPolygon, onClose, onSaved }: Prop
   }
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="modal modal-wide">
-        <h2>{hasPolygon ? 'Editar polígono' : 'Dibujar polígono'} — {area.name}</h2>
+    <Modal onClose={onClose} wide>
+      <h2>{hasPolygon ? 'Editar polígono' : 'Dibujar polígono'} — {area.name}</h2>
 
-        <div className="area-map-editor">
-          {!drawing && !pendingPolygon && (
-            <button type="button" className="ghost-btn small" onClick={() => setDrawing(true)}>
-              {hasPolygon ? 'Redibujar polígono' : 'Dibujar polígono'}
-            </button>
-          )}
-          {drawing && <p className="hint">Haz clic para colocar los vértices y doble clic para cerrar el polígono.</p>}
-          {pendingPolygon && (
-            <div className="modal-actions">
-              <button type="button" className="ghost-btn small" onClick={() => setPendingPolygon(null)}>
-                Cancelar
-              </button>
-              <button type="button" className="primary-btn" disabled={saving} onClick={handleSave}>
-                {saving ? 'Guardando…' : 'Guardar polígono'}
-              </button>
-            </div>
-          )}
-        </div>
-
-        <MapContainer center={SPAIN_CENTER} zoom={SPAIN_ZOOM} className="area-map">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <InitialView ownPolygon={area.polygon} parentPolygon={parentPolygon} />
-
-          {area.polygon.length === 0 && parentPolygon && parentPolygon.length > 0 && (
-            <Polygon positions={toLatLngs(parentPolygon)} pathOptions={{ color: '#8892a0', dashArray: '4', fill: false }} />
-          )}
-
-          {hasPolygon && !pendingPolygon && (
-            <Polygon positions={toLatLngs(area.polygon)} pathOptions={{ color: '#38a169' }} />
-          )}
-
-          {drawing && <PolygonDrawer onCreated={(points) => { setPendingPolygon(points); setDrawing(false); }} />}
-
-          {pendingPolygon && <Polygon positions={toLatLngs(pendingPolygon)} pathOptions={{ color: '#e67e22', dashArray: '4' }} />}
-        </MapContainer>
-
-        {error && <p className="error-text">{error}</p>}
-
-        <div className="modal-actions">
-          <button type="button" className="ghost-btn" onClick={onClose}>
-            Cerrar
-          </button>
-        </div>
+      <div className="area-map-editor">
+        {!drawing && !pendingPolygon && (
+          <Button variant="ghost" small type="button" onClick={() => setDrawing(true)}>
+            {hasPolygon ? 'Redibujar polígono' : 'Dibujar polígono'}
+          </Button>
+        )}
+        {drawing && <p className="hint">Haz clic para colocar los vértices y doble clic para cerrar el polígono.</p>}
+        {pendingPolygon && (
+          <ModalActions>
+            <Button variant="ghost" small type="button" onClick={() => setPendingPolygon(null)}>
+              Cancelar
+            </Button>
+            <Button type="button" disabled={saving} onClick={handleSave}>
+              {saving ? 'Guardando…' : 'Guardar polígono'}
+            </Button>
+          </ModalActions>
+        )}
       </div>
-    </div>
+
+      <MapContainer center={SPAIN_CENTER} zoom={SPAIN_ZOOM} className="area-map">
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <InitialView ownPolygon={area.polygon} parentPolygon={parentPolygon} />
+
+        {area.polygon.length === 0 && parentPolygon && parentPolygon.length > 0 && (
+          <Polygon positions={toLatLngs(parentPolygon)} pathOptions={{ color: '#8892a0', dashArray: '4', fill: false }} />
+        )}
+
+        {hasPolygon && !pendingPolygon && (
+          <Polygon positions={toLatLngs(area.polygon)} pathOptions={{ color: '#38a169' }} />
+        )}
+
+        {drawing && <PolygonDrawer onCreated={(points) => { setPendingPolygon(points); setDrawing(false); }} />}
+
+        {pendingPolygon && <Polygon positions={toLatLngs(pendingPolygon)} pathOptions={{ color: '#e67e22', dashArray: '4' }} />}
+      </MapContainer>
+
+      {error && <p className="error-text">{error}</p>}
+
+      <ModalActions>
+        <Button variant="ghost" type="button" onClick={onClose}>
+          Cerrar
+        </Button>
+      </ModalActions>
+    </Modal>
   );
 }

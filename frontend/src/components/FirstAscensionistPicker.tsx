@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Button, Chip, ModalActions } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import type { FirstAscensionistSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -55,13 +56,10 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
       {selected.length > 0 && (
         <div className="tag-row" style={{ marginBottom: 8 }}>
           {selected.map((o) => (
-            <span key={o.id} className="tag-chip chip-removable">
+            <Chip key={o.id} onRemove={() => removeFirstAscensionist(o.id)}>
               {o.name}
               {o.linkedUserName && <span className="hint"> · {o.linkedUserName}</span>}
-              <button type="button" className="chip-remove" onClick={() => removeFirstAscensionist(o.id)}>
-                &times;
-              </button>
-            </span>
+            </Chip>
           ))}
         </div>
       )}
@@ -93,9 +91,9 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
       )}
       {canCreate &&
         (!showCreate ? (
-          <button type="button" className="ghost-btn small" onClick={() => setShowCreate(true)}>
+          <Button variant="ghost" small type="button" onClick={() => setShowCreate(true)}>
             + Nuevo aperturista
-          </button>
+          </Button>
         ) : (
           <div className="combo-create-form">
             <input
@@ -104,14 +102,14 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
-            <div className="modal-actions">
-              <button type="button" className="ghost-btn small" onClick={() => setShowCreate(false)}>
+            <ModalActions>
+              <Button variant="ghost" small type="button" onClick={() => setShowCreate(false)}>
                 Cancelar
-              </button>
-              <button type="button" className="primary-btn" onClick={handleCreate}>
+              </Button>
+              <Button type="button" onClick={handleCreate}>
                 Añadir
-              </button>
-            </div>
+              </Button>
+            </ModalActions>
           </div>
         ))}
     </div>
