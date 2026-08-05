@@ -108,8 +108,8 @@ resource "azurerm_container_app" "main" {
       # Terraform only owns the *infra*, not the running image, so it
       # ignores drift on this field after the first apply.
       image  = var.bootstrap_image
-      cpu    = 0.25
-      memory = "0.5Gi"
+      cpu    = 0.5
+      memory = "1.0Gi"
 
       env {
         name  = "ASPNETCORE_HTTP_PORTS"

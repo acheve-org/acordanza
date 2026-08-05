@@ -29,9 +29,9 @@ variable "postgres_admin_password" {
 }
 
 variable "postgres_sku_name" {
-  description = "Postgres Flexible Server compute SKU. B_Standard_B1ms is the cheapest burstable tier, plenty for a handful of users."
+  description = "Postgres Flexible Server compute SKU. B_Standard_B2s is a burstable tier, plenty for a handful of users."
   type        = string
-  default     = "B_Standard_B1ms"
+  default     = "B_Standard_B2s"
 }
 
 variable "postgres_storage_mb" {

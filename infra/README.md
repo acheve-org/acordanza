@@ -15,7 +15,7 @@ Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
 │   └── Container App (ca-acordanza-prod-web)   — the frontend (nginx), scale-to-zero
 │       └── shared user-assigned managed identity — AcrPull on the registry
 ├── Static Web App (stapp-acordanza-prod-landing) — marketing landing page (landing/)
-├── Postgres Flexible Server (Burstable B1ms)
+├── Postgres Flexible Server (Burstable B2s)
 │   └── database: acordanza
 └── Storage Account (stacordanzaprod<random>)     — topo images, private container
     └── container: topos                          — read via backend-issued SAS URLs only
