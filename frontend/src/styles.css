@@ -465,6 +465,31 @@ input:focus, select:focus, textarea:focus {
 .passkey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
 .passkey-form { border-top: 1px solid var(--border); padding-top: var(--space-md); }
 
+.expert-banner {
+  background: var(--accent-2-bg);
+  border: 1px solid var(--accent-2-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+.expert-banner-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  color: var(--accent-2);
+}
+.expert-banner h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--text);
+  margin: 0 0 var(--space-xxs);
+}
+.expert-banner p { margin: 0; color: var(--text-dim); font-size: 13px; }
+.expert-banner strong { color: var(--text); }
+
 .users-page-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
 .users-toolbar { display: flex; gap: var(--space-md); }
 .users-toolbar input { flex: 1; }

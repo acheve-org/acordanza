@@ -1,12 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, EmptyState } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
 import * as areasApi from '../api/areas';
 import type { AreaExpert, AreaSummary } from '../api/types';
-import { Permissions } from '../api/permissions';
 import { ApiError } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { PendingAreaExpertRequests } from '../components/PendingAreaExpertRequests';
+import { RequestAreaExpertModal } from '../components/RequestAreaExpertModal';
 
 const statusLabels: Record<AreaExpert['status'], string> = {
   pending: 'Solicitud pendiente de aprobación',
@@ -15,14 +13,10 @@ const statusLabels: Record<AreaExpert['status'], string> = {
 };
 
 export function MyAreasPage() {
-  const { hasPermission } = useAuth();
-  const canApprove = hasPermission(Permissions.areaExpertApprove);
-
   const [areas, setAreas] = useState<AreaSummary[]>([]);
   const [mine, setMine] = useState<AreaExpert[]>([]);
-  const [pending, setPending] = useState<AreaExpert[]>([]);
-  const [selectedAreaId, setSelectedAreaId] = useState('');
   const [error, setError] = useState('');
+  const [requesting, setRequesting] = useState(false);
 
   function refresh() {
     areasApi.listAreas().then(setAreas);
@@ -30,28 +24,13 @@ export function MyAreasPage() {
       .listMyAreaExperts()
       .then(setMine)
       .catch((err) => setError(err instanceof ApiError ? err.message : 'No se pudieron cargar tus sectores'));
-    if (canApprove) {
-      areaExpertsApi.listPendingAreaExperts().then(setPending);
-    }
   }
 
-  useEffect(refresh, [canApprove]);
+  useEffect(refresh, []);
 
+  const approvedAreas = mine.filter((e) => e.status === 'approved');
   const activeRequestAreaIds = new Set(mine.filter((e) => e.status !== 'rejected').map((e) => e.areaId));
   const availableAreas = areas.filter((a) => a.parentAreaId === null && !activeRequestAreaIds.has(a.id));
-
-  async function handleRequest(e: FormEvent) {
-    e.preventDefault();
-    if (!selectedAreaId) return;
-    setError('');
-    try {
-      await areaExpertsApi.requestAreaExpert(Number(selectedAreaId));
-      setSelectedAreaId('');
-      refresh();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo solicitar el acceso');
-    }
-  }
 
   async function handleWithdraw(id: number) {
     try {
@@ -62,9 +41,33 @@ export function MyAreasPage() {
     refresh();
   }
 
+  function handleRequested() {
+    setRequesting(false);
+    refresh();
+  }
+
   return (
     <>
       <h1>Mis sectores</h1>
+
+      {approvedAreas.length > 0 && (
+        <div className="expert-banner">
+          <svg className="expert-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+            <path
+              d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"
+              strokeLinejoin="round"
+            />
+            <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div>
+            <h2>Eres experto de {approvedAreas.length === 1 ? 'un sector' : `${approvedAreas.length} sectores`}</h2>
+            <p>
+              Como experto de <strong>{approvedAreas.map((e) => e.areaName).join(', ')}</strong> puedes validar las
+              vías de ese sector y de sus subsectores desde la ficha de cada vía.
+            </p>
+          </div>
+        </div>
+      )}
 
       <section className="settings-section">
         {mine.length === 0 ? (
@@ -102,31 +105,15 @@ export function MyAreasPage() {
         {availableAreas.length === 0 ? (
           <p className="hint">No quedan sectores disponibles para solicitar.</p>
         ) : (
-          <form onSubmit={handleRequest} className="passkey-form">
-            <label>
-              Sector
-              <select value={selectedAreaId} onChange={(e) => setSelectedAreaId(e.target.value)}>
-                <option value="">Selecciona un sector…</option>
-                {availableAreas.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <Button type="submit" disabled={!selectedAreaId}>
-              Solicitar
-            </Button>
-          </form>
+          <Button type="button" onClick={() => setRequesting(true)}>
+            Solicitar acceso
+          </Button>
         )}
         {error && <p className="error-text">{error}</p>}
       </section>
 
-      {canApprove && (
-        <section className="settings-section">
-          <h2>Solicitudes pendientes</h2>
-          <PendingAreaExpertRequests items={pending} onChange={refresh} />
-        </section>
+      {requesting && (
+        <RequestAreaExpertModal areas={availableAreas} onClose={() => setRequesting(false)} onRequested={handleRequested} />
       )}
     </>
   );
