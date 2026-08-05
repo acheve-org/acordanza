@@ -1,5 +1,4 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { Button, EmptyState } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
 import * as areasApi from '../api/areas';
@@ -64,7 +63,7 @@ export function MyAreasPage() {
   }
 
   return (
-    <main className="settings-page">
+    <>
       <h1>Mis sectores</h1>
 
       <section className="settings-section">
@@ -129,10 +128,6 @@ export function MyAreasPage() {
           <PendingAreaExpertRequests items={pending} onChange={refresh} />
         </section>
       )}
-
-      <Button as={Link} variant="ghost" small to="/">
-        Volver
-      </Button>
-    </main>
+    </>
   );
 }

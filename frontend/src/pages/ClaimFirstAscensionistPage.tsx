@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { Button, EmptyState } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
@@ -80,7 +79,7 @@ export function ClaimFirstAscensionistPage() {
   }
 
   return (
-    <main className="settings-page">
+    <>
       <h1>Vincular aperturista</h1>
 
       <section className="settings-section">
@@ -154,10 +153,6 @@ export function ClaimFirstAscensionistPage() {
           <PendingFirstAscensionistLinkRequests items={pending} onChange={refreshAll} />
         </section>
       )}
-
-      <Button as={Link} variant="ghost" small to="/">
-        Volver
-      </Button>
-    </main>
+    </>
   );
 }

@@ -13,32 +13,32 @@ export function ManageLayout() {
   if (!canAreas && !canUsers && !pendingTasksVisible) return <Navigate to="/" replace />;
 
   return (
-    <main className="manage-layout">
-      <aside className="manage-nav">
+    <main className="side-nav-layout">
+      <aside className="side-nav">
         <h2>Gestionar</h2>
         {canAreas && (
-          <NavLink className={({ isActive }) => `manage-nav-item${isActive ? ' active' : ''}`} to="/manage/areas">
+          <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/manage/areas">
             Sectores
           </NavLink>
         )}
         {canUsers && (
-          <NavLink className={({ isActive }) => `manage-nav-item${isActive ? ' active' : ''}`} to="/manage/users">
+          <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/manage/users">
             Usuarios
           </NavLink>
         )}
         {pendingTasksVisible && (
           <NavLink
-            className={({ isActive }) => `manage-nav-item${isActive ? ' active' : ''}`}
+            className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`}
             to="/manage/pending-tasks"
           >
             <span>Tareas pendientes</span>
             {pendingTasksTotal > 0 && (
-              <span className="manage-nav-badge">{pendingTasksTotal > 99 ? '99+' : pendingTasksTotal}</span>
+              <span className="side-nav-badge">{pendingTasksTotal > 99 ? '99+' : pendingTasksTotal}</span>
             )}
           </NavLink>
         )}
       </aside>
-      <section className="manage-content">
+      <section className="side-nav-content">
         <Outlet />
       </section>
     </main>

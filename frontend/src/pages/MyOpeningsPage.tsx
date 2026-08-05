@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router';
-import { Button } from 'acordanza-design-system';
+import { Navigate, useNavigate } from 'react-router';
 import { RoutesList } from '../components/RoutesList';
 import { DetailModal } from '../components/DetailModal';
 import * as routesApi from '../api/routes';
@@ -39,7 +38,7 @@ export function MyOpeningsPage() {
     if (detailRouteId !== null) routesApi.getRoute(detailRouteId).then(setDetailRoute);
   }
 
-  if (!isFirstAscensionist) return <Navigate to="/" replace />;
+  if (!isFirstAscensionist) return <Navigate to="/my-acordanza" replace />;
 
   async function handleDeleteRoute() {
     if (!detailRouteId) return;
@@ -81,10 +80,6 @@ export function MyOpeningsPage() {
       <main className="layout">
         <RoutesList routes={routes} onSelect={setDetailRouteId} />
       </main>
-
-      <Button as={Link} variant="ghost" small to="/">
-        Volver
-      </Button>
 
       <DetailModal
         route={detailRoute}

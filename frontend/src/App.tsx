@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
-import { Button } from 'acordanza-design-system';
 import { useAuth } from './context/AuthContext';
 import { usePendingTasks } from './context/PendingTasksContext';
 import { Permissions } from './api/permissions';
@@ -19,9 +18,10 @@ import { MyOpeningsPage } from './pages/MyOpeningsPage';
 import { MyTicksPage } from './pages/MyTicksPage';
 import { PendingTasksPage } from './pages/PendingTasksPage';
 import { ManageLayout, ManageIndexRedirect } from './pages/ManageLayout';
+import { MyAcordanzaLayout, MyAcordanzaIndexRedirect } from './pages/MyAcordanzaLayout';
 
 function AppLayout() {
-  const { name, hasPermission, isFirstAscensionist, logout } = useAuth();
+  const { name, hasPermission, logout } = useAuth();
   const { visible: pendingTasksVisible, total: pendingTasksTotal } = usePendingTasks();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -90,41 +90,34 @@ function AppLayout() {
             {userMenuOpen && (
               <div className="user-menu-popup">
                 <span className="user-menu-name">{name}</span>
-                <Button as={Link} variant="ghost" small fullWidth to="/my-areas" onClick={() => setUserMenuOpen(false)}>
-                  Mis sectores
-                </Button>
-                <Button
-                  as={Link}
-                  variant="ghost"
-                  small
-                  fullWidth
-                  to="/claim-first-ascensionist"
-                  onClick={() => setUserMenuOpen(false)}
-                >
-                  Vincular aperturista
-                </Button>
-                <Button as={Link} variant="ghost" small fullWidth to="/my-routes" onClick={() => setUserMenuOpen(false)}>
-                  Mis vías
-                </Button>
-                {isFirstAscensionist && (
-                  <Button as={Link} variant="ghost" small fullWidth to="/my-openings" onClick={() => setUserMenuOpen(false)}>
-                    Mis aperturas
-                  </Button>
-                )}
-                <Button as={Link} variant="ghost" small fullWidth to="/settings" onClick={() => setUserMenuOpen(false)}>
+                <div className="user-menu-divider" />
+                <Link className="user-menu-item" to="/my-acordanza" onClick={() => setUserMenuOpen(false)}>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8v1H4v-1z" />
+                  </svg>
+                  Mi acordanza
+                </Link>
+                <Link className="user-menu-item" to="/settings" onClick={() => setUserMenuOpen(false)}>
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.41h-3.84a.5.5 0 0 0-.5.41l-.36 2.54a7.03 7.03 0 0 0-1.62.94l-2.39-.96a.5.5 0 0 0-.59.22L2.74 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54a.5.5 0 0 0 .5.41h3.84a.5.5 0 0 0 .5-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z" />
+                  </svg>
                   Configuración
-                </Button>
-                <Button
-                  variant="ghost"
-                  small
-                  fullWidth
+                </Link>
+                <div className="user-menu-divider" />
+                <button
+                  type="button"
+                  className="user-menu-item"
                   onClick={() => {
                     setUserMenuOpen(false);
                     logout();
                   }}
                 >
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M17 7l-1.41 1.41L17.17 10H9v2h8.17l-1.58 1.59L17 15l4-4-4-4zM5 5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7v-2H5V5z" />
+                  </svg>
                   Cerrar sesión
-                </Button>
+                </button>
               </div>
             )}
           </div>
@@ -155,10 +148,21 @@ function App() {
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
         <Route path="map" element={<MapPage />} />
-        <Route path="my-areas" element={<MyAreasPage />} />
-        <Route path="claim-first-ascensionist" element={<ClaimFirstAscensionistPage />} />
-        <Route path="my-routes" element={<MyTicksPage />} />
-        <Route path="my-openings" element={<MyOpeningsPage />} />
+        {/* Pre-#77 top-level paths — kept as redirects so old bookmarks/links still land. */}
+        <Route path="my-areas" element={<Navigate to="/my-acordanza/my-areas" replace />} />
+        <Route
+          path="claim-first-ascensionist"
+          element={<Navigate to="/my-acordanza/claim-first-ascensionist" replace />}
+        />
+        <Route path="my-routes" element={<Navigate to="/my-acordanza/my-routes" replace />} />
+        <Route path="my-openings" element={<Navigate to="/my-acordanza/my-openings" replace />} />
+        <Route path="my-acordanza" element={<MyAcordanzaLayout />}>
+          <Route index element={<MyAcordanzaIndexRedirect />} />
+          <Route path="my-areas" element={<MyAreasPage />} />
+          <Route path="claim-first-ascensionist" element={<ClaimFirstAscensionistPage />} />
+          <Route path="my-routes" element={<MyTicksPage />} />
+          <Route path="my-openings" element={<MyOpeningsPage />} />
+        </Route>
         <Route path="settings" element={<SettingsPage />} />
         <Route path="manage" element={<ManageLayout />}>
           <Route index element={<ManageIndexRedirect />} />

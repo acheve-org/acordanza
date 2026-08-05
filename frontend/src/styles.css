@@ -184,15 +184,38 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-sm);
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: var(--space-sm);
-  min-width: 160px;
+  padding: var(--space-xs) 0;
+  min-width: 200px;
   z-index: 10;
+  overflow: hidden;
 }
-.user-menu-name { color: var(--text-dim); font-size: 13px; text-align: center; }
+.user-menu-name {
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: left;
+}
+.user-menu-divider { height: 1px; background: var(--border); margin: var(--space-xs) 0; }
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.user-menu-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-dim); }
+.user-menu-item:hover { background: var(--bg-card-hover); }
 
 .layout {
   display: grid;
@@ -472,18 +495,20 @@ input:focus, select:focus, textarea:focus {
   white-space: nowrap;
 }
 
-/* Manage section (admin) — sectores/usuarios/tareas pendientes share one shell with a
-   left nav, see --page-max-width note on .settings-page for why the width matches.
-   Left-aligned (no auto margin), unlike settings/that note's other boxed pages, since
-   its own left nav reads as a menu and should hug the page edge like routes/map do. */
-.manage-layout {
+/* Shared left-nav page shell — used by the Manage section (admin: sectores/usuarios/
+   tareas pendientes) and the Mi acordanza section (mis sectores/vincular aperturista/
+   mis vías/mis aperturas), see --page-max-width note on .settings-page for why the
+   width matches. Left-aligned (no auto margin), unlike settings/that note's other
+   boxed pages, since its own left nav reads as a menu and should hug the page edge
+   like routes/map do. */
+.side-nav-layout {
   display: grid;
   grid-template-columns: 220px 1fr;
   gap: var(--space-xxl);
   max-width: var(--page-max-width);
   padding: var(--space-xxl);
 }
-.manage-nav {
+.side-nav {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
@@ -491,7 +516,7 @@ input:focus, select:focus, textarea:focus {
   top: var(--space-xxl);
   align-self: start;
 }
-.manage-nav h2 {
+.side-nav h2 {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: 13px;
@@ -500,7 +525,7 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-dim);
   margin: 0 0 var(--space-xs);
 }
-.manage-nav-item {
+.side-nav-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -513,9 +538,9 @@ input:focus, select:focus, textarea:focus {
   text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.manage-nav-item:hover { background: var(--bg-card-hover); color: var(--text); }
-.manage-nav-item.active { background: var(--bg-card); color: var(--text); }
-.manage-nav-badge {
+.side-nav-item:hover { background: var(--bg-card-hover); color: var(--text); }
+.side-nav-item.active { background: var(--bg-card); color: var(--text); }
+.side-nav-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -528,8 +553,8 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700;
   border-radius: var(--radius-full);
 }
-.manage-content { min-width: 0; display: flex; flex-direction: column; gap: var(--space-lg); }
-.manage-content h1 {
+.side-nav-content { min-width: 0; display: flex; flex-direction: column; gap: var(--space-lg); }
+.side-nav-content h1 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 24px;
@@ -665,8 +690,8 @@ input:focus, select:focus, textarea:focus {
   .filters { position: static; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .settings-page { padding: var(--space-xl); }
-  .manage-layout { grid-template-columns: 1fr; padding: var(--space-xl); }
-  .manage-nav { position: static; flex-direction: row; flex-wrap: wrap; }
+  .side-nav-layout { grid-template-columns: 1fr; padding: var(--space-xl); }
+  .side-nav { position: static; flex-direction: row; flex-wrap: wrap; }
   .users-page-header { flex-direction: column; align-items: stretch; }
   .users-toolbar { flex-direction: column; }
   .users-toolbar select { width: 100%; }
