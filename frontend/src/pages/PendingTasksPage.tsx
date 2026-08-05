@@ -1,15 +1,19 @@
-import { useState } from 'react';
-import { Navigate } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Navigate, useNavigate } from 'react-router';
 import { Button, EmptyState } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
+import * as toposApi from '../api/topos';
 import { usePendingTasks } from '../context/PendingTasksContext';
 import { PendingAreaExpertRequests } from '../components/PendingAreaExpertRequests';
 import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
+import { DetailModal } from '../components/DetailModal';
+import type { CreateTickInput, RouteDetail } from '../api/types';
 
 type Tab = 'routes' | 'areas' | 'areaExperts' | 'firstAscensionistLinks';
 
 export function PendingTasksPage() {
+  const navigate = useNavigate();
   const {
     pendingRoutes,
     pendingAreas,
@@ -22,6 +26,27 @@ export function PendingTasksPage() {
     showFirstAscensionistLinks,
     refresh,
   } = usePendingTasks();
+
+  const [detailRouteId, setDetailRouteId] = useState<number | null>(null);
+  const [detailRoute, setDetailRoute] = useState<RouteDetail | null>(null);
+
+  useEffect(() => {
+    if (detailRouteId === null) {
+      setDetailRoute(null);
+      return;
+    }
+    let cancelled = false;
+    routesApi.getRoute(detailRouteId).then((route) => {
+      if (!cancelled) setDetailRoute(route);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [detailRouteId]);
+
+  function refreshDetail() {
+    if (detailRouteId !== null) routesApi.getRoute(detailRouteId).then(setDetailRoute);
+  }
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     ...(showRoutes ? [{ key: 'routes' as const, label: 'Vías', count: pendingRoutes.length }] : []),
@@ -46,9 +71,37 @@ export function PendingTasksPage() {
 
   if (!visible) return <Navigate to="/" replace />;
 
-  async function handleValidateRoute(id: number) {
-    await routesApi.validateRoute(id);
+  async function handleValidateRoute() {
+    if (detailRouteId === null) return;
+    await routesApi.validateRoute(detailRouteId);
+    refreshDetail();
     refresh();
+  }
+
+  async function handleDeleteRoute() {
+    if (detailRouteId === null) return;
+    if (!confirm('¿Eliminar esta vía y todos sus ascensos registrados?')) return;
+    await routesApi.deleteRoute(detailRouteId);
+    setDetailRouteId(null);
+    refresh();
+  }
+
+  async function handleAddTick(input: CreateTickInput) {
+    if (detailRouteId === null) return;
+    await routesApi.createTick(detailRouteId, input);
+    refreshDetail();
+    refresh();
+  }
+
+  async function handleUploadTopo(file: File) {
+    if (detailRouteId === null) return;
+    await toposApi.uploadTopo(detailRouteId, file);
+    refreshDetail();
+  }
+
+  async function handleDeleteTopo(topoId: number) {
+    await toposApi.deleteTopo(topoId);
+    refreshDetail();
   }
 
   async function handleValidateArea(id: number) {
@@ -81,16 +134,17 @@ export function PendingTasksPage() {
           ) : (
             <ul className="passkey-list">
               {pendingRoutes.map((r) => (
-                <li key={r.id} className="tick-row">
+                <li
+                  key={r.id}
+                  className="tick-row tick-row--clickable"
+                  onClick={() => setDetailRouteId(r.id)}
+                >
                   <div>
                     <div className="tr-who">{r.name}</div>
                     <div className="tr-notes">
                       {r.areaPath} · {r.grade}
                     </div>
                   </div>
-                  <Button variant="ghost" small type="button" onClick={() => handleValidateRoute(r.id)}>
-                    Validar
-                  </Button>
                 </li>
               ))}
             </ul>
@@ -128,6 +182,19 @@ export function PendingTasksPage() {
           <PendingFirstAscensionistLinkRequests items={pendingFirstAscensionistLinks} onChange={refresh} />
         </section>
       )}
+
+      <DetailModal
+        route={detailRoute}
+        onClose={() => setDetailRouteId(null)}
+        onEdit={() => {
+          if (detailRouteId !== null) navigate(`/routes/${detailRouteId}/edit`);
+        }}
+        onDelete={handleDeleteRoute}
+        onValidate={handleValidateRoute}
+        onAddTick={handleAddTick}
+        onUploadTopo={handleUploadTopo}
+        onDeleteTopo={handleDeleteTopo}
+      />
     </>
   );
 }
