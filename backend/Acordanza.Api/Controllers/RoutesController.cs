@@ -1,3 +1,4 @@
+using System.Data;
 using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
@@ -43,6 +44,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             .Include(r => r.ValidatedBy)
             .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
             .Include(r => r.Topos)
+            .AsSplitQuery()
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
@@ -67,7 +69,12 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             query = query.Where(r => r.Topos.Any());
         }
 
-        var routes = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
+        List<ClimbingRoute> routes;
+        await using (var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead))
+        {
+            routes = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
+            await transaction.CommitAsync();
+        }
 
         var canValidateArea = await BuildCanValidateAreaCheckAsync(areaById);
 
@@ -93,12 +100,18 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     [HttpGet("{id:int}")]
     public async Task<ActionResult<RouteDetailDto>> GetRoute(int id)
     {
-        var route = await db.Routes
-            .Include(r => r.AddedBy)
-            .Include(r => r.ValidatedBy)
-            .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
-            .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
-            .FirstOrDefaultAsync(r => r.Id == id);
+        ClimbingRoute? route;
+        await using (var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead))
+        {
+            route = await db.Routes
+                .Include(r => r.AddedBy)
+                .Include(r => r.ValidatedBy)
+                .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
+                .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(r => r.Id == id);
+            await transaction.CommitAsync();
+        }
 
         if (route is null) return NotFound(new { error = "No encontrado" });
 
