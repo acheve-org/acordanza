@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
 import * as areaExpertsApi from '../api/areaExperts';
@@ -12,6 +12,10 @@ const emptyRouteFilters = { q: '', areaId: '', gear: '', tag: '', hasTopo: '' };
 interface PendingTasksValue {
   pendingRoutes: RouteSummary[];
   pendingAreas: AreaSummary[];
+  // All areas (validated or not), keyed by id — lets callers resolve a pending area's
+  // ancestor chain even when some ancestors are already validated and so absent from
+  // `pendingAreas` itself.
+  areasById: Map<number, AreaSummary>;
   pendingAreaExperts: AreaExpert[];
   pendingFirstAscensionistLinks: FirstAscensionistLinkRequestSummary[];
   total: number;
@@ -37,6 +41,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
 
   const [pendingRoutes, setPendingRoutes] = useState<RouteSummary[]>([]);
   const [pendingAreas, setPendingAreas] = useState<AreaSummary[]>([]);
+  const [allAreas, setAllAreas] = useState<AreaSummary[]>([]);
   const [pendingAreaExperts, setPendingAreaExperts] = useState<AreaExpert[]>([]);
   const [pendingFirstAscensionistLinks, setPendingFirstAscensionistLinks] = useState<
     FirstAscensionistLinkRequestSummary[]
@@ -47,6 +52,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
     if (!username || !visible) {
       setPendingRoutes([]);
       setPendingAreas([]);
+      setAllAreas([]);
       setPendingAreaExperts([]);
       setPendingFirstAscensionistLinks([]);
       return;
@@ -61,9 +67,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       showRoutes
         ? routesApi.listRoutes(emptyRouteFilters).then((routes) => routes.filter((r) => !r.validatedAt && r.canValidate))
         : Promise.resolve<RouteSummary[]>([]),
-      showAreas
-        ? areasApi.listAreas().then((areas) => areas.filter((a) => !a.validatedAt))
-        : Promise.resolve<AreaSummary[]>([]),
+      showAreas ? areasApi.listAreas() : Promise.resolve<AreaSummary[]>([]),
       showAreaExperts ? areaExpertsApi.listPendingAreaExperts() : Promise.resolve<AreaExpert[]>([]),
       showFirstAscensionistLinks
         ? firstAscensionistLinksApi.listPendingFirstAscensionistLinks()
@@ -72,8 +76,10 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       .then(([routes, areas, areaExperts, firstAscensionistLinks]) => {
         if (routes.status === 'fulfilled') setPendingRoutes(routes.value);
         else console.error('No se pudieron cargar las vías pendientes', routes.reason);
-        if (areas.status === 'fulfilled') setPendingAreas(areas.value);
-        else console.error('No se pudieron cargar los sectores pendientes', areas.reason);
+        if (areas.status === 'fulfilled') {
+          setAllAreas(areas.value);
+          setPendingAreas(areas.value.filter((a) => !a.validatedAt));
+        } else console.error('No se pudieron cargar los sectores pendientes', areas.reason);
         if (areaExperts.status === 'fulfilled') setPendingAreaExperts(areaExperts.value);
         else console.error('No se pudieron cargar las solicitudes de expertos de sector', areaExperts.reason);
         if (firstAscensionistLinks.status === 'fulfilled') setPendingFirstAscensionistLinks(firstAscensionistLinks.value);
@@ -85,6 +91,8 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
 
   useEffect(refresh, [refresh]);
 
+  const areasById = useMemo(() => new Map(allAreas.map((a) => [a.id, a])), [allAreas]);
+
   const total =
     pendingRoutes.length + pendingAreas.length + pendingAreaExperts.length + pendingFirstAscensionistLinks.length;
 
@@ -93,6 +101,7 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       value={{
         pendingRoutes,
         pendingAreas,
+        areasById,
         pendingAreaExperts,
         pendingFirstAscensionistLinks,
         total,

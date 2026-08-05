@@ -391,6 +391,8 @@ input:focus, select:focus, textarea:focus {
 }
 .tick-row .tr-who { font-weight: 600; }
 .tick-row .tr-notes { color: var(--text-dim); }
+.area-root-badge { display: inline-flex; align-items: center; gap: 4px; }
+.area-root-icon { width: 13px; height: 13px; flex-shrink: 0; }
 .tick-row--clickable { cursor: pointer; }
 .tick-row--clickable:hover { border-color: var(--accent); }
 .tick-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; line-height: 1; }

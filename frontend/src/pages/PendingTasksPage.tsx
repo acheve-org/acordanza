@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router';
 import { Button, EmptyState } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
+import { areaPath } from '../api/areas';
 import * as toposApi from '../api/topos';
 import { usePendingTasks } from '../context/PendingTasksContext';
 import { PendingAreaExpertRequests } from '../components/PendingAreaExpertRequests';
@@ -17,6 +18,7 @@ export function PendingTasksPage() {
   const {
     pendingRoutes,
     pendingAreas,
+    areasById,
     pendingAreaExperts,
     pendingFirstAscensionistLinks,
     visible,
@@ -160,7 +162,29 @@ export function PendingTasksPage() {
             <ul className="passkey-list">
               {pendingAreas.map((a) => (
                 <li key={a.id} className="tick-row">
-                  <div className="tr-who">{a.name}</div>
+                  <div>
+                    <div className="tr-who">{a.name}</div>
+                    <div className="tr-notes">
+                      {a.parentAreaId === null ? (
+                        <span className="area-root-badge">
+                          <svg
+                            className="area-root-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            aria-label="Sector principal"
+                          >
+                            <title>Sector principal</title>
+                            <path d="M3 10.5 12 4l9 6.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M5 9.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          Sector principal
+                        </span>
+                      ) : (
+                        areaPath(a, areasById)
+                      )}
+                    </div>
+                  </div>
                   <Button variant="ghost" small type="button" onClick={() => handleValidateArea(a.id)}>
                     Validar
                   </Button>
