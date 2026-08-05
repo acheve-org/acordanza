@@ -34,4 +34,8 @@ resource "azurerm_container_app_environment" "main" {
   resource_group_name        = data.azurerm_resource_group.main.name
   location                   = data.azurerm_resource_group.main.location
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  # azurerm v5 made logs_destination non-Computed, defaulting to empty
+  # (streaming-only). Without this, upgrading the provider would silently
+  # stop persisting container app logs to the Log Analytics workspace above.
+  logs_destination = "log-analytics"
 }
