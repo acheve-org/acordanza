@@ -8,6 +8,7 @@
   "runtimeFontPrefixes": ["Inter", "JetBrains Mono", "Archivo"],
   "readmeHeader": ".design-sync/conventions.md",
   "overrides": {
-    "Modal": { "cardMode": "single", "viewport": "600x520" }
+    "Modal": { "cardMode": "single", "viewport": "600x520" },
+    "ConfirmModal": { "cardMode": "single", "viewport": "600x360" }
   }
 }
