@@ -182,9 +182,13 @@ public class AuthController(
 
     // Lets both ResetPasswordScreen and AcceptInviteScreen check a link's token
     // before showing the form, instead of only finding out it's dead when the
-    // user submits. Read-only: VerifyUserTokenAsync (unlike ResetPasswordAsync)
-    // doesn't rotate the security stamp, so checking here doesn't consume the
-    // token or affect the real submit later.
+    // user submits. Read-only: VerifyUserTokenAsync (unlike ResetPasswordAsync/
+    // AddPasswordAsync+UpdateSecurityStampAsync) doesn't rotate the security
+    // stamp, so checking here doesn't consume the token or affect the real
+    // submit later. Both screens share this one endpoint/request shape, so a
+    // token is accepted if it's valid for either purpose — a reset-password
+    // token can never also verify against the invite provider (and vice versa),
+    // since VerifyUserTokenAsync checks the provider it's asked to check.
     [HttpPost("validate-token")]
     public async Task<ActionResult> ValidateToken(ValidateTokenRequest request)
     {
@@ -196,9 +200,11 @@ public class AuthController(
             return BadRequest(new { error = "El enlace no es válido o ha caducado" });
         }
 
-        var valid = await userManager.VerifyUserTokenAsync(
+        var validForReset = await userManager.VerifyUserTokenAsync(
             user, userManager.Options.Tokens.PasswordResetTokenProvider, ResetPasswordTokenPurpose, token);
-        if (!valid)
+        var validForInvite = await userManager.VerifyUserTokenAsync(
+            user, InviteTokens.ProviderName, InviteTokens.Purpose, token);
+        if (!validForReset && !validForInvite)
         {
             return BadRequest(new { error = "El enlace no es válido o ha caducado" });
         }
@@ -206,9 +212,10 @@ public class AuthController(
         return Ok(new { ok = true });
     }
 
-    // Completes an admin-issued invite (see UsersController.InviteUser): sets the
-    // password via the same single-use reset-token mechanism forgot-password uses,
-    // and records the display name chosen by the new user.
+    // Completes an invite (see UsersController.InviteUser): sets the password via
+    // the invite-specific single-use token (InviteTokens — a distinct provider/
+    // purpose from forgot-password's, see Services/InviteTokenProvider.cs), and
+    // records the display name chosen by the new user.
     [HttpPost("accept-invite")]
     public async Task<ActionResult> AcceptInvite(AcceptInviteRequest request)
     {
@@ -226,18 +233,37 @@ public class AuthController(
             return BadRequest(new { error = "El enlace no es válido o ha caducado" });
         }
 
-        var result = await userManager.ResetPasswordAsync(user, token, request.Password);
-        if (!result.Succeeded)
+        var valid = await userManager.VerifyUserTokenAsync(user, InviteTokens.ProviderName, InviteTokens.Purpose, token);
+        if (!valid)
         {
-            return BadRequest(new { error = ResetPasswordErrorMessage(result) });
+            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
         }
 
-        user.Name = name;
-        var updateResult = await userManager.UpdateAsync(user);
-        if (!updateResult.Succeeded)
+        // Wrapped in a transaction so a failure partway through (e.g. the Name save)
+        // rolls back the password/security-stamp changes too, rather than leaving the
+        // account partially activated with its single-use token already burned and no
+        // way to retry the same invite link.
+        await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            var error = updateResult.Errors.FirstOrDefault()?.Description ?? "No se pudo guardar el nombre";
-            return BadRequest(new { error });
+            var addPasswordResult = await userManager.AddPasswordAsync(user, request.Password);
+            if (!addPasswordResult.Succeeded)
+            {
+                return BadRequest(new { error = ResetPasswordErrorMessage(addPasswordResult) });
+            }
+
+            // AddPasswordAsync, unlike ResetPasswordAsync, doesn't rotate the security
+            // stamp on its own — do it explicitly so this token can't be replayed.
+            await userManager.UpdateSecurityStampAsync(user);
+
+            user.Name = name;
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                var error = updateResult.Errors.FirstOrDefault()?.Description ?? "No se pudo guardar el nombre";
+                return BadRequest(new { error });
+            }
+
+            await transaction.CommitAsync();
         }
 
         // Best-effort from here on — the invite has already been fully accepted (password

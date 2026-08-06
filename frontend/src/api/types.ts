@@ -228,6 +228,17 @@ export interface UserFilters {
   sortDir: 'asc' | 'desc';
 }
 
+export interface MyInvite {
+  email: string;
+  pending: boolean;
+  hasInvitedOthers: boolean;
+}
+
+export interface MyInvitesResponse {
+  invites: MyInvite[];
+  invitesLeft: number | null;
+}
+
 // Mirrors backend/Acordanza.Api/Authorization/Roles.cs
 export const roleLabels: Record<string, string> = {
   admin: 'Administrador',

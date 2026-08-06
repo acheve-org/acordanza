@@ -20,6 +20,9 @@ export function MyAcordanzaLayout() {
         <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-routes">
           Mis vías
         </NavLink>
+        <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-invites">
+          Mis invitaciones
+        </NavLink>
         {isFirstAscensionist && (
           <NavLink
             className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`}

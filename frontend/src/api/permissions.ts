@@ -21,6 +21,7 @@ export const Permissions = {
   firstAscensionistDelete: 'first-ascensionist.delete',
 
   userManage: 'user.manage',
+  userInvite: 'user.invite',
 
   areaExpertRequest: 'area-expert.request',
   areaExpertApprove: 'area-expert.approve',

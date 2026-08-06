@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Data;
 using System.Text;
 using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
@@ -10,10 +11,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Acordanza.Api.Controllers;
 
-[Authorize(Policy = Permissions.UserManage)]
+[Authorize]
 [ApiController]
 [Route("api/users")]
 public class UsersController(
@@ -24,8 +26,10 @@ public class UsersController(
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
+    private const int MaxInvitesForNonAdmins = 5;
     private static readonly HashSet<string> SortableFields = ["name", "email", "role"];
 
+    [Authorize(Policy = Permissions.UserManage)]
     [HttpGet]
     public async Task<ActionResult<PagedUsersResponse>> GetUsers(
         [FromQuery] string? q, [FromQuery] string? role,
@@ -86,9 +90,35 @@ public class UsersController(
         return Ok(new PagedUsersResponse(dtos, totalCount, page, pageSize));
     }
 
+    // Lets the current user manage their own invites (see InviteUser) from the
+    // "Mi acordanza" section, regardless of whether they can see/manage every
+    // account (that's GetUsers, admin-only).
+    [Authorize(Policy = Permissions.UserInvite)]
+    [HttpGet("my-invites")]
+    public async Task<ActionResult<MyInvitesResponse>> GetMyInvites()
+    {
+        var callerId = userManager.GetUserId(User)!;
+        var unlimited = User.HasClaim("permission", Permissions.UserManage);
+
+        var invites = await db.Users.AsNoTracking()
+            .Where(u => u.InvitedByUserId == callerId)
+            .OrderBy(u => u.Email)
+            .Select(u => new MyInviteDto(
+                u.Email!,
+                u.PasswordHash == null,
+                db.Users.Any(u2 => u2.InvitedByUserId == u.Id)))
+            .ToListAsync();
+
+        return Ok(new MyInvitesResponse(invites, unlimited ? null : MaxInvitesForNonAdmins - invites.Count));
+    }
+
     // Creates the account up front (with no usable password — CheckPasswordAsync fails
-    // until AcceptInvite sets one via the same reset-password token mechanism the
-    // forgot-password flow uses) so the invite link can carry a real, single-use token.
+    // until AcceptInvite sets one via the invite token mechanism, see InviteTokens) so
+    // the invite link can carry a real, single-use token. Available to every user (see
+    // Permissions.UserInvite), not just admins: an admin (User has the UserManage
+    // claim) can invite anyone as any role with no limit; anyone else can only invite
+    // as a plain user, capped at MaxInvitesForNonAdmins lifetime invites.
+    [Authorize(Policy = Permissions.UserInvite)]
     [HttpPost("invite")]
     public async Task<ActionResult> InviteUser(InviteUserRequest request)
     {
@@ -97,65 +127,135 @@ public class UsersController(
         {
             return BadRequest(new { error = "Introduce un correo electrónico válido" });
         }
-        if (!Roles.All.Contains(request.Role))
+
+        var callerId = userManager.GetUserId(User)!;
+        var unlimited = User.HasClaim("permission", Permissions.UserManage);
+        var role = unlimited ? request.Role : Roles.User;
+        if (!Roles.All.Contains(role))
         {
             return BadRequest(new { error = "Rol no válido" });
         }
 
         var existing = await userManager.FindByEmailAsync(email);
-        ApplicationUser user;
+        if (existing is not null && existing.PasswordHash is not null)
+        {
+            return Conflict(new { error = "Ya existe una cuenta con ese correo" });
+        }
+
+        // A pending invite for this email already exists — most likely a previous
+        // send failed after the account/role were created (config error, email
+        // provider outage, ...), which would otherwise strand it behind a Conflict
+        // with no way to recover. The original inviter (or an admin) can always
+        // resend/correct it; anyone else is blocked while it's still within its
+        // 7-day window (InviteTokens.Lifespan) — this is what stops a pending
+        // invite from being silently duplicated by a second inviter. Past that
+        // window it's fair game and reassigns to whoever invites it next.
+        var isTakeover = false;
         if (existing is not null)
         {
-            if (existing.PasswordHash is not null)
+            var isOwnInvite = existing.InvitedByUserId == callerId;
+            var stillPending = existing.InvitedAt is { } invitedAt
+                && invitedAt.Add(InviteTokens.Lifespan) > DateTimeOffset.UtcNow;
+            if (!unlimited && !isOwnInvite && stillPending)
             {
-                return Conflict(new { error = "Ya existe una cuenta con ese correo" });
+                return Conflict(new { error = "Ya hay una invitación pendiente para ese correo" });
             }
-
-            // A pending invite for this email already exists — most likely a previous
-            // send failed after the account/role were created (config error, email
-            // provider outage, ...), which would otherwise strand it behind this same
-            // Conflict with no way to recover. Treat this as a resend instead, updating
-            // the role in case the admin is also correcting it.
-            user = existing;
-            var currentRoles = await userManager.GetRolesAsync(user);
-            if (!currentRoles.Contains(request.Role))
-            {
-                var removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
-                if (!removeResult.Succeeded)
-                {
-                    var error = removeResult.Errors.FirstOrDefault()?.Description ?? "No se pudo actualizar el rol";
-                    return BadRequest(new { error });
-                }
-
-                var addRoleResult = await userManager.AddToRoleAsync(user, request.Role);
-                if (!addRoleResult.Succeeded)
-                {
-                    await userManager.AddToRolesAsync(user, currentRoles);
-                    var error = addRoleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
-                    return BadRequest(new { error });
-                }
-            }
+            isTakeover = !isOwnInvite;
         }
-        else
+
+        // Serializable so the cap check below can't race with a concurrent invite from
+        // the same non-admin caller: two requests both reading a count under the limit
+        // and both inserting would otherwise let them exceed it together. Postgres
+        // detects that write skew under Serializable and aborts one side with a
+        // 40001 error, caught below and reported as a conflict to retry.
+        ApplicationUser user;
+        await using (var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable))
         {
-            user = new ApplicationUser { UserName = email, Email = email };
-            var createResult = await userManager.CreateAsync(user);
-            if (!createResult.Succeeded)
+            try
             {
-                var error = createResult.Errors.FirstOrDefault()?.Description ?? "No se pudo crear la invitación";
-                return BadRequest(new { error });
-            }
+                if (!unlimited && (existing is null || isTakeover))
+                {
+                    var usedCount = await db.Users.CountAsync(u => u.InvitedByUserId == callerId);
+                    if (usedCount >= MaxInvitesForNonAdmins)
+                    {
+                        return Conflict(new { error = $"Has alcanzado el límite de {MaxInvitesForNonAdmins} invitaciones" });
+                    }
+                }
 
-            var roleResult = await userManager.AddToRoleAsync(user, request.Role);
-            if (!roleResult.Succeeded)
+                if (existing is not null)
+                {
+                    user = existing;
+                    if (isTakeover)
+                    {
+                        user.InvitedByUserId = callerId;
+                    }
+                    user.InvitedAt = DateTimeOffset.UtcNow;
+
+                    // Not gated to admins only: a non-admin taking over someone else's expired
+                    // invite (isTakeover, see above) must also demote it to Roles.User — `role`
+                    // is already forced to Roles.User for non-admins, but without this the
+                    // account would keep whatever elevated role its original (e.g. admin)
+                    // inviter assigned, letting a non-admin activate a privileged account.
+                    var currentRoles = await userManager.GetRolesAsync(user);
+                    if (!currentRoles.Contains(role))
+                    {
+                        var removeResult = await userManager.RemoveFromRolesAsync(user, currentRoles);
+                        if (!removeResult.Succeeded)
+                        {
+                            var error = removeResult.Errors.FirstOrDefault()?.Description ?? "No se pudo actualizar el rol";
+                            return BadRequest(new { error });
+                        }
+
+                        var addRoleResult = await userManager.AddToRoleAsync(user, role);
+                        if (!addRoleResult.Succeeded)
+                        {
+                            await userManager.AddToRolesAsync(user, currentRoles);
+                            var error = addRoleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
+                            return BadRequest(new { error });
+                        }
+                    }
+
+                    var updateResult = await userManager.UpdateAsync(user);
+                    if (!updateResult.Succeeded)
+                    {
+                        var error = updateResult.Errors.FirstOrDefault()?.Description ?? "No se pudo actualizar la invitación";
+                        return BadRequest(new { error });
+                    }
+                }
+                else
+                {
+                    user = new ApplicationUser
+                    {
+                        UserName = email,
+                        Email = email,
+                        InvitedByUserId = callerId,
+                        InvitedAt = DateTimeOffset.UtcNow
+                    };
+                    var createResult = await userManager.CreateAsync(user);
+                    if (!createResult.Succeeded)
+                    {
+                        var error = createResult.Errors.FirstOrDefault()?.Description ?? "No se pudo crear la invitación";
+                        return BadRequest(new { error });
+                    }
+
+                    var roleResult = await userManager.AddToRoleAsync(user, role);
+                    if (!roleResult.Succeeded)
+                    {
+                        await userManager.DeleteAsync(user);
+                        var error = roleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
+                        return BadRequest(new { error });
+                    }
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex) when (IsSerializationFailure(ex))
             {
-                await userManager.DeleteAsync(user);
-                var error = roleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
-                return BadRequest(new { error });
+                return Conflict(new { error = "Ha habido un conflicto al procesar la invitación, inténtalo de nuevo" });
             }
         }
 
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var token = await userManager.GenerateUserTokenAsync(user, InviteTokens.ProviderName, InviteTokens.Purpose);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
         var frontendBaseUrl = configuration["Frontend:BaseUrl"]
             ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
@@ -165,5 +265,21 @@ public class UsersController(
         await emailSender.SendAsync(email, subject, html);
 
         return Ok(new { ok = true });
+    }
+
+    // EF Core's default execution strategy wraps transient failures in its own
+    // InvalidOperationException (itself wrapping the DbUpdateException that wraps the
+    // real PostgresException), so the serialization failure can be nested two levels
+    // deep rather than one — walk the whole chain instead of checking InnerException.
+    private static bool IsSerializationFailure(Exception ex)
+    {
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is PostgresException { SqlState: PostgresErrorCodes.SerializationFailure })
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

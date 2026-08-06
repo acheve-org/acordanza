@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { InviteUserInput, PagedUsers, UserFilters } from './types';
+import type { InviteUserInput, MyInvitesResponse, PagedUsers, UserFilters } from './types';
 
 const PAGE_SIZE = 10;
 
@@ -16,4 +16,8 @@ export function listUsers(filters: UserFilters): Promise<PagedUsers> {
 
 export function inviteUser(input: InviteUserInput): Promise<{ ok: true }> {
   return api.post<{ ok: true }>('/users/invite', input);
+}
+
+export function getMyInvites(): Promise<MyInvitesResponse> {
+  return api.get<MyInvitesResponse>('/users/my-invites');
 }

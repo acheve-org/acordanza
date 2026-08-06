@@ -42,6 +42,12 @@ namespace Acordanza.Api.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTimeOffset?>("InvitedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InvitedByUserId")
+                        .HasColumnType("text");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 
@@ -83,6 +89,8 @@ namespace Acordanza.Api.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("InvitedByUserId");
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
@@ -586,6 +594,16 @@ namespace Acordanza.Api.Migrations
                     b.HasIndex("FirstAscensionistId");
 
                     b.ToTable("RouteFirstAscensionists", "core");
+                });
+
+            modelBuilder.Entity("Acordanza.Api.Models.ApplicationUser", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "InvitedBy")
+                        .WithMany()
+                        .HasForeignKey("InvitedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("InvitedBy");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.Area", b =>

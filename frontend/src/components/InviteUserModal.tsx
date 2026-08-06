@@ -7,9 +7,11 @@ import { ApiError } from '../api/client';
 interface Props {
   onClose: () => void;
   onInvited: () => void;
+  /** Hides the role picker — non-admin invites are always created as 'user'. */
+  allowRoleSelection?: boolean;
 }
 
-export function InviteUserModal({ onClose, onInvited }: Props) {
+export function InviteUserModal({ onClose, onInvited, allowRoleSelection = true }: Props) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('user');
   const [error, setError] = useState('');
@@ -43,16 +45,18 @@ export function InviteUserModal({ onClose, onInvited }: Props) {
             onChange={(e) => setEmail(e.target.value)}
           />
         </label>
-        <label>
-          Rol
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            {Object.entries(roleLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {allowRoleSelection && (
+          <label>
+            Rol
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              {Object.entries(roleLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <p className="error-text">{error}</p>
         <ModalActions>
           <Button variant="ghost" type="button" onClick={onClose}>

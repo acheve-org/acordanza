@@ -68,7 +68,8 @@ builder.Services
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddTokenProvider<InviteTokenProvider>(InviteTokens.ProviderName);
 
 // Password-reset tokens embed the user's SecurityStamp, so they're single-use
 // (ResetPasswordAsync rotates the stamp on success) — this just tightens the

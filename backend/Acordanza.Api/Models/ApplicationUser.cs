@@ -5,4 +5,8 @@ namespace Acordanza.Api.Models;
 public class ApplicationUser : IdentityUser
 {
     public string Name { get; set; } = "";
+
+    public string? InvitedByUserId { get; set; }
+    public ApplicationUser? InvitedBy { get; set; }
+    public DateTimeOffset? InvitedAt { get; set; }
 }

@@ -23,6 +23,7 @@ public static class Permissions
     public const string FirstAscensionistDelete = "first-ascensionist.delete";
 
     public const string UserManage = "user.manage";
+    public const string UserInvite = "user.invite";
 
     public const string AreaExpertRequest = "area-expert.request";
     public const string AreaExpertApprove = "area-expert.approve";
@@ -36,7 +37,7 @@ public static class Permissions
         RouteCreate, RouteEdit, RouteValidate, RouteDelete,
         TickCreate, TickEdit, TickValidate, TickDelete,
         FirstAscensionistCreate, FirstAscensionistEdit, FirstAscensionistValidate, FirstAscensionistDelete,
-        UserManage,
+        UserManage, UserInvite,
         AreaExpertRequest, AreaExpertApprove,
         FirstAscensionistLinkRequest, FirstAscensionistLinkApprove
     ];

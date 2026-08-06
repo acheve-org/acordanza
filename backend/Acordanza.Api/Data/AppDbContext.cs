@@ -31,6 +31,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // default) lets the AddColumn migration apply cleanly against
             // rows that predate Name; Program.cs backfills those on startup.
             entity.Property(u => u.Name).HasMaxLength(20).HasDefaultValue("");
+
+            entity.HasOne(u => u.InvitedBy)
+                .WithMany()
+                .HasForeignKey(u => u.InvitedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<Area>(entity =>

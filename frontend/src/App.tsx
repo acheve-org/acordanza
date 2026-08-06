@@ -17,6 +17,7 @@ import { MyAreasPage } from './pages/MyAreasPage';
 import { ClaimFirstAscensionistPage } from './pages/ClaimFirstAscensionistPage';
 import { MyOpeningsPage } from './pages/MyOpeningsPage';
 import { MyTicksPage } from './pages/MyTicksPage';
+import { MyInvitesPage } from './pages/MyInvitesPage';
 import { PendingTasksPage } from './pages/PendingTasksPage';
 import { ManageLayout, ManageIndexRedirect } from './pages/ManageLayout';
 import { MyAcordanzaLayout, MyAcordanzaIndexRedirect } from './pages/MyAcordanzaLayout';
@@ -160,6 +161,7 @@ function App() {
           <Route path="my-areas" element={<MyAreasPage />} />
           <Route path="claim-first-ascensionist" element={<ClaimFirstAscensionistPage />} />
           <Route path="my-routes" element={<MyTicksPage />} />
+          <Route path="my-invites" element={<MyInvitesPage />} />
           <Route path="my-openings" element={<MyOpeningsPage />} />
         </Route>
         <Route path="settings" element={<SettingsPage />} />

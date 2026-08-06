@@ -17,7 +17,8 @@ public static class RolePermissions
         Permissions.TickDelete,
         Permissions.FirstAscensionistCreate,
         Permissions.AreaExpertRequest,
-        Permissions.FirstAscensionistLinkRequest
+        Permissions.FirstAscensionistLinkRequest,
+        Permissions.UserInvite
     ];
 
     private static readonly string[] ModeratorPermissions =
