@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Button, EmptyState } from 'acordanza-design-system';
-import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
-import type { FirstAscensionistLinkRequestSummary, FirstAscensionistSummary } from '../api/types';
-import { Permissions } from '../api/permissions';
+import type { FirstAscensionistLinkRequestSummary } from '../api/types';
 import { ApiError } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
+import { RequestFirstAscensionistLinkModal } from '../components/RequestFirstAscensionistLinkModal';
 
 const statusLabels: Record<FirstAscensionistLinkRequestSummary['status'], string> = {
   pending: 'Pendiente de aprobación',
@@ -15,59 +12,20 @@ const statusLabels: Record<FirstAscensionistLinkRequestSummary['status'], string
 };
 
 export function ClaimFirstAscensionistPage() {
-  const { hasPermission } = useAuth();
-  const canApprove = hasPermission(Permissions.firstAscensionistLinkApprove);
-
-  const [q, setQ] = useState('');
-  const [firstAscensionists, setFirstAscensionists] = useState<FirstAscensionistSummary[]>([]);
   const [mine, setMine] = useState<FirstAscensionistLinkRequestSummary[]>([]);
-  const [pending, setPending] = useState<FirstAscensionistLinkRequestSummary[]>([]);
   const [error, setError] = useState('');
+  const [requesting, setRequesting] = useState(false);
 
-  function refreshFirstAscensionists() {
-    firstAscensionistsApi.listFirstAscensionists(q).then(setFirstAscensionists);
-  }
-
-  function refreshRequests() {
+  function refresh() {
     firstAscensionistLinksApi
       .listMyFirstAscensionistLinks()
       .then(setMine)
       .catch((err) => setError(err instanceof ApiError ? err.message : 'No se pudieron cargar tus solicitudes'));
-    if (canApprove) {
-      firstAscensionistLinksApi.listPendingFirstAscensionistLinks().then(setPending);
-    }
   }
 
-  // Approving/rejecting a request (elsewhere on this same page) links or frees up
-  // a FirstAscensionist row, so the search list above needs refreshing too — not
-  // just the request lists — or it can keep showing a stale "Solicitar vínculo"
-  // button for an entry that just got linked.
-  function refreshAll() {
-    refreshFirstAscensionists();
-    refreshRequests();
-  }
+  useEffect(refresh, []);
 
-  useEffect(refreshRequests, [canApprove]);
-
-  useEffect(() => {
-    const handle = setTimeout(refreshFirstAscensionists, 250);
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
-  const activeRequestFirstAscensionistIds = new Set(
-    mine.filter((r) => r.status !== 'rejected').map((r) => r.firstAscensionistId),
-  );
-
-  async function handleRequest(firstAscensionistId: number) {
-    setError('');
-    try {
-      await firstAscensionistLinksApi.requestFirstAscensionistLink(firstAscensionistId);
-      refreshAll();
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo solicitar el vínculo');
-    }
-  }
+  const activeRequestFirstAscensionistIds = mine.filter((r) => r.status !== 'rejected').map((r) => r.firstAscensionistId);
 
   async function handleCancel(id: number) {
     try {
@@ -75,7 +33,12 @@ export function ClaimFirstAscensionistPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo retirar la solicitud');
     }
-    refreshRequests();
+    refresh();
+  }
+
+  function handleRequested() {
+    setRequesting(false);
+    refresh();
   }
 
   return (
@@ -83,40 +46,6 @@ export function ClaimFirstAscensionistPage() {
       <h1>Vincular aperturista</h1>
 
       <section className="settings-section">
-        <h2>Aperturistas</h2>
-        <input
-          type="text"
-          placeholder="Buscar aperturista…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        {firstAscensionists.length === 0 ? (
-          <EmptyState>No se han encontrado aperturistas</EmptyState>
-        ) : (
-          <ul className="passkey-list">
-            {firstAscensionists.map((fa) => (
-              <li key={fa.id} className="tick-row">
-                <div>
-                  <div className="tr-who">{fa.name}</div>
-                  {fa.linkedUserName && <div className="tr-notes">Vinculado a {fa.linkedUserName}</div>}
-                  {!fa.linkedUserName && activeRequestFirstAscensionistIds.has(fa.id) && (
-                    <div className="tr-notes">Ya tienes una solicitud para este aperturista</div>
-                  )}
-                </div>
-                {!fa.linkedUserName && !activeRequestFirstAscensionistIds.has(fa.id) && (
-                  <Button variant="ghost" small type="button" onClick={() => handleRequest(fa.id)}>
-                    Solicitar vínculo
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {error && <p className="error-text">{error}</p>}
-      </section>
-
-      <section className="settings-section">
-        <h2>Mis solicitudes</h2>
         {mine.length === 0 ? (
           <EmptyState>Todavía no has solicitado ningún vínculo</EmptyState>
         ) : (
@@ -147,11 +76,20 @@ export function ClaimFirstAscensionistPage() {
         )}
       </section>
 
-      {canApprove && (
-        <section className="settings-section">
-          <h2>Solicitudes pendientes</h2>
-          <PendingFirstAscensionistLinkRequests items={pending} onChange={refreshAll} />
-        </section>
+      <section className="settings-section">
+        <h2>Solicitar vínculo</h2>
+        <Button type="button" onClick={() => setRequesting(true)}>
+          Solicitar vínculo
+        </Button>
+        {error && <p className="error-text">{error}</p>}
+      </section>
+
+      {requesting && (
+        <RequestFirstAscensionistLinkModal
+          excludedFirstAscensionistIds={activeRequestFirstAscensionistIds}
+          onClose={() => setRequesting(false)}
+          onRequested={handleRequested}
+        />
       )}
     </>
   );
