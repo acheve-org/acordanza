@@ -15,6 +15,20 @@ export function setAuthToken(token: string | null) {
   authToken = token;
 }
 
+// Tracks in-flight requests so a global loading indicator (see LoadingBar)
+// can react without every call site managing its own loading state.
+let activeRequestCount = 0;
+const activityListeners = new Set<() => void>();
+
+export function subscribeToApiActivity(listener: () => void): () => void {
+  activityListeners.add(listener);
+  return () => activityListeners.delete(listener);
+}
+
+export function getApiActivitySnapshot(): boolean {
+  return activeRequestCount > 0;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   // FormData bodies must not get an explicit Content-Type — the browser
   // sets one itself (multipart/form-data with the correct boundary).
@@ -24,15 +38,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
   };
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  activeRequestCount++;
+  activityListeners.forEach((listener) => listener());
+  try {
+    const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.error ?? `Error en la solicitud (${res.status})`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new ApiError(res.status, body.error ?? `Error en la solicitud (${res.status})`);
+    }
+
+    if (res.status === 204) return undefined as T;
+    return (await res.json()) as T;
+  } finally {
+    activeRequestCount--;
+    activityListeners.forEach((listener) => listener());
   }
-
-  if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
 }
 
 export const api = {
