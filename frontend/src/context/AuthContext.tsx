@@ -35,6 +35,7 @@ interface AuthContextValue {
   beginPasskeyLogin: () => Promise<PasskeyChallenge>;
   completeLoginWithPasskey: (challenge: PasskeyChallenge) => Promise<void>;
   logout: () => void;
+  updateName: (name: string) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -146,6 +147,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return permissions.includes(permission);
   }
 
+  function updateName(newName: string) {
+    setName(newName);
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as StoredAuth;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, name: newName }));
+    } catch {
+      // Storage unavailable/over quota: in-memory state is already updated,
+      // so the save still succeeded from the user's perspective this session.
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -162,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         beginPasskeyLogin,
         completeLoginWithPasskey,
         logout,
+        updateName,
       }}
     >
       {children}

@@ -23,15 +23,40 @@ export function SettingsPage() {
 }
 
 function ProfileSection() {
-  const { name } = useAuth();
+  const { name, updateName } = useAuth();
+  const [value, setValue] = useState(name ?? '');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+
+    try {
+      const res = await accountApi.updateProfile(value.trim());
+      updateName(res.name);
+      setValue(res.name);
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'No se pudo guardar el nombre');
+    }
+  }
 
   return (
     <section className="settings-section">
       <h2>Perfil</h2>
-      <label>
-        Nombre
-        <input type="text" value={name ?? ''} readOnly disabled />
-      </label>
+      <form onSubmit={handleSubmit}>
+        <label>
+          Nombre
+          <input type="text" required maxLength={20} value={value} onChange={(e) => setValue(e.target.value)} />
+        </label>
+        <ModalActions>
+          <Button type="submit">Guardar nombre</Button>
+        </ModalActions>
+        <p className="error-text">{error}</p>
+        {success && <p className="success-text">Nombre actualizado</p>}
+      </form>
     </section>
   );
 }
