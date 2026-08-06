@@ -42,7 +42,6 @@ export function MainView() {
 
   async function handleDeleteRoute() {
     if (!detailRouteId) return;
-    if (!confirm('¿Eliminar esta vía y todos sus ascensos registrados?')) return;
     await routesApi.deleteRoute(detailRouteId);
     setDetailRouteId(null);
     refreshRoutes();

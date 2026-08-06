@@ -11,19 +11,29 @@ export interface ModalProps {
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
+// Every mounted Modal registers itself here so that when modals stack (e.g. a
+// confirmation on top of a detail modal), only the topmost one reacts to
+// Escape/Tab — otherwise every instance's document-level keydown listener
+// would fire on the same keypress, closing all of them at once.
+let modalStack: symbol[] = []
+
 export function Modal({ onClose, wide = false, children }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
+  const idRef = useRef(Symbol())
 
   // Escape-to-close, a focus trap so Tab can't reach obscured page content,
   // and moving focus into the dialog on open / back to the trigger on close
   // — none of this comes for free from a plain <div>, unlike a native <dialog>.
   useEffect(() => {
     const modal = modalRef.current
+    const id = idRef.current
+    modalStack.push(id)
     const previouslyFocused = document.activeElement as HTMLElement | null
     const initial = modal?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)
     ;(initial ?? modal)?.focus()
 
     function handleKeyDown(e: KeyboardEvent) {
+      if (modalStack[modalStack.length - 1] !== id) return
       if (e.key === 'Escape') {
         onClose()
         return
@@ -45,6 +55,7 @@ export function Modal({ onClose, wide = false, children }: ModalProps) {
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
+      modalStack = modalStack.filter((m) => m !== id)
       previouslyFocused?.focus()
     }
   }, [onClose])

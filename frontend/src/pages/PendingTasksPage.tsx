@@ -82,7 +82,6 @@ export function PendingTasksPage() {
 
   async function handleDeleteRoute() {
     if (detailRouteId === null) return;
-    if (!confirm('¿Eliminar esta vía y todos sus ascensos registrados?')) return;
     await routesApi.deleteRoute(detailRouteId);
     setDetailRouteId(null);
     refresh();

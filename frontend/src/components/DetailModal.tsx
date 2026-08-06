@@ -1,5 +1,5 @@
 import { Fragment, useState, type ChangeEvent } from 'react';
-import { Button, Chip, Modal } from 'acordanza-design-system';
+import { Button, Chip, ConfirmModal, Modal } from 'acordanza-design-system';
 import type { CreateTickInput, RouteDetail } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -24,6 +24,7 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onValidate, onAd
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [addingTick, setAddingTick] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   if (!route) return null;
 
@@ -82,7 +83,7 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onValidate, onAd
               </Button>
             )}
             {hasPermission(Permissions.routeDelete) && (
-              <Button variant="ghost" small danger onClick={onDelete}>
+              <Button variant="ghost" small danger onClick={() => setConfirmingDelete(true)}>
                 Eliminar
               </Button>
             )}
@@ -144,6 +145,16 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onValidate, onAd
 
       {addingTick && (
         <AddTickModal routeName={route.name} onClose={() => setAddingTick(false)} onSubmit={onAddTick} />
+      )}
+
+      {confirmingDelete && (
+        <ConfirmModal
+          message="¿Eliminar esta vía y todos sus ascensos registrados?"
+          confirmLabel="Eliminar"
+          danger
+          onConfirm={onDelete}
+          onClose={() => setConfirmingDelete(false)}
+        />
       )}
     </Fragment>
   );

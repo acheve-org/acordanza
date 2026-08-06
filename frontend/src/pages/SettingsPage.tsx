@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { create, type CredentialCreationOptionsJSON } from '@github/webauthn-json';
-import { Button, EmptyState, ModalActions } from 'acordanza-design-system';
+import { Button, ConfirmModal, EmptyState, ModalActions } from 'acordanza-design-system';
 import * as accountApi from '../api/account';
 import * as passkeysApi from '../api/passkeys';
 import type { PasskeySummary } from '../api/types';
@@ -107,6 +107,7 @@ function PasskeysSection() {
   const [newPasskeyName, setNewPasskeyName] = useState('');
   const [registering, setRegistering] = useState(false);
   const [error, setError] = useState('');
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
 
   useEffect(() => {
     passkeysApi.listPasskeys().then(setPasskeys);
@@ -130,7 +131,6 @@ function PasskeysSection() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('¿Eliminar esta llave de acceso?')) return;
     await passkeysApi.deletePasskey(id);
     setPasskeys(await passkeysApi.listPasskeys());
   }
@@ -157,13 +157,23 @@ function PasskeysSection() {
                 type="button"
                 className="tick-remove"
                 aria-label="Eliminar llave de acceso"
-                onClick={() => handleDelete(p.id)}
+                onClick={() => setConfirmingDeleteId(p.id)}
               >
                 &times;
               </button>
             </li>
           ))}
         </ul>
+      )}
+
+      {confirmingDeleteId !== null && (
+        <ConfirmModal
+          message="¿Eliminar esta llave de acceso?"
+          confirmLabel="Eliminar"
+          danger
+          onConfirm={() => handleDelete(confirmingDeleteId)}
+          onClose={() => setConfirmingDeleteId(null)}
+        />
       )}
 
       <form onSubmit={handleRegister} className="passkey-form">

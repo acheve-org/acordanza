@@ -7,6 +7,8 @@ export { Modal } from './components/Modal/Modal'
 export type { ModalProps } from './components/Modal/Modal'
 export { ModalActions } from './components/Modal/ModalActions'
 export type { ModalActionsProps } from './components/Modal/ModalActions'
+export { ConfirmModal } from './components/Modal/ConfirmModal'
+export type { ConfirmModalProps } from './components/Modal/ConfirmModal'
 
 export { EmptyState } from './components/EmptyState/EmptyState'
 export type { EmptyStateProps } from './components/EmptyState/EmptyState'

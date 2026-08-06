@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, EmptyState, Pagination } from 'acordanza-design-system';
+import { Button, ConfirmModal, EmptyState, Pagination } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import type { AreaNode, AreaSummary, PagedAreaNodes } from '../api/types';
 import { ApiError } from '../api/client';
@@ -47,6 +47,7 @@ function AreaTreeNode({
   const [hasChildren, setHasChildren] = useState(node.hasChildren);
   const [editModal, setEditModal] = useState(false);
   const [polygonModal, setPolygonModal] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const ownArea = areasById.get(node.id);
   const parentArea = parentAreaId !== null ? areasById.get(parentAreaId) : undefined;
@@ -84,7 +85,6 @@ function AreaTreeNode({
   }
 
   async function handleDelete() {
-    if (!confirm(`¿Eliminar el sector "${node.name}" y todos sus subsectores?`)) return;
     try {
       await areasApi.deleteArea(node.id);
       onListChanged();
@@ -137,7 +137,7 @@ function AreaTreeNode({
             </Button>
           )}
           {canDelete && (
-            <Button variant="ghost" small danger type="button" onClick={handleDelete}>
+            <Button variant="ghost" small danger type="button" onClick={() => setConfirmingDelete(true)}>
               Eliminar
             </Button>
           )}
@@ -188,6 +188,16 @@ function AreaTreeNode({
             setPolygonModal(false);
             onChange();
           }}
+        />
+      )}
+
+      {confirmingDelete && (
+        <ConfirmModal
+          message={`¿Eliminar el sector "${node.name}" y todos sus subsectores?`}
+          confirmLabel="Eliminar"
+          danger
+          onConfirm={handleDelete}
+          onClose={() => setConfirmingDelete(false)}
         />
       )}
     </li>
