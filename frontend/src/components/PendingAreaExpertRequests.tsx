@@ -33,7 +33,18 @@ export function PendingAreaExpertRequests({ items, onChange }: Props) {
           {items.map((e) => (
             <ListRow
               key={e.id}
-              title={`${e.userName} · ${e.areaName}`}
+              title={
+                <>
+                  <div className="tr-field">
+                    <span className="tr-field-label">Usuario</span>
+                    <span>{e.userName}</span>
+                  </div>
+                  <div className="tr-field">
+                    <span className="tr-field-label">Sector</span>
+                    <span>{e.areaName}</span>
+                  </div>
+                </>
+              }
               subtitle={`Solicitado el ${new Date(e.requestedAt).toLocaleDateString('es-ES')}`}
               trailing={
                 <>

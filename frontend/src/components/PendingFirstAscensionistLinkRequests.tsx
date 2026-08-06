@@ -33,7 +33,18 @@ export function PendingFirstAscensionistLinkRequests({ items, onChange }: Props)
           {items.map((r) => (
             <ListRow
               key={r.id}
-              title={`${r.userName} · ${r.firstAscensionistName}`}
+              title={
+                <>
+                  <div className="tr-field">
+                    <span className="tr-field-label">Usuario</span>
+                    <span>{r.userName}</span>
+                  </div>
+                  <div className="tr-field">
+                    <span className="tr-field-label">Aperturista</span>
+                    <span>{r.firstAscensionistName}</span>
+                  </div>
+                </>
+              }
               subtitle={`Solicitado el ${new Date(r.requestedAt).toLocaleDateString('es-ES')}`}
               trailing={
                 <>
