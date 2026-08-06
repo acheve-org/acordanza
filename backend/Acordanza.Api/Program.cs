@@ -283,33 +283,6 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    await RoleSeeder.EnsureSeededAsync(scope.ServiceProvider);
-
-    // One-time backfill for areas created before the Slug column existed.
-    // New areas always get one assigned in AreasController.CreateArea.
-    var unslugged = await db.Areas.Where(a => a.Slug == "").ToListAsync();
-    if (unslugged.Count > 0)
-    {
-        foreach (var area in unslugged)
-        {
-            area.Slug = $"{Slugify.ToSlug(area.Name)}-{area.Id}";
-        }
-        await db.SaveChangesAsync();
-    }
-
-    // One-time backfill for accounts created before the Name column existed.
-    // New accounts always get one via the create-user CLI.
-    var unnamed = await db.Users.Where(u => u.Name == "").ToListAsync();
-    if (unnamed.Count > 0)
-    {
-        foreach (var user in unnamed)
-        {
-            var localPart = user.Email!.Split('@')[0];
-            user.Name = localPart.Length > 20 ? localPart[..20] : localPart;
-        }
-        await db.SaveChangesAsync();
-    }
-
     var blobStorage = scope.ServiceProvider.GetRequiredService<BlobStorageService>();
     await blobStorage.EnsureContainerExistsAsync();
 

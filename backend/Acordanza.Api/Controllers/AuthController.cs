@@ -166,12 +166,7 @@ public class AuthController(
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
 
-        string token;
-        try
-        {
-            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
-        }
-        catch (FormatException)
+        if (!TryDecodeToken(request.Token, out var token))
         {
             return BadRequest(new { error = "El enlace no es válido o ha caducado" });
         }
@@ -179,8 +174,33 @@ public class AuthController(
         var result = await userManager.ResetPasswordAsync(user, token, request.NewPassword);
         if (!result.Succeeded)
         {
-            var error = result.Errors.FirstOrDefault()?.Description ?? "El enlace no es válido o ha caducado";
-            return BadRequest(new { error });
+            return BadRequest(new { error = ResetPasswordErrorMessage(result) });
+        }
+
+        return Ok(new { ok = true });
+    }
+
+    // Lets both ResetPasswordScreen and AcceptInviteScreen check a link's token
+    // before showing the form, instead of only finding out it's dead when the
+    // user submits. Read-only: VerifyUserTokenAsync (unlike ResetPasswordAsync)
+    // doesn't rotate the security stamp, so checking here doesn't consume the
+    // token or affect the real submit later.
+    [HttpPost("validate-token")]
+    public async Task<ActionResult> ValidateToken(ValidateTokenRequest request)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+
+        if (!TryDecodeToken(request.Token, out var token))
+        {
+            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        }
+
+        var valid = await userManager.VerifyUserTokenAsync(
+            user, userManager.Options.Tokens.PasswordResetTokenProvider, ResetPasswordTokenPurpose, token);
+        if (!valid)
+        {
+            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
         }
 
         return Ok(new { ok = true });
@@ -201,12 +221,7 @@ public class AuthController(
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
 
-        string token;
-        try
-        {
-            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
-        }
-        catch (FormatException)
+        if (!TryDecodeToken(request.Token, out var token))
         {
             return BadRequest(new { error = "El enlace no es válido o ha caducado" });
         }
@@ -214,8 +229,7 @@ public class AuthController(
         var result = await userManager.ResetPasswordAsync(user, token, request.Password);
         if (!result.Succeeded)
         {
-            var error = result.Errors.FirstOrDefault()?.Description ?? "El enlace no es válido o ha caducado";
-            return BadRequest(new { error });
+            return BadRequest(new { error = ResetPasswordErrorMessage(result) });
         }
 
         user.Name = name;
@@ -245,6 +259,36 @@ public class AuthController(
         }
 
         return Ok(new { ok = true });
+    }
+    
+    // Matches UserManager's own internal purpose string for password-reset
+    // tokens (it's not exposed publicly) — GeneratePasswordResetTokenAsync and
+    // ResetPasswordAsync both use it under the hood, so VerifyUserTokenAsync
+    // has to be called with the same value to check the same token here.
+    private const string ResetPasswordTokenPurpose = "ResetPassword";
+
+    private static bool TryDecodeToken(string encoded, out string token)
+    {
+        try
+        {
+            token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(encoded));
+            return true;
+        }
+        catch (FormatException)
+        {
+            token = "";
+            return false;
+        }
+    }
+
+    private static string ResetPasswordErrorMessage(IdentityResult result)
+    {
+        if (result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.InvalidToken)))
+        {
+            return "El enlace no es válido o ha caducado";
+        }
+
+        return result.Errors.FirstOrDefault()?.Description ?? "El enlace no es válido o ha caducado";
     }
 
     private static string CacheKey(string sessionId) => $"login-passkey:{sessionId}";
