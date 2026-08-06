@@ -21,3 +21,15 @@ export type { GradePillProps } from './components/GradePill/GradePill'
 
 export { Chip } from './components/Chip/Chip'
 export type { ChipProps } from './components/Chip/Chip'
+
+export { List, ListRow } from './components/List/List'
+export type { ListProps, ListRowProps } from './components/List/List'
+
+export { Badge } from './components/Badge/Badge'
+export type { BadgeProps } from './components/Badge/Badge'
+
+export { RemoveButton } from './components/RemoveButton/RemoveButton'
+export type { RemoveButtonProps, RemoveButtonVariant } from './components/RemoveButton/RemoveButton'
+
+export { Combobox } from './components/Combobox/Combobox'
+export type { ComboboxProps, ComboboxOption } from './components/Combobox/Combobox'

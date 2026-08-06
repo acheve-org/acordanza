@@ -7,5 +7,4 @@
   padding: 4px var(--space-md);
 }
 .chip-removable { display: inline-flex; align-items: center; gap: 6px; }
-.chip-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 14px; line-height: 1; padding: 0; }
-.chip-remove:hover { color: var(--danger); }
+.chip-removable .remove-btn { font-size: 14px; }

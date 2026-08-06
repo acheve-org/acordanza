@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, EmptyState } from 'acordanza-design-system';
+import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
 import * as areasApi from '../api/areas';
 import type { AreaExpert, AreaSummary } from '../api/types';
@@ -73,30 +73,26 @@ export function MyAreasPage() {
         {mine.length === 0 ? (
           <EmptyState>Todavía no eres experto de ningún sector</EmptyState>
         ) : (
-          <ul className="passkey-list">
+          <List>
             {mine.map((e) => (
-              <li key={e.id} className="tick-row">
-                <div>
-                  <div className="tr-who">{e.areaName}</div>
-                  <div className="tr-notes">
+              <ListRow
+                key={e.id}
+                title={e.areaName}
+                subtitle={
+                  <>
                     {statusLabels[e.status]}
                     {e.status !== 'pending' && e.decidedByName && ` · ${e.decidedByName}`}
                     {e.status === 'rejected' && e.rejectionReason && ` · Motivo: ${e.rejectionReason}`}
-                  </div>
-                </div>
-                {e.status === 'pending' && (
-                  <button
-                    type="button"
-                    className="tick-remove"
-                    aria-label="Retirar solicitud"
-                    onClick={() => handleWithdraw(e.id)}
-                  >
-                    &times;
-                  </button>
-                )}
-              </li>
+                  </>
+                }
+                trailing={
+                  e.status === 'pending' && (
+                    <RemoveButton label="Retirar solicitud" onClick={() => handleWithdraw(e.id)} />
+                  )
+                }
+              />
             ))}
-          </ul>
+          </List>
         )}
       </section>
 

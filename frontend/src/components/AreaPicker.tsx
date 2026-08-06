@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, ModalActions } from 'acordanza-design-system';
+import { Button, Combobox, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import { areaPath as pathFor } from '../api/areas';
 import type { AreaSummary } from '../api/types';
@@ -21,7 +21,6 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
   const canCreate = allowCreate && hasPermission(Permissions.areaCreate);
   const [areas, setAreas] = useState<AreaSummary[]>([]);
   const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newParentId, setNewParentId] = useState('');
@@ -41,12 +40,6 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
     return areas.filter((a) => pathFor(a, byId).toLowerCase().includes(q));
   }, [areas, byId, query]);
 
-  function select(id: number | null) {
-    onChange(id);
-    setOpen(false);
-    setQuery('');
-  }
-
   async function handleCreate() {
     const name = newName.trim();
     if (!name) return;
@@ -55,45 +48,20 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
     setNewName('');
     setNewParentId('');
     setShowCreate(false);
-    select(created.id);
+    onChange(created.id);
   }
 
   return (
-    <div className="combo">
-      <input
-        type="text"
+    <div className="picker-stack">
+      <Combobox
         placeholder="Buscar sector…"
-        value={open ? query : selected ? pathFor(selected, byId) : ''}
-        onFocus={() => {
-          setOpen(true);
-          setQuery('');
-          refresh();
-        }}
-        onClick={() => setOpen(true)}
-        onChange={(e) => setQuery(e.target.value)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        closedValue={selected ? pathFor(selected, byId) : ''}
+        onOpen={refresh}
+        onQueryChange={setQuery}
+        options={matches.map((a) => ({ key: a.id, label: pathFor(a, byId) }))}
+        onSelect={onChange}
+        leadingOption={allowClear ? { label: 'Cualquier sector', onSelect: () => onChange(null) } : undefined}
       />
-      {open && (
-        <div className="combo-list">
-          {allowClear && (
-            <button type="button" className="combo-option" onMouseDown={(e) => e.preventDefault()} onClick={() => select(null)}>
-              Cualquier sector
-            </button>
-          )}
-          {matches.length === 0 && <div className="combo-empty hint">Sin coincidencias</div>}
-          {matches.map((a) => (
-            <button
-              type="button"
-              key={a.id}
-              className="combo-option"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => select(a.id)}
-            >
-              {pathFor(a, byId)}
-            </button>
-          ))}
-        </div>
-      )}
       {canCreate &&
         (!showCreate ? (
           <Button variant="ghost" small type="button" onClick={() => setShowCreate(true)}>

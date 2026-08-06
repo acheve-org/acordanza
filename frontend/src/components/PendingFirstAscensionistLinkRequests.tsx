@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, EmptyState } from 'acordanza-design-system';
+import { Button, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type { FirstAscensionistLinkRequestSummary } from '../api/types';
 import { RejectReasonModal } from './RejectReasonModal';
@@ -29,26 +29,25 @@ export function PendingFirstAscensionistLinkRequests({ items, onChange }: Props)
       {items.length === 0 ? (
         <EmptyState>No hay solicitudes pendientes</EmptyState>
       ) : (
-        <ul className="passkey-list">
+        <List>
           {items.map((r) => (
-            <li key={r.id} className="tick-row">
-              <div>
-                <div className="tr-who">
-                  {r.userName} · {r.firstAscensionistName}
-                </div>
-                <div className="tr-notes">Solicitado el {new Date(r.requestedAt).toLocaleDateString('es-ES')}</div>
-              </div>
-              <div className="detail-actions">
-                <Button variant="ghost" small type="button" onClick={() => handleApprove(r.id)}>
-                  Aprobar
-                </Button>
-                <Button variant="ghost" small danger type="button" onClick={() => setRejecting(r)}>
-                  Rechazar
-                </Button>
-              </div>
-            </li>
+            <ListRow
+              key={r.id}
+              title={`${r.userName} · ${r.firstAscensionistName}`}
+              subtitle={`Solicitado el ${new Date(r.requestedAt).toLocaleDateString('es-ES')}`}
+              trailing={
+                <>
+                  <Button variant="ghost" small type="button" onClick={() => handleApprove(r.id)}>
+                    Aprobar
+                  </Button>
+                  <Button variant="ghost" small danger type="button" onClick={() => setRejecting(r)}>
+                    Rechazar
+                  </Button>
+                </>
+              }
+            />
           ))}
-        </ul>
+        </List>
       )}
 
       {rejecting && (

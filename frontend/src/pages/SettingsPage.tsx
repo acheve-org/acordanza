@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { create, type CredentialCreationOptionsJSON } from '@github/webauthn-json';
-import { Button, ConfirmModal, EmptyState, ModalActions } from 'acordanza-design-system';
+import { Button, ConfirmModal, EmptyState, List, ListRow, ModalActions, RemoveButton } from 'acordanza-design-system';
 import * as accountApi from '../api/account';
 import * as passkeysApi from '../api/passkeys';
 import type { PasskeySummary } from '../api/types';
@@ -171,24 +171,18 @@ function PasskeysSection() {
       {passkeys.length === 0 ? (
         <EmptyState>No tienes ninguna llave de acceso registrada</EmptyState>
       ) : (
-        <ul className="passkey-list">
+        <List>
           {passkeys.map((p) => (
-            <li key={p.id} className="tick-row">
-              <div>
-                <div className="tr-who">{p.name}</div>
-                <div className="tr-notes">Añadida el {new Date(p.createdAt).toLocaleDateString('es-ES')}</div>
-              </div>
-              <button
-                type="button"
-                className="tick-remove"
-                aria-label="Eliminar llave de acceso"
-                onClick={() => setConfirmingDeleteId(p.id)}
-              >
-                &times;
-              </button>
-            </li>
+            <ListRow
+              key={p.id}
+              title={p.name}
+              subtitle={`Añadida el ${new Date(p.createdAt).toLocaleDateString('es-ES')}`}
+              trailing={
+                <RemoveButton label="Eliminar llave de acceso" onClick={() => setConfirmingDeleteId(p.id)} />
+              }
+            />
           ))}
-        </ul>
+        </List>
       )}
 
       {confirmingDeleteId !== null && (

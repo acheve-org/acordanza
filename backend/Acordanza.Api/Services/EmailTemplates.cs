@@ -5,11 +5,29 @@ namespace Acordanza.Api.Services;
 // Centralizes the branded HTML layout and content for every transactional
 // email, so the invite/reset-password/new-user flows share one look instead
 // of each controller building its own ad hoc HTML string.
+//
+// Colors/radii below are manually mirrored from design-system/src/tokens.css
+// (see /DESIGN.md) — email HTML can't consume CSS custom properties or import
+// the design-system package (different runtime, and most email clients don't
+// support var()), so these are copied as literal values. Keep them in sync by
+// hand when tokens.css changes.
 public static class EmailTemplates
 {
-    private const string AccentColor = "#494fdf";
-    private const string ParagraphStyle = "margin:0 0 16px; font-size:15px; line-height:1.5; color:#18181b;";
-    private const string MutedStyle = "margin:16px 0 0; font-size:13px; line-height:1.5; color:#71717a;";
+    private const string AccentColor = "#3f3fe0"; // --color-primary
+    private const string OnAccentColor = "#ffffff"; // --color-on-primary
+    private const string CanvasColor = "#eef1f5"; // --color-canvas
+    private const string SurfaceColor = "#f8f9fb"; // --color-surface
+    private const string InkColor = "#181b22"; // --color-ink
+    private const string InkDimColor = "#5b6270"; // --color-ink-dim
+    private const string InkFaintColor = "#7d8492"; // --color-ink-faint
+    private const string HairlineColor = "rgba(0,0,0,0.07)"; // --color-hairline
+    private const string RadiusLg = "20px"; // --radius-lg
+    private const string RadiusFull = "9999px"; // --radius-full
+    private const string BodyFontStack = "'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"; // --font-body
+    private const string DisplayFontStack = "'Archivo',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif"; // --font-display
+
+    private static readonly string ParagraphStyle = $"margin:0 0 16px; font-size:15px; line-height:1.5; color:{InkColor};";
+    private static readonly string MutedStyle = $"margin:16px 0 0; font-size:13px; line-height:1.5; color:{InkDimColor};";
 
     public static (string Subject, string Html) ResetPassword(string resetLink) => (
         "Restablece tu contraseña de Acordanza",
@@ -68,8 +86,8 @@ public static class EmailTemplates
         return $"""
             <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
               <tr>
-                <td style="border-radius:9999px; background-color:#000000;">
-                  <a href="{safeUrl}" style="display:inline-block; padding:12px 28px; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-size:14px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:9999px;">{WebUtility.HtmlEncode(label)}</a>
+                <td style="border-radius:{RadiusFull}; background-color:{AccentColor};">
+                  <a href="{safeUrl}" style="display:inline-block; padding:12px 28px; font-family:{BodyFontStack}; font-size:14px; font-weight:600; color:{OnAccentColor}; text-decoration:none; border-radius:{RadiusFull};">{WebUtility.HtmlEncode(label)}</a>
                 </td>
               </tr>
             </table>
@@ -82,16 +100,18 @@ public static class EmailTemplates
           <head>
             <meta charset="utf-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Archivo:wght@600&display=swap" rel="stylesheet" />
           </head>
-          <body style="margin:0; padding:0; background-color:#f4f4f5; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5; padding:32px 16px;">
+          <body style="margin:0; padding:0; background-color:{CanvasColor}; font-family:{BodyFontStack};">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:{CanvasColor}; padding:32px 16px;">
               <tr>
                 <td align="center">
-                  <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background-color:#ffffff; border-radius:20px; overflow:hidden;">
+                  <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background-color:{SurfaceColor}; border-radius:{RadiusLg}; overflow:hidden;">
                     <tr>
-                      <td style="background-color:#000000; padding:24px 32px;">
-                        <span style="color:{AccentColor}; font-size:18px; vertical-align:middle;">&#9670;</span>
-                        <span style="color:#ffffff; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; font-weight:600; letter-spacing:0.12em; font-size:14px; vertical-align:middle;">Acordanza</span>
+                      <td style="background-color:{AccentColor}; padding:24px 32px;">
+                        <span style="color:{OnAccentColor}; font-size:18px; vertical-align:middle;">&#9670;</span>
+                        <span style="color:{OnAccentColor}; font-family:{DisplayFontStack}; font-weight:600; letter-spacing:0.12em; font-size:14px; vertical-align:middle;">Acordanza</span>
                       </td>
                     </tr>
                     <tr>
@@ -100,8 +120,8 @@ public static class EmailTemplates
                       </td>
                     </tr>
                     <tr>
-                      <td style="padding:20px 32px; background-color:#f4f4f5; border-top:1px solid #e5e5e5;">
-                        <p style="margin:0; font-size:12px; color:#8a8a8e;">Acordanza &middot; catálogo de vías de escalada</p>
+                      <td style="padding:20px 32px; background-color:{CanvasColor}; border-top:1px solid {HairlineColor};">
+                        <p style="margin:0; font-size:12px; color:{InkFaintColor};">Acordanza &middot; catálogo de vías de escalada</p>
                       </td>
                     </tr>
                   </table>

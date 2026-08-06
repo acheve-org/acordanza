@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, EmptyState, Modal } from 'acordanza-design-system';
+import { Button, EmptyState, List, ListRow, Modal } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type { FirstAscensionistSummary } from '../api/types';
@@ -63,22 +63,25 @@ export function RequestFirstAscensionistLinkModal({ excludedFirstAscensionistIds
       {available.length === 0 ? (
         <EmptyState>No se han encontrado aperturistas disponibles</EmptyState>
       ) : (
-        <ul className="passkey-list">
+        <List>
           {available.map((fa) => (
-            <li key={fa.id} className="tick-row">
-              <div className="tr-who">{fa.name}</div>
-              <Button
-                variant="ghost"
-                small
-                type="button"
-                disabled={requestingId !== null}
-                onClick={() => handleRequest(fa.id)}
-              >
-                Solicitar
-              </Button>
-            </li>
+            <ListRow
+              key={fa.id}
+              title={fa.name}
+              trailing={
+                <Button
+                  variant="ghost"
+                  small
+                  type="button"
+                  disabled={requestingId !== null}
+                  onClick={() => handleRequest(fa.id)}
+                >
+                  Solicitar
+                </Button>
+              }
+            />
           ))}
-        </ul>
+        </List>
       )}
       {error && <p className="error-text">{error}</p>}
     </Modal>

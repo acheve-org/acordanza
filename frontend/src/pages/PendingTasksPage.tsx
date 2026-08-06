@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router';
-import { Button, EmptyState } from 'acordanza-design-system';
+import { Badge, Button, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
 import { areaPath } from '../api/areas';
@@ -123,7 +123,7 @@ export function PendingTasksPage() {
             onClick={() => setActiveTab(t.key)}
           >
             {t.label}
-            {t.count > 0 && <span className="tab-badge">{t.count > 99 ? '99+' : t.count}</span>}
+            <Badge count={t.count} />
           </button>
         ))}
       </div>
@@ -133,22 +133,16 @@ export function PendingTasksPage() {
           {pendingRoutes.length === 0 ? (
             <EmptyState>No hay vías pendientes de validación</EmptyState>
           ) : (
-            <ul className="passkey-list">
+            <List>
               {pendingRoutes.map((r) => (
-                <li
+                <ListRow
                   key={r.id}
-                  className="tick-row tick-row--clickable"
+                  title={r.name}
+                  subtitle={`${r.areaPath} · ${r.grade}`}
                   onClick={() => setDetailRouteId(r.id)}
-                >
-                  <div>
-                    <div className="tr-who">{r.name}</div>
-                    <div className="tr-notes">
-                      {r.areaPath} · {r.grade}
-                    </div>
-                  </div>
-                </li>
+                />
               ))}
-            </ul>
+            </List>
           )}
         </section>
       )}
@@ -158,38 +152,39 @@ export function PendingTasksPage() {
           {pendingAreas.length === 0 ? (
             <EmptyState>No hay sectores pendientes de validación</EmptyState>
           ) : (
-            <ul className="passkey-list">
+            <List>
               {pendingAreas.map((a) => (
-                <li key={a.id} className="tick-row">
-                  <div>
-                    <div className="tr-who">{a.name}</div>
-                    <div className="tr-notes">
-                      {a.parentAreaId === null ? (
-                        <span className="area-root-badge">
-                          <svg
-                            className="area-root-icon"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            aria-label="Sector principal"
-                          >
-                            <title>Sector principal</title>
-                            <path d="M3 10.5 12 4l9 6.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M5 9.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          Sector principal
-                        </span>
-                      ) : (
-                        areaPath(a, areasById)
-                      )}
-                    </div>
-                  </div>
-                  <Button variant="ghost" small type="button" onClick={() => handleValidateArea(a.id)}>
-                    Validar
-                  </Button>
-                </li>
+                <ListRow
+                  key={a.id}
+                  title={a.name}
+                  subtitle={
+                    a.parentAreaId === null ? (
+                      <span className="area-root-badge">
+                        <svg
+                          className="area-root-icon"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          aria-label="Sector principal"
+                        >
+                          <title>Sector principal</title>
+                          <path d="M3 10.5 12 4l9 6.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M5 9.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Sector principal
+                      </span>
+                    ) : (
+                      areaPath(a, areasById)
+                    )
+                  }
+                  trailing={
+                    <Button variant="ghost" small type="button" onClick={() => handleValidateArea(a.id)}>
+                      Validar
+                    </Button>
+                  }
+                />
               ))}
-            </ul>
+            </List>
           )}
         </section>
       )}

@@ -8,6 +8,8 @@ Acordanza is a small private web app for a group of friends to log and search cl
 
 - `backend/Acordanza.Api/` — ASP.NET Core (.NET 10) Web API: EF Core + Npgsql, ASP.NET Core Identity, JWT auth. See `backend/CLAUDE.md`.
 - `frontend/` — React 19 + TypeScript, built with Vite, package-managed with Bun. See `frontend/CLAUDE.md`.
+- `design-system/` — `acordanza-design-system`, a sibling Bun workspace package (`frontend`'s `workspace:*` dependency) holding the shared component set and design tokens. `frontend/predev`/`prebuild` build it first. See `/DESIGN.md` for the token/component spec.
+- `landing/` — a standalone, zero-build static HTML marketing page (not part of the Bun workspace, no framework); deployed independently of `frontend`/`design-system` (see `deploy-landing` in `.github/workflows/ci-cd.yml`). Keeps its own copy of the design-system's color/typography tokens inline, since it has no build step to import them — see the comment at the top of `landing/index.html`.
 - `docker-compose.yml` — local PostgreSQL container.
 
 ## Toolchain
@@ -42,5 +44,5 @@ Route slugs (the `path`/`to` values in `frontend/src/App.tsx`'s `<Route>`/`<Link
 
 ## Cross-cutting notes
 
-- Deploying: backend needs any .NET 10 + Postgres host with `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, `Cors:AllowedOrigins` set via environment variables; frontend is a static build (`bun run build` → `frontend/dist`) with `VITE_API_URL` baked in at build time. See root `README.md` for details. `infra/` holds a Terraform-managed Azure Container Apps deployment plus the GitHub Actions pipeline (`.github/workflows/backend-ci-cd.yml`) that builds, tests, and deploys the backend on push to `main` — see `infra/README.md`.
+- Deploying: backend needs any .NET 10 + Postgres host with `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, `Cors:AllowedOrigins` set via environment variables; frontend is a static build (`bun run build` → `frontend/dist`, which builds `design-system/` first) with `VITE_API_URL` baked in at build time. See root `README.md` for details. `infra/` holds a Terraform-managed Azure Container Apps deployment plus the GitHub Actions pipeline (`.github/workflows/ci-cd.yml`) that builds/tests backend, frontend, and `landing/` and deploys all three (backend and frontend as Container Apps, `landing/` as a separate Azure Static Web App) on push to `main` — see `infra/README.md`.
 - No test suite exists yet in either project.

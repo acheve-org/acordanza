@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, EmptyState } from 'acordanza-design-system';
+import { Button, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
 import type { AreaExpert } from '../api/types';
 import { RejectReasonModal } from './RejectReasonModal';
@@ -29,26 +29,25 @@ export function PendingAreaExpertRequests({ items, onChange }: Props) {
       {items.length === 0 ? (
         <EmptyState>No hay solicitudes pendientes</EmptyState>
       ) : (
-        <ul className="passkey-list">
+        <List>
           {items.map((e) => (
-            <li key={e.id} className="tick-row">
-              <div>
-                <div className="tr-who">
-                  {e.userName} · {e.areaName}
-                </div>
-                <div className="tr-notes">Solicitado el {new Date(e.requestedAt).toLocaleDateString('es-ES')}</div>
-              </div>
-              <div className="detail-actions">
-                <Button variant="ghost" small type="button" onClick={() => handleApprove(e.id)}>
-                  Aprobar
-                </Button>
-                <Button variant="ghost" small danger type="button" onClick={() => setRejecting(e)}>
-                  Rechazar
-                </Button>
-              </div>
-            </li>
+            <ListRow
+              key={e.id}
+              title={`${e.userName} · ${e.areaName}`}
+              subtitle={`Solicitado el ${new Date(e.requestedAt).toLocaleDateString('es-ES')}`}
+              trailing={
+                <>
+                  <Button variant="ghost" small type="button" onClick={() => handleApprove(e.id)}>
+                    Aprobar
+                  </Button>
+                  <Button variant="ghost" small danger type="button" onClick={() => setRejecting(e)}>
+                    Rechazar
+                  </Button>
+                </>
+              }
+            />
           ))}
-        </ul>
+        </List>
       )}
 
       {rejecting && (

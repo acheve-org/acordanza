@@ -1,4 +1,5 @@
 import { NavLink, Navigate, Outlet } from 'react-router';
+import { Badge } from 'acordanza-design-system';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
 import { usePendingTasks } from '../context/PendingTasksContext';
@@ -32,9 +33,7 @@ export function ManageLayout() {
             to="/manage/pending-tasks"
           >
             <span>Tareas pendientes</span>
-            {pendingTasksTotal > 0 && (
-              <span className="side-nav-badge">{pendingTasksTotal > 99 ? '99+' : pendingTasksTotal}</span>
-            )}
+            <Badge count={pendingTasksTotal} />
           </NavLink>
         )}
       </aside>

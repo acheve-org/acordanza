@@ -136,10 +136,10 @@ against whatever's behind it.
 
 ## Components
 
-Source of truth for implementation is `design-system/src/` (7 components: `Button`,
-`Chip`, `EmptyState`, `GradePill`, `Modal`/`ModalActions`, `Pagination`) — read the
-component CSS there for exact rules. This section documents intent, not a duplicate
-spec.
+Source of truth for implementation is `design-system/src/` (11 components: `Button`,
+`Chip`, `EmptyState`, `GradePill`, `Modal`/`ModalActions`, `Pagination`, `List`/`ListRow`,
+`Badge`, `RemoveButton`, `Combobox`) — read the component CSS there for exact rules.
+This section documents intent, not a duplicate spec.
 
 **`Button`** — `variant="primary"` (default) is the filled violet pill,
 `{colors.on-primary}` label, `{rounded.full}`, 46px tall. Use once per view — it's
@@ -149,7 +149,7 @@ placements; `danger` swaps the hover color to `{colors.danger}` for destructive 
 actions. `as` makes it polymorphic (e.g. `as="a"` for a link styled as a button).
 
 **`Chip`** — a `{colors.chip-bg}`-filled pill for tags/filters; `onRemove` adds an
-inline × button that turns `{colors.danger}` on hover.
+inline `RemoveButton` that turns `{colors.danger}` on hover.
 
 **`GradePill`** — a small monospace badge for climbing grades, the only place
 `{colors.accent-teal}` and JetBrains Mono appear together.
@@ -163,6 +163,28 @@ next to a primary submit).
 
 **`Pagination`** — two ghost `Button`s ("Anterior"/"Siguiente") flanking a
 `{colors.ink-dim}` status label.
+
+**`List`/`ListRow`** — a vertical stack of bordered `{rounded.md}` rows, each a
+title/subtitle pair on the left and optional trailing content (a `RemoveButton`, one
+or more `Button`s) on the right. Pass `onClick` to make the whole row a target (e.g.
+opening a detail view) instead of just its trailing controls.
+
+**`Badge`** — a small filled `{colors.danger}` pill for a numeric count (caps the
+label at "99+"); renders nothing for a count of 0. Used inline (nav tabs, side-nav
+items) or absolutely positioned via its `className` prop (the topbar notification
+bell).
+
+**`RemoveButton`** — a `×` control with a required `label` (its only accessible
+name). `variant="plain"` (default) is a borderless `{colors.ink-dim}` glyph that
+turns `{colors.danger}` on hover, used standalone in `ListRow`s and cards.
+`variant="overlay"` is a circular dark badge for sitting on top of media (e.g. a topo
+thumbnail).
+
+**`Combobox`** — a search input that opens a `{rounded.md}` dropdown of options below
+it; `leadingOption` pins an extra entry above the list (e.g. a "clear selection"
+row), `closedValue` controls what shows when not focused (typically the current
+selection's label). Filtering and multi/single-select behavior stay with the caller —
+`Combobox` only owns the open/query/dropdown mechanics.
 
 ## Do's and Don'ts
 

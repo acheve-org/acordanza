@@ -31,7 +31,7 @@ Needs `frontend/.env` (copy from `.env.example`) with `VITE_API_URL`, pointing a
 
 ## Styling
 
-Plain CSS in `src/styles.css` (no CSS-in-JS, no Tailwind), driven by CSS custom properties defined on `:root` (`--bg`, `--accent`, `--font-display`, etc.) — dark theme by default. Extend the theme by adding/reusing these variables rather than hardcoding colors in component-scoped styles (styling is global, not per-component).
+Tokens (colors, fonts, radii, spacing) and the shared component set — `Button`, `Chip`, `EmptyState`, `GradePill`, `Modal`/`ModalActions`, `Pagination`, `List`/`ListRow`, `Badge`, `RemoveButton`, `Combobox` — live in the sibling `design-system/` workspace package (`acordanza-design-system`; see the root `CLAUDE.md` and `/DESIGN.md`), imported as `import { X } from 'acordanza-design-system'` and, for its CSS, `@import 'acordanza-design-system/styles.css'` at the top of `src/styles.css`. `src/styles.css` itself is plain CSS (no CSS-in-JS, no Tailwind) that only covers app-shell/page layout and pieces not yet promoted to the design system (forms, the picker "create new" sub-form). It's a light theme, not dark — driven by the same CSS custom properties the design system defines (`--bg`, `--accent`, `--font-display`, etc.). Extend the theme by adding/reusing those variables rather than hardcoding colors in component-scoped styles (styling is global, not per-component); new reusable UI belongs in `design-system/src/components/`, not `styles.css`.
 
 ## Linting & types
 

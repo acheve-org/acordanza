@@ -182,22 +182,7 @@ input:focus, select:focus, textarea:focus {
 }
 .notif-bell svg { width: 20px; height: 20px; }
 .notif-bell:hover { border-color: var(--color-on-dark); color: var(--text); }
-.notif-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  background: var(--danger);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: var(--radius-full);
-}
+.notif-badge { position: absolute; top: -4px; right: -4px; }
 
 .user-menu { position: relative; }
 .user-menu-trigger {
@@ -357,35 +342,7 @@ input:focus, select:focus, textarea:focus {
 
 .tag-row { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
 
-.combo { position: relative; display: flex; flex-direction: column; gap: var(--space-xs); }
-.combo-list {
-  position: absolute;
-  top: calc(100% + 2px);
-  left: 0;
-  right: 0;
-  z-index: 1100;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  max-height: 220px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-xs);
-}
-.combo-option {
-  background: none;
-  border: none;
-  color: var(--text);
-  text-align: left;
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: var(--font-body);
-  font-size: 14px;
-}
-.combo-option:hover { background: var(--bg-card-hover); }
-.combo-empty { padding: var(--space-sm) var(--space-md); font-size: 13px; }
+.picker-stack { display: flex; flex-direction: column; gap: var(--space-xs); }
 .combo-create-form {
   display: flex;
   flex-direction: column;
@@ -416,21 +373,6 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--border);
 }
 .topo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.topo-remove {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
-  border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.6);
-  color: #ffffff;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-}
-.topo-remove:hover { background: var(--danger); }
 .topo-upload {
   display: inline-flex;
   align-self: flex-start;
@@ -439,25 +381,8 @@ input:focus, select:focus, textarea:focus {
 
 .tick-form { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-md); }
 .ticks-list { display: flex; flex-direction: column; gap: var(--space-sm); }
-.tick-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-}
-.tick-row .tr-who { font-weight: 600; }
-.tick-row .tr-notes { color: var(--text-dim); }
 .area-root-badge { display: inline-flex; align-items: center; gap: 4px; }
 .area-root-icon { width: 13px; height: 13px; flex-shrink: 0; }
-.tick-row--clickable { cursor: pointer; }
-.tick-row--clickable:hover { border-color: var(--accent); }
-.tick-remove { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 16px; line-height: 1; }
-.tick-remove:hover { color: var(--danger); }
 
 .login-mfa { display: flex; flex-direction: column; gap: var(--space-md); }
 
@@ -500,7 +425,6 @@ input:focus, select:focus, textarea:focus {
 .settings-section form { display: flex; flex-direction: column; gap: var(--space-md); }
 .success-text { color: var(--accent-2); font-size: 13px; }
 
-.passkey-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
 .passkey-form { border-top: 1px solid var(--border); padding-top: var(--space-md); }
 
 .expert-banner {
@@ -603,19 +527,6 @@ input:focus, select:focus, textarea:focus {
 }
 .side-nav-item:hover { background: var(--bg-card-hover); color: var(--text); }
 .side-nav-item.active { background: var(--bg-card); color: var(--text); }
-.side-nav-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  background: var(--danger);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: var(--radius-full);
-}
 .side-nav-content { min-width: 0; display: flex; flex-direction: column; gap: var(--space-lg); }
 .side-nav-content h1 {
   font-family: var(--font-display);
@@ -651,19 +562,6 @@ input:focus, select:focus, textarea:focus {
 }
 .tab-item:hover { color: var(--text); }
 .tab-item.active { color: var(--text); border-bottom-color: var(--accent); }
-.tab-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  background: var(--danger);
-  color: var(--on-accent);
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: var(--radius-full);
-}
 
 /* Map page — no max-width: the map canvas is the one surface that benefits from
    using the full viewport width. */
@@ -699,7 +597,6 @@ input:focus, select:focus, textarea:focus {
   border-radius: var(--radius-md);
   padding: var(--space-md) var(--space-lg);
 }
-.area-map-editor .combo { width: 260px; }
 .area-map-editor .hint { margin: 0; }
 
 .area-tree-wrap { display: flex; flex-direction: column; gap: var(--space-md); }

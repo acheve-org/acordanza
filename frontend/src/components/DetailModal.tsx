@@ -1,5 +1,5 @@
 import { Fragment, useState, type ChangeEvent } from 'react';
-import { Button, Chip, ConfirmModal, Modal } from 'acordanza-design-system';
+import { Button, Chip, ConfirmModal, Modal, RemoveButton } from 'acordanza-design-system';
 import type { CreateTickInput, RouteDetail } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -114,9 +114,7 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onValidate, onAd
                 <a href={topo.url} target="_blank" rel="noreferrer">
                   <img src={topo.url} alt={topo.fileName} loading="lazy" />
                 </a>
-                <button className="topo-remove" title="Eliminar" onClick={() => onDeleteTopo(topo.id)}>
-                  &times;
-                </button>
+                <RemoveButton variant="overlay" label="Eliminar" onClick={() => onDeleteTopo(topo.id)} />
               </div>
             ))}
           </div>

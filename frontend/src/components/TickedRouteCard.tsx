@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react';
-import { ConfirmModal, GradePill } from 'acordanza-design-system';
+import { ConfirmModal, GradePill, RemoveButton } from 'acordanza-design-system';
 import type { TickedRoute } from '../api/types';
 import { gearLabels } from '../api/types';
 
@@ -18,16 +18,13 @@ export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
         <div className="rc-top">
           <GradePill>{tick.grade}</GradePill>
           {onDelete && (
-            <button
-              className="tick-remove"
-              title="Eliminar registro"
+            <RemoveButton
+              label="Eliminar registro"
               onClick={(e) => {
                 e.stopPropagation();
                 setConfirmingDelete(true);
               }}
-            >
-              &times;
-            </button>
+            />
           )}
         </div>
         <div className="rc-main">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Button, Chip, ModalActions } from 'acordanza-design-system';
+import { Button, Chip, Combobox, ModalActions } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import type { FirstAscensionistSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -15,7 +15,6 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
   const canCreate = hasPermission(Permissions.firstAscensionistCreate);
   const [firstAscensionists, setFirstAscensionists] = useState<FirstAscensionistSummary[]>([]);
   const [query, setQuery] = useState('');
-  const [open, setOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
 
@@ -33,8 +32,6 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
 
   function addFirstAscensionist(id: number) {
     onChange([...value, id]);
-    setQuery('');
-    setOpen(false);
   }
 
   function removeFirstAscensionist(id: number) {
@@ -52,7 +49,7 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
   }
 
   return (
-    <div className="combo">
+    <div className="picker-stack">
       {selected.length > 0 && (
         <div className="tag-row" style={{ marginBottom: 8 }}>
           {selected.map((o) => (
@@ -63,32 +60,15 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
           ))}
         </div>
       )}
-      <input
-        type="text"
+      <Combobox
         placeholder="Buscar aperturista…"
-        value={query}
-        onFocus={() => setOpen(true)}
-        onClick={() => setOpen(true)}
-        onChange={(e) => setQuery(e.target.value)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onQueryChange={setQuery}
+        options={matches.map((o) => ({
+          key: o.id,
+          label: o.linkedUserName ? `${o.name} · ${o.linkedUserName}` : o.name,
+        }))}
+        onSelect={addFirstAscensionist}
       />
-      {open && (
-        <div className="combo-list">
-          {matches.length === 0 && <div className="combo-empty hint">Sin coincidencias</div>}
-          {matches.map((o) => (
-            <button
-              type="button"
-              key={o.id}
-              className="combo-option"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => addFirstAscensionist(o.id)}
-            >
-              {o.name}
-              {o.linkedUserName ? ` · ${o.linkedUserName}` : ''}
-            </button>
-          ))}
-        </div>
-      )}
       {canCreate &&
         (!showCreate ? (
           <Button variant="ghost" small type="button" onClick={() => setShowCreate(true)}>

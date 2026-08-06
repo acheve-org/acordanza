@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, EmptyState } from 'acordanza-design-system';
+import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type { FirstAscensionistLinkRequestSummary } from '../api/types';
 import { ApiError } from '../api/client';
@@ -49,30 +49,26 @@ export function ClaimFirstAscensionistPage() {
         {mine.length === 0 ? (
           <EmptyState>Todavía no has solicitado ningún vínculo</EmptyState>
         ) : (
-          <ul className="passkey-list">
+          <List>
             {mine.map((r) => (
-              <li key={r.id} className="tick-row">
-                <div>
-                  <div className="tr-who">{r.firstAscensionistName}</div>
-                  <div className="tr-notes">
+              <ListRow
+                key={r.id}
+                title={r.firstAscensionistName}
+                subtitle={
+                  <>
                     {statusLabels[r.status]}
                     {r.status !== 'pending' && r.decidedByName && ` · ${r.decidedByName}`}
                     {r.status === 'rejected' && r.rejectionReason && ` · Motivo: ${r.rejectionReason}`}
-                  </div>
-                </div>
-                {r.status === 'pending' && (
-                  <button
-                    type="button"
-                    className="tick-remove"
-                    aria-label="Retirar solicitud"
-                    onClick={() => handleCancel(r.id)}
-                  >
-                    &times;
-                  </button>
-                )}
-              </li>
+                  </>
+                }
+                trailing={
+                  r.status === 'pending' && (
+                    <RemoveButton label="Retirar solicitud" onClick={() => handleCancel(r.id)} />
+                  )
+                }
+              />
             ))}
-          </ul>
+          </List>
         )}
       </section>
 

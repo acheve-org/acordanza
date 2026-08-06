@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { RemoveButton } from '../RemoveButton/RemoveButton'
 import './Chip.css'
 
 export interface ChipProps {
@@ -15,9 +16,7 @@ export function Chip({ children, onRemove }: ChipProps) {
   return (
     <span className="tag-chip chip-removable">
       {children}
-      <button type="button" className="chip-remove" onClick={onRemove}>
-        &times;
-      </button>
+      <RemoveButton label="Quitar" onClick={onRemove} />
     </span>
   )
 }
