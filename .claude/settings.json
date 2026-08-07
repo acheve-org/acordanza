@@ -13,8 +13,14 @@
       "Bash(docker build *)",
       "Bash(docker stop *)",
       "Bash(docker rm *)",
-      "Bash(dotnet build *)",
+      "Bash(docker exec acordanza-postgres *)",
       "Bash(docker compose *)",
+      "Bash(dotnet --version)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet ef *)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet user-secrets *)",
+      "Bash(gh issue *)",
       "Bash(gh pr *)",
       "Bash(gh run *)",
       "Bash(git checkout *)",
@@ -23,7 +29,9 @@
       "Bash(terraform validate *)",
       "Bash(terraform fmt *)",
       "WebFetch(domain:docs.zizmor.sh)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:registry.terraform.io)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [
       "Read(**/.env)",

@@ -28,6 +28,8 @@
   --accent-2-bg: rgba(0, 122, 99, 0.08);
   --accent-2-border: rgba(0, 122, 99, 0.24);
   --danger: var(--color-accent-danger);
+  --danger-bg: rgba(209, 58, 74, 0.08);
+  --danger-border: rgba(209, 58, 74, 0.24);
   --border: var(--color-hairline);
   --border-strong: var(--color-hairline-strong);
   --chip-bg: rgba(0, 0, 0, 0.04);

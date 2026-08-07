@@ -8,23 +8,23 @@ export function ManageLayout() {
   const { hasPermission } = useAuth();
   const { visible: pendingTasksVisible, total: pendingTasksTotal } = usePendingTasks();
 
-  const canAreas = hasPermission(Permissions.areaEdit);
   const canUsers = hasPermission(Permissions.userManage);
+  const canAreas = hasPermission(Permissions.areaEdit);
 
-  if (!canAreas && !canUsers && !pendingTasksVisible) return <Navigate to="/" replace />;
+  if (!canUsers  && !canAreas && !pendingTasksVisible) return <Navigate to="/" replace />;
 
   return (
     <main className="side-nav-layout">
       <aside className="side-nav">
         <h2>Gestionar</h2>
-        {canAreas && (
-          <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/manage/areas">
-            Sectores
-          </NavLink>
-        )}
         {canUsers && (
           <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/manage/users">
             Usuarios
+          </NavLink>
+        )}
+        {canAreas && (
+          <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/manage/areas">
+            Sectores
           </NavLink>
         )}
         {pendingTasksVisible && (

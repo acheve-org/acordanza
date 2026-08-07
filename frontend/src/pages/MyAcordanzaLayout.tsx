@@ -8,6 +8,12 @@ export function MyAcordanzaLayout() {
     <main className="side-nav-layout">
       <aside className="side-nav">
         <h2>Mi acordanza</h2>
+        <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-invites">
+          Mis invitaciones
+        </NavLink>
+        <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-routes">
+          Mis ascensiones
+        </NavLink>
         <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-areas">
           Mis sectores
         </NavLink>
@@ -16,12 +22,6 @@ export function MyAcordanzaLayout() {
           to="/my-acordanza/claim-first-ascensionist"
         >
           Vincular aperturista
-        </NavLink>
-        <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-routes">
-          Mis vías
-        </NavLink>
-        <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-invites">
-          Mis invitaciones
         </NavLink>
         {isFirstAscensionist && (
           <NavLink

@@ -103,6 +103,7 @@ reserved for `GradePill` and success/positive states.
 - **Accent Teal** (`{colors.accent-teal}` — `#007a63`): `GradePill` foreground and success text.
 - **Accent Teal Background/Border** (`{colors.accent-teal-bg}` / `{colors.accent-teal-border}`): `GradePill`'s fill and border, both derived from `{colors.accent-teal}` at low opacity.
 - **Danger** (`{colors.danger}` — `#d13a4a`): destructive state — `Button`'s `danger` ghost variant, delete actions.
+- **Danger Background/Border** (`{colors.danger-bg}` / `{colors.danger-border}`): `Chip`'s `rejected` status fill and border, both derived from `{colors.danger}` at low opacity.
 
 ## Typography
 
@@ -149,7 +150,9 @@ placements; `danger` swaps the hover color to `{colors.danger}` for destructive 
 actions. `as` makes it polymorphic (e.g. `as="a"` for a link styled as a button).
 
 **`Chip`** — a `{colors.chip-bg}`-filled pill for tags/filters; `onRemove` adds an
-inline `RemoveButton` that turns `{colors.danger}` on hover.
+inline `RemoveButton` that turns `{colors.danger}` on hover. `status` selects one of
+three visual states: `pending` (default, neutral `{colors.chip-bg}` fill), `approved`
+(`{colors.accent-teal}` fill/border), or `rejected` (`{colors.danger}` fill/border).
 
 **`GradePill`** — a small monospace badge for climbing grades, the only place
 `{colors.accent-teal}` and JetBrains Mono appear together.

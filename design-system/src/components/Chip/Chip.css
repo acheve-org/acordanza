@@ -8,3 +8,14 @@
 }
 .chip-removable { display: inline-flex; align-items: center; gap: 6px; }
 .chip-removable .remove-btn { font-size: 14px; }
+
+.chip-approved {
+  color: var(--accent-2);
+  background: var(--accent-2-bg);
+  border: 1px solid var(--accent-2-border);
+}
+.chip-rejected {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+}

@@ -20,7 +20,7 @@ export { GradePill } from './components/GradePill/GradePill'
 export type { GradePillProps } from './components/GradePill/GradePill'
 
 export { Chip } from './components/Chip/Chip'
-export type { ChipProps } from './components/Chip/Chip'
+export type { ChipProps, ChipStatus } from './components/Chip/Chip'
 
 export { List, ListRow } from './components/List/List'
 export type { ListProps, ListRowProps } from './components/List/List'

@@ -28,7 +28,6 @@ export function MyAreasPage() {
 
   useEffect(refresh, []);
 
-  const approvedAreas = mine.filter((e) => e.status === 'approved');
   const activeRequestAreaIds = new Set(mine.filter((e) => e.status !== 'rejected').map((e) => e.areaId));
   const availableAreas = areas.filter((a) => a.parentAreaId === null && !activeRequestAreaIds.has(a.id));
 
@@ -49,26 +48,21 @@ export function MyAreasPage() {
   return (
     <>
       <h1>Mis sectores</h1>
-
-      {approvedAreas.length > 0 && (
-        <div className="expert-banner">
-          <svg className="expert-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-            <path
-              d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"
-              strokeLinejoin="round"
-            />
-            <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <div>
-            <h2>Eres experto de {approvedAreas.length === 1 ? 'un sector' : `${approvedAreas.length} sectores`}</h2>
-            <p>
-              Como experto de <strong>{approvedAreas.map((e) => e.areaName).join(', ')}</strong> puedes validar las
-              vías de ese sector y de sus subsectores desde la ficha de cada vía.
-            </p>
-          </div>
+      <div className="expert-banner">
+        <svg className="expert-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+          <path
+            d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z"
+            strokeLinejoin="round"
+          />
+          <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <div>
+          <p>
+            Como experto de un sector puedes validar las
+            vías de ese sector y de sus subsectores desde la ficha de cada vía.
+          </p>
         </div>
-      )}
-
+      </div>
       <section className="settings-section">
         {mine.length === 0 ? (
           <EmptyState>Todavía no eres experto de ningún sector</EmptyState>
