@@ -4,103 +4,522 @@
 <meta charset="utf-8" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Acordanza</title>
+<meta name="description" content="Acordanza — un catálogo de vías privado para un grupo de amigos que escala junto. Sectores, aperturas, grados y ascensos, entre quienes suben." />
+<title>Acordanza — un catálogo de vías para escalar en compañía</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link
-  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Archivo:wght@700;800&display=swap"
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Archivo:wght@700;800&family=JetBrains+Mono:wght@600&display=swap"
   rel="stylesheet"
 />
 <style>
-  /* Color/typography/radius tokens mirrored from design-system/src/tokens.css (Acordanza's
-     "Cool Minimal" system — see /DESIGN.md). This page is a standalone static site (no build
-     step, no framework), so it can't import the design-system package directly — keep these
-     values in sync with tokens.css by hand. Also, per DESIGN.md: no dark theme by design. */
   :root {
     --bg: #eef1f5;
+    --surface: #f8f9fb;
     --text: #181b22;
     --text-dim: #5b6270;
+    --text-faint: #7d8492;
     --accent: #3f3fe0;
     --accent-deep: #3634c4;
+    --accent-tint: rgba(63, 63, 224, 0.08);
     --on-accent: #ffffff;
+    --accent-2: #007a63;
+    --accent-2-bg: rgba(0, 122, 99, 0.08);
+    --accent-2-border: rgba(0, 122, 99, 0.24);
+    --hairline: rgba(0, 0, 0, 0.07);
+    --hairline-strong: rgba(0, 0, 0, 0.15);
     --font-display: 'Archivo', sans-serif;
     --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
     --radius-full: 9999px;
+    --space-xs: 6px;
+    --space-sm: 8px;
+    --space-md: 14px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --space-xxl: 32px;
+    --space-xxxl: 48px;
+    --page-max-width: 1100px;
   }
+
   * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
   body {
     margin: 0;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
     font-size: 16px;
-    line-height: 1.5;
-    letter-spacing: 0.24px;
-    padding: 2rem;
-  }
-  main {
-    max-width: 32rem;
-  }
-  h1 {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 2.25rem;
-    letter-spacing: -0.02em;
-    margin: 0 0 0.5rem;
-  }
-  p {
-    color: var(--text-dim);
     line-height: 1.6;
-    font-size: 1.05rem;
+    letter-spacing: 0.24px;
   }
+
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  .wrap {
+    max-width: var(--page-max-width);
+    margin: 0 auto;
+    padding: 0 var(--space-xxl);
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  /* ---------- topbar ---------- */
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-lg) var(--space-xxl);
+    background: rgba(238, 241, 245, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .brand svg { width: 26px; height: 26px; }
+  .brand .mark-a { fill: var(--accent); }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-body);
+    font-weight: 600;
+    text-decoration: none;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  }
+  .btn.primary {
+    background: var(--accent);
+    color: var(--on-accent);
+    padding: 0 26px;
+    height: 46px;
+    font-size: 15px;
+  }
+  .btn.primary:hover { background: var(--accent-deep); }
+  .btn.primary:active { transform: scale(0.98); }
+  .btn.primary.small { height: 40px; padding: 0 20px; font-size: 14px; }
+  .btn.ghost {
+    background: transparent;
+    border: 1px solid var(--hairline-strong);
+    color: var(--text-dim);
+    padding: 0 20px;
+    height: 40px;
+    font-size: 14px;
+  }
+  .btn.ghost:hover { border-color: var(--text); color: var(--text); }
+  .btn.text {
+    background: none;
+    border: none;
+    padding: 0;
+    height: 40px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .btn.text:hover { color: var(--text); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    align-items: center;
+    gap: var(--space-xxxl);
+    padding: clamp(48px, 8vw, 96px) var(--space-xxl) var(--space-xxxl);
+  }
+  .hero-copy { max-width: 560px; }
   .tagline {
     font-style: italic;
     color: var(--accent);
     font-size: 1rem;
-    margin: 0 0 1.5rem;
-    padding-left: 1rem;
+    margin: 0 0 var(--space-lg);
+    padding-left: var(--space-lg);
     border-left: 2px solid var(--accent);
   }
   .tagline .pos {
     font-style: normal;
-    font-size: 0.75rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+    padding-right: var(--space-md);
+  }
+  .tagline .fon {
+    font-style: normal;
     letter-spacing: 0.05em;
     color: var(--text-dim);
-    padding-right: 1rem;
+    padding-right: var(--space-xs);
   }
-  a.cta {
-    display: inline-flex;
-    align-items: center;
-    margin-top: 1.5rem;
-    background: var(--accent);
-    color: var(--on-accent);
-    border-radius: var(--radius-full);
-    padding: 0 26px;
-    height: 46px;
-    font-family: var(--font-body);
+  .hero h1 {
+    font-weight: 800;
+    font-size: clamp(2.75rem, 6vw, 4.25rem);
+    margin-bottom: var(--space-lg);
+  }
+  .hero .lede {
+    font-size: 1.2rem;
     font-weight: 600;
-    font-size: 15px;
-    letter-spacing: 0.2px;
-    text-decoration: none;
-    transition: background 0.15s ease;
+    color: var(--text);
+    margin: 0 0 var(--space-md);
+    letter-spacing: 0;
   }
-  a.cta:hover { background: var(--accent-deep); }
+  .hero p.body {
+    color: var(--text-dim);
+    font-size: 1.02rem;
+    margin: 0 0 var(--space-md);
+  }
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xl);
+    margin-top: var(--space-xl);
+    flex-wrap: wrap;
+  }
+
+  .hero-art { position: relative; width: 100%; max-width: 420px; margin: 0 auto; }
+  .hero-art svg { width: 100%; height: auto; display: block; }
+  .route-line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: draw-route 6s ease-in-out infinite;
+  }
+  .ridge {
+    fill: var(--surface);
+    stroke: var(--hairline-strong);
+    stroke-width: 1.5;
+  }
+  .anchor-dot {
+    fill: #fff;
+    stroke: var(--accent);
+    stroke-width: 2;
+    opacity: 0;
+    transform-origin: center;
+  }
+  .anchor-dot.a1 { animation: pop-anchor-a1 6s ease-in-out infinite; }
+  .anchor-dot.a2 { animation: pop-anchor-a2 6s ease-in-out infinite; }
+  .anchor-dot.a3 { animation: pop-anchor-a3 6s ease-in-out infinite; }
+  .grade-flag {
+    position: absolute;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent-2);
+    background: var(--accent-2-bg);
+    border: 1px solid var(--accent-2-border);
+    border-radius: var(--radius-sm);
+    padding: 3px 9px;
+    opacity: 0;
+  }
+  .grade-flag.g1 { top: 6%; left: 58%; animation: pop-anchor-a3 6s ease-in-out infinite; }
+  .grade-flag.g2 { top: 46%; left: 6%; animation: pop-anchor-a1 6s ease-in-out infinite; }
+
+  /* One shared 6s cycle: draw the route in, hold it, retract it, then loop —
+     dots/flags fade in step with the draw reaching them and fade out as it retracts past them. */
+  @keyframes draw-route {
+    0% { stroke-dashoffset: 100; }
+    38% { stroke-dashoffset: 0; }
+    68% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: 100; }
+  }
+  @keyframes pop-anchor-a1 {
+    0%, 100% { opacity: 0; transform: scale(0.4); }
+    10%, 92% { opacity: 0; transform: scale(0.4); }
+    16%, 86% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pop-anchor-a2 {
+    0%, 100% { opacity: 0; transform: scale(0.4); }
+    21%, 82% { opacity: 0; transform: scale(0.4); }
+    27%, 76% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pop-anchor-a3 {
+    0%, 100% { opacity: 0; transform: scale(0.4); }
+    34%, 71% { opacity: 0; transform: scale(0.4); }
+    40%, 65% { opacity: 1; transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .route-line, .anchor-dot, .grade-flag { animation: none !important; }
+    .route-line { stroke-dashoffset: 0; }
+    .anchor-dot, .grade-flag { opacity: 1; transform: none; }
+  }
+
+  /* ---------- shared section chrome ---------- */
+  section.block { padding: var(--space-xxxl) var(--space-xxl); }
+  .eyebrow {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0 0 var(--space-sm);
+  }
+  section.block h2 {
+    font-weight: 700;
+    font-size: clamp(1.6rem, 3vw, 2.15rem);
+    margin-bottom: var(--space-xl);
+    max-width: 32rem;
+  }
+
+  /* ---------- features ---------- */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--space-xl);
+  }
+  .feature-card {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    padding: var(--space-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .icon-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    background: var(--accent-tint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--space-sm);
+  }
+  .icon-badge svg { width: 21px; height: 21px; color: var(--accent); }
+  .feature-card h3 {
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .feature-card p {
+    color: var(--text-dim);
+    margin: 0;
+    font-size: 0.98rem;
+  }
+  .grade-row { display: flex; gap: var(--space-xs); margin-top: var(--space-xs); flex-wrap: wrap; }
+  .grade-chip {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--accent-2);
+    background: var(--accent-2-bg);
+    border: 1px solid var(--accent-2-border);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+  }
+
+  /* ---------- access ---------- */
+  .access {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: var(--space-xxxl);
+    align-items: start;
+  }
+  .access p.body { color: var(--text-dim); font-size: 1.02rem; margin: 0 0 var(--space-md); }
+  .access .fine { color: var(--text-faint); font-size: 0.9rem; margin-top: var(--space-lg); }
+  .role-panel {
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg) var(--space-xl);
+  }
+  .role-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-md) 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .role-row:last-child { border-bottom: none; }
+  .role-row strong { font-family: var(--font-display); font-size: 0.95rem; letter-spacing: -0.01em; }
+  .role-row span { color: var(--text-dim); font-size: 0.92rem; }
+
+  /* ---------- footer ---------- */
+  footer {
+    padding: var(--space-xxxl) var(--space-xxl) var(--space-xxl);
+    text-align: center;
+    border-top: 1px solid var(--hairline);
+  }
+  footer .closing {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: -0.01em;
+    max-width: 28rem;
+    margin: 0 auto var(--space-xl);
+  }
+  footer .colophon {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    color: var(--text-faint);
+    margin: var(--space-xxl) 0 0;
+  }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; padding-top: var(--space-xxl); }
+    .hero-copy { max-width: none; }
+    .hero-art { max-width: 300px; margin-top: var(--space-xl); order: 2; }
+    .access { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 520px) {
+    .wrap, section.block, .hero, .topbar { padding-left: var(--space-lg); padding-right: var(--space-lg); }
+  }
 </style>
 </head>
 <body>
+
+<header class="topbar">
+  <a class="brand" href="#top">
+    <svg viewBox="0 0 48 48" aria-hidden="true">
+      <path class="mark-a" d="M4 38 18 14l6 10 4-6 16 20z"/>
+      <path fill="#ffffff" d="m18 14 4 6.8-4.6 5.9-5-3.2z"/>
+    </svg>
+    Acordanza
+  </a>
+  <a class="btn ghost" href="https://app.acordanza.eu">Abrir la app</a>
+</header>
+
 <main>
-  <h1>Acordanza</h1>
-  <p class="tagline"><span class="pos">s. f.</span>relacionado con tener algo en la memoria o hacer memoria.</p>
-  <p>
-    Un catálogo privado para un grupo de amigos que escalan juntos.
-  </p>
-  <p>
-    Solo cuentas reales, sin registro público.
-  </p>
-  <a class="cta" href="https://app.acordanza.eu">Abrir la app &rarr;</a>
+  <section class="hero" id="top">
+    <div class="hero-copy">
+      <p class="tagline"><span class="pos">s. f.</span><span class="fon">[akordánzá]</span>Reminiscencia o evocación afectiva de un lugar, persona o época.</p>
+      <h1>Acordanza</h1>
+      <p class="lede">Un catálogo de vías para que no se pierdan en el olvido.</p>
+      <p class="body">
+        Sectores, aperturas, grados. Todo en un mismo
+        sitio, editado entre quienes escalan.
+      </p>
+      <p class="body">Sin registro. Sólo accesible por invitación.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="https://app.acordanza.eu">Abrir la app →</a>
+        <a class="btn text" href="#features">Cómo funciona ↓</a>
+      </div>
+    </div>
+
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 400 480">
+        <path class="ridge" d="M10,440 L95,190 L140,270 L195,80 L235,155 L305,35 L390,440 Z"/>
+        <path class="route-line" pathLength="100"
+          d="M95,410 C118,345 72,300 112,258 C152,216 118,190 152,148 C182,110 210,120 232,86" />
+        <circle class="anchor-dot a1" cx="112" cy="258" r="6"/>
+        <circle class="anchor-dot a2" cx="152" cy="148" r="6"/>
+        <circle class="anchor-dot a3" cx="232" cy="86" r="6"/>
+      </svg>
+      <span class="grade-flag g1">7a+</span>
+      <span class="grade-flag g2">6a</span>
+    </div>
+  </section>
+
+  <section class="block" id="features">
+    <div class="wrap" style="padding:0;">
+      <p class="eyebrow">El catálogo</p>
+      <h2>Todas las paredes, en un mismo sitio.</h2>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <div class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 18 9 8l3 4 2-3 7 9"/>
+              <path d="M6 18c1.5-2 2-4 1-6" stroke-dasharray="2 2.3"/>
+            </svg>
+          </div>
+          <h3>Vías y sectores</h3>
+          <p>Nombre, sector, grado, aperturistas. Encuentra lo que quieres escalar.</p>
+          <div class="grade-row">
+            <span class="grade-chip">7a+</span>
+            <span class="grade-chip">6c</span>
+            <span class="grade-chip">V+</span>
+          </div>
+        </article>
+        <article class="feature-card">
+          <div class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="8.25"/>
+              <path d="M8.5 12.5l2.4 2.4 4.6-5.4"/>
+            </svg>
+          </div>
+          <h3>Registro de ascensos</h3>
+          <p>Puedes registrar tus ascensiones: quién, cuándo, valoración y notas propias. Es un historial privado. Solo tú ves tu información. No es una red social.</p>
+        </article>
+        <article class="feature-card">
+          <div class="icon-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 21s6.5-6.2 6.5-11A6.5 6.5 0 1 0 5.5 10c0 4.8 6.5 11 6.5 11z"/>
+              <circle cx="12" cy="10" r="2.25"/>
+            </svg>
+          </div>
+          <h3>Conocimiento compartido</h3>
+          <p>Recopilemos entre todos la información de las paredes. Que no se pierda en blogs, en redes sociales o en la memoria de los aperturistas.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block access">
+    <div class="access-copy">
+      <p class="eyebrow">Solo para invitados</p>
+      <h2>Sin registro público. Sin ruido.</h2>
+      <p class="body">
+        No hay alta pública: si tienes cuenta, es porque alguien del grupo te la dio. Cada usuario puede invitar a otros 5 usuarios.
+      </p>
+      <p class="body">
+        Todo el mundo ve el catálogo completo. Puedes convertirte en experto de un sector para validar lo que
+        se abre en él. Y puedes también vincular tu cuenta con un aperturista para editar tus propias vías.
+      </p>
+      <p class="fine">Accede con tu contraseña o, de manera recomendada, con una llave de acceso.</p>
+    </div>
+    <div class="role-panel">
+      <div class="role-row">
+        <strong>Administrador</strong>
+        <span>gestiona cuentas, sectores y validaciones</span>
+      </div>
+      <div class="role-row">
+        <strong>Moderador</strong>
+        <span>valida vías y sectores</span>
+      </div>
+      <div class="role-row">
+        <strong>Usuario</strong>
+        <span>añade vías y registra sus propios ascensos</span>
+      </div>
+    </div>
+  </section>
 </main>
+
+<footer>
+  <p class="closing">Para no perder la cuenta de por dónde has pasado.</p>
+  <a class="btn primary small" href="https://app.acordanza.eu">Abrir la app →</a>
+  <p class="colophon">Made with love by acheve</p>
+</footer>
+
 </body>
 </html>
