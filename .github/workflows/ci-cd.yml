@@ -58,7 +58,15 @@ jobs:
       - name: Build
         run: dotnet build Acordanza.slnx --no-restore -c Release
 
-      - name: Test
+      - name: Unit test
+        run: dotnet test Acordanza.slnx --no-build -c Release --filter "Category!=Integration"
+
+      # Runs against real Postgres + Azurite via Testcontainers (see
+      # backend/Acordanza.Api.Tests/Infrastructure/ApiFixture.cs) — ubuntu-latest has
+      # Docker, and openapi-contract-check already depends on it, so this adds no new
+      # runner requirement. Kept as its own step (rather than folded into the one
+      # above) so a failure here reads unambiguously in the log.
+      - name: Integration test
         run: dotnet test Acordanza.slnx --no-build -c Release
 
   build-test-frontend:

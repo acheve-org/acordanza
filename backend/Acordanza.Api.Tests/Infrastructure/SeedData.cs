@@ -1,0 +1,100 @@
+using Acordanza.Api.Data;
+using Acordanza.Api.Models;
+
+namespace Acordanza.Api.Tests.Infrastructure;
+
+// Small, composable helpers for seeding area trees, routes and first ascensionists
+// directly through AppDbContext — tests call these against a scope's db, then
+// SaveChangesAsync themselves (or let the helper do it, see each method), keeping
+// control over transaction boundaries with the caller.
+public static class SeedData
+{
+    public static async Task<Area> CreateAreaAsync(
+        AppDbContext db, string name, Area? parent = null, bool validated = true, string? validatedByUserId = null)
+    {
+        var area = new Area
+        {
+            Name = name,
+            Slug = Acordanza.Api.Services.Slugify.ToSlug(name),
+            ParentAreaId = parent?.Id
+        };
+        if (validated)
+        {
+            area.ValidatedAt = DateTimeOffset.UtcNow;
+            area.ValidatedByUserId = validatedByUserId;
+        }
+
+        db.Areas.Add(area);
+        await db.SaveChangesAsync();
+        return area;
+    }
+
+    public static async Task<FirstAscensionist> CreateFirstAscensionistAsync(AppDbContext db, string name)
+    {
+        var firstAscensionist = new FirstAscensionist { Name = name };
+        db.FirstAscensionists.Add(firstAscensionist);
+        await db.SaveChangesAsync();
+        return firstAscensionist;
+    }
+
+    public static async Task<ClimbingRoute> CreateRouteAsync(
+        AppDbContext db,
+        Area area,
+        string addedByUserId,
+        string name = "Test Route",
+        string grade = "6a",
+        string? orientation = null,
+        string? gear = null,
+        string tags = "",
+        string description = "",
+        List<FirstAscensionist>? firstAscensionists = null,
+        bool hasTopo = false)
+    {
+        var route = new ClimbingRoute
+        {
+            Name = name,
+            AreaId = area.Id,
+            Grade = grade,
+            Orientation = orientation,
+            Gear = gear,
+            Tags = tags,
+            Description = description,
+            AddedByUserId = addedByUserId,
+            FirstAscensionists = firstAscensionists ?? []
+        };
+        db.Routes.Add(route);
+        await db.SaveChangesAsync();
+
+        if (hasTopo)
+        {
+            db.Topos.Add(new Topo
+            {
+                RouteId = route.Id,
+                BlobName = $"test/{route.Id}-01.jpg",
+                ContentType = "image/jpeg",
+                FileName = "topo.jpg",
+                UploadedByUserId = addedByUserId
+            });
+            await db.SaveChangesAsync();
+        }
+
+        return route;
+    }
+
+    public static async Task<Tick> CreateTickAsync(
+        AppDbContext db, ClimbingRoute route, string climberUserId, string date = "2024-01-01",
+        int? rating = null, string notes = "")
+    {
+        var tick = new Tick
+        {
+            RouteId = route.Id,
+            ClimberUserId = climberUserId,
+            Date = date,
+            Rating = rating,
+            Notes = notes
+        };
+        db.Ticks.Add(tick);
+        await db.SaveChangesAsync();
+        return tick;
+    }
+}
