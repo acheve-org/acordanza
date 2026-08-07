@@ -1,6 +1,6 @@
 # Generate frontend API types from the backend's OpenAPI document
 
-Status: planned (not started)
+Status: done
 Depends on: nothing; pairs well with frontend-data-fetching.md but independent
 
 ## Problem

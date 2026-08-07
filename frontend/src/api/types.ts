@@ -1,20 +1,10 @@
-export interface GeoPoint {
-  lat: number;
-  lng: number;
-}
+import type { components } from './generated';
 
-export interface AreaSummary {
-  id: number;
-  name: string;
-  slug: string;
-  parentAreaId: number | null;
-  polygon: GeoPoint[];
-  centroidLat: number | null;
-  centroidLng: number | null;
-  validatedAt: string | null;
-  validatedBy: string | null;
-}
+export type GeoPoint = components['schemas']['GeoPointDto'];
 
+export type AreaSummary = components['schemas']['AreaDto'];
+
+// Not a backend DTO — a client-constructed viewport query, not a response shape.
 export interface AreaBounds {
   minLat: number;
   minLng: number;
@@ -22,119 +12,36 @@ export interface AreaBounds {
   maxLng: number;
 }
 
-export interface AreaNode {
-  id: number;
-  name: string;
-  slug: string;
-  hasChildren: boolean;
-  // Just the "a boundary exists" bit — the vertices are fetched lazily by AreaPolygonModal.
-  hasPolygon: boolean;
-}
+export type AreaNode = components['schemas']['AreaNodeDto'];
 
-export interface PagedAreaNodes {
-  items: AreaNode[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
+export type PagedAreaNodes = components['schemas']['PagedAreaNodesResponse'];
 
-export interface AreaAncestor {
-  id: number;
-  name: string;
-  slug: string;
-}
+export type AreaAncestor = components['schemas']['AreaAncestorDto'];
 
-export interface AreaChild {
-  id: number;
-  name: string;
-  slug: string;
-  hasChildren: boolean;
-}
+export type AreaChild = components['schemas']['AreaChildDto'];
 
-export interface AreaDetail {
-  id: number;
-  name: string;
-  slug: string;
-  parentAreaId: number | null;
-  ancestors: AreaAncestor[];
-  children: AreaChild[];
-  validatedAt: string | null;
-  validatedBy: string | null;
-  canManageMedia: boolean;
-  media: TopoSummary[];
-}
+export type AreaDetail = components['schemas']['AreaDetailDto'];
 
-export interface AreaExpert {
-  id: number;
-  areaId: number;
-  areaName: string;
-  userId: string;
-  userName: string;
-  requestedAt: string;
-  status: 'pending' | 'approved' | 'rejected';
-  decidedAt: string | null;
-  decidedByName: string | null;
-  rejectionReason: string | null;
-}
+// Backend/Acordanza.Api/Models/AreaExpert.cs's Status is a free-text string column, but its
+// runtime values are the closed set below (see AreaExpertsController) — openapi-typescript
+// can't know that from the schema alone, so narrow it by hand.
+type RequestStatus = 'pending' | 'approved' | 'rejected';
 
-export interface FirstAscensionistSummary {
-  id: number;
-  name: string;
-  userId: string | null;
-  linkedUserName: string | null;
-}
+export type AreaExpert = Omit<components['schemas']['AreaExpertDto'], 'status'> & { status: RequestStatus };
 
-// A first ascensionist as the "Sigue" section shows them — the summary plus what they opened.
-export interface FirstAscensionistProfile extends FirstAscensionistSummary {
-  routeCount: number;
-  areaNames: string[];
-}
+export type FirstAscensionistSummary = components['schemas']['FirstAscensionistDto'];
 
-export interface FirstAscensionistLinkRequestSummary {
-  id: number;
-  firstAscensionistId: number;
-  firstAscensionistName: string;
-  userId: string;
-  userName: string;
-  requestedAt: string;
-  status: 'pending' | 'approved' | 'rejected';
-  decidedAt: string | null;
-  decidedByName: string | null;
-  rejectionReason: string | null;
-}
+// The "Sigue" section's view of a first ascensionist: the plain DTO plus what they opened.
+export type FirstAscensionistProfile = components['schemas']['FirstAscensionistProfileDto'];
 
-export interface TopoSummary {
-  id: number;
-  url: string;
-  fileName: string;
-  createdAt: string;
-  uploadedBy: string;
-}
+export type FirstAscensionistLinkRequestSummary =
+  Omit<components['schemas']['FirstAscensionistLinkRequestDto'], 'status'> & { status: RequestStatus };
 
-export interface RouteSummary {
-  id: number;
-  name: string;
-  areaId: number;
-  areaName: string;
-  areaPath: string;
-  grade: string;
-  orientation: string | null;
-  gear: string | null;
-  description: string;
-  tags: string;
-  firstAscensionists: FirstAscensionistSummary[];
-  addedBy: string;
-  createdAt: string;
-  hasTick: boolean;
-  hasTopos: boolean;
-  validatedAt: string | null;
-  validatedBy: string | null;
-  canValidate: boolean;
-}
+export type TopoSummary = components['schemas']['TopoDto'];
 
-export interface RouteDetail extends Omit<RouteSummary, 'hasTopos'> {
-  topos: TopoSummary[];
-}
+export type RouteSummary = components['schemas']['RouteDto'];
+
+export type RouteDetail = components['schemas']['RouteDetailDto'];
 
 export interface RouteFilters {
   q: string;
@@ -163,70 +70,19 @@ export interface TickFilters {
   tag: string;
 }
 
-export interface TickedRoute {
-  tickId: number;
-  routeId: number;
-  routeName: string;
-  areaId: number;
-  areaName: string;
-  areaPath: string;
-  grade: string;
-  orientation: string | null;
-  gear: string | null;
-  tags: string;
-  date: string;
-  rating: number | null;
-  notes: string;
-  createdAt: string;
-}
+export type TickedRoute = components['schemas']['MyTickDto'];
 
-export interface PagedTicks {
-  items: TickedRoute[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
+export type PagedTicks = components['schemas']['PagedMyTicksResponse'];
 
-export interface UpsertRouteInput {
-  name: string;
-  areaId: number;
-  grade: string;
-  orientation: string;
-  gear: string;
-  description: string;
-  tags: string;
-  firstAscensionistIds: number[];
-}
+export type UpsertRouteInput = components['schemas']['UpsertRouteRequest'];
 
-export interface CreateTickInput {
-  date: string;
-  rating: number | null;
-  notes: string;
-}
+export type CreateTickInput = components['schemas']['CreateTickRequest'];
 
-export interface LoginResponse {
-  token: string | null;
-  username: string | null;
-  mfaRequired: boolean;
-  sessionId: string | null;
-  options: unknown;
-}
+export type LoginResponse = components['schemas']['LoginResponse'];
 
-export interface MeResponse {
-  id: string;
-  username: string;
-  name: string;
-  role: string;
-  permissions: string[];
-  isFirstAscensionist: boolean;
-  isAreaExpert: boolean;
-}
+export type MeResponse = components['schemas']['MeResponse'];
 
-export interface PasskeySummary {
-  id: number;
-  name: string;
-  createdAt: string;
-}
+export type PasskeySummary = components['schemas']['PasskeySummary'];
 
 // Route `orientation`/`gear` values are stored in English to match the backend; these map them to
 // the Spanish labels shown in the UI (see root CLAUDE.md — all user-facing text is Spanish).
@@ -248,25 +104,11 @@ export const gearLabels: Record<string, string> = {
   aiders: 'Estribos',
 };
 
-export interface UserAccount {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  pending: boolean;
-}
+export type UserAccount = components['schemas']['UserAccountDto'];
 
-export interface InviteUserInput {
-  email: string;
-  role: string;
-}
+export type InviteUserInput = components['schemas']['InviteUserRequest'];
 
-export interface PagedUsers {
-  items: UserAccount[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}
+export type PagedUsers = components['schemas']['PagedUsersResponse'];
 
 export interface UserFilters {
   q: string;
@@ -276,17 +118,9 @@ export interface UserFilters {
   sortDir: 'asc' | 'desc';
 }
 
-export interface MyInvite {
-  email: string;
-  pending: boolean;
-  hasInvitedOthers: boolean;
-}
+export type MyInvite = components['schemas']['MyInviteDto'];
 
-export interface MyInvitesResponse {
-  invites: MyInvite[];
-  invitesLeft: number | null;
-  maxInvites: number | null;
-}
+export type MyInvitesResponse = components['schemas']['MyInvitesResponse'];
 
 // Mirrors backend/Acordanza.Api/Authorization/Roles.cs
 export const roleLabels: Record<string, string> = {

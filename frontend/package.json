@@ -9,7 +9,8 @@
     "prebuild": "bun run --cwd ../design-system build",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "generate-api": "bunx openapi-typescript@7.13.0 ../backend/Acordanza.Api/openapi/Acordanza.Api.json -o src/api/generated.ts"
   },
   "dependencies": {
     "@github/webauthn-json": "^2.1.1",

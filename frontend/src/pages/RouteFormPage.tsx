@@ -8,7 +8,19 @@ import { gearLabels, orientationLabels } from '../api/types';
 import { AreaPicker } from '../components/AreaPicker';
 import { FirstAscensionistPicker } from '../components/FirstAscensionistPicker';
 
-const emptyForm: UpsertRouteInput = {
+// UpsertRouteInput's orientation/gear/description/tags/firstAscensionistIds accept null on the
+// wire (the backend DTO fields are nullable), but the form itself never holds null for them —
+// it always starts from and edits real strings/arrays, only trimmed/assembled into
+// UpsertRouteInput on submit.
+type RouteFormState = Omit<UpsertRouteInput, 'orientation' | 'gear' | 'description' | 'tags' | 'firstAscensionistIds'> & {
+  orientation: string;
+  gear: string;
+  description: string;
+  tags: string;
+  firstAscensionistIds: number[];
+};
+
+const emptyForm: RouteFormState = {
   name: '',
   areaId: 0,
   grade: '',
@@ -26,7 +38,7 @@ export function RouteFormPage() {
 
   const [route, setRoute] = useState<RouteDetail | null>(null);
   const [loadError, setLoadError] = useState('');
-  const [form, setForm] = useState<UpsertRouteInput>(emptyForm);
+  const [form, setForm] = useState<RouteFormState>(emptyForm);
 
   useEffect(() => {
     if (!editing) return;
@@ -64,7 +76,7 @@ export function RouteFormPage() {
 
   if (editing && !route) return null;
 
-  function set<K extends keyof UpsertRouteInput>(key: K, value: UpsertRouteInput[K]) {
+  function set<K extends keyof RouteFormState>(key: K, value: RouteFormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 

@@ -7,6 +7,24 @@
     <UserSecretsId>54933bcf-3a24-4fd8-ad11-ed1386e1f638</UserSecretsId>
   </PropertyGroup>
 
+  <!--
+    Emits the OpenAPI document to a checked-in path (openapi/Acordanza.Api.json)
+    for the frontend's `bun run generate-api` (frontend/package.json) to consume,
+    so committing it means contract changes show up as a JSON diff in review.
+    OpenApiGenerateDocumentsOnBuild is off: generating the document actually
+    boots the app (it's the same top-level Program.cs that runs migrations
+    against Postgres and provisions the blob container — see the "Auth model"/
+    "Storage" sections below), so wiring it into every `dotnet build` would make
+    routine builds depend on docker-compose being up. Regenerate on demand with
+    `dotnet build -p:OpenApiGenerateDocumentsOnBuild=true` (needs
+    `docker compose up -d` and a configured Jwt:Key, same as `dotnet run`).
+  -->
+  <PropertyGroup>
+    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
+    <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.3" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
@@ -16,6 +34,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

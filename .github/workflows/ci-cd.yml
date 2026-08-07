@@ -108,6 +108,66 @@ jobs:
         # in build-and-deploy-frontend below.
         run: bun run build
 
+  openapi-contract-check:
+    name: OpenAPI contract in sync
+    runs-on: ubuntu-latest
+    # Regenerating the OpenAPI document actually boots the backend (see the comment on
+    # OpenApiGenerateDocumentsOnBuild in Acordanza.Api.csproj), so this needs the same
+    # Postgres + Azurite pair docker-compose.yml gives local dev, started here from that
+    # same file rather than reimplemented as GitHub Actions service containers.
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Read Bun version from .prototools
+        id: tool_versions
+        run: |
+          version=$(awk -F'"' '/^\[/{exit} /^bun[[:space:]]*=/{print $2; exit}' .prototools)
+          if [ -z "$version" ]; then
+            echo "Could not find a top-level bun version in .prototools" >&2
+            exit 1
+          fi
+          echo "bun_version=$version" >> "$GITHUB_OUTPUT"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ steps.tool_versions.outputs.bun_version }}
+
+      - name: Start Postgres + Azurite
+        # -f docker-compose.yml only: the default `docker compose` invocation also merges in
+        # docker-compose.override.yml, which adds a `backend` service requiring JWT_KEY in
+        # .env — irrelevant here (this job runs the backend directly via `dotnet build`, not
+        # in a container) but its interpolation still fails the whole command if unset.
+        run: docker compose -f docker-compose.yml up -d --wait postgres azurite
+
+      - name: Regenerate the OpenAPI document
+        working-directory: backend/Acordanza.Api
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          # Only used to boot the app long enough to generate the schema — this key
+          # never signs a token anyone verifies, so it doesn't need to be a secret.
+          Jwt__Key: "openapi-contract-check-only-not-a-real-signing-key"
+        run: dotnet build Acordanza.Api.csproj -c Release -p:OpenApiGenerateDocumentsOnBuild=true
+
+      - name: Fail if the committed OpenAPI document is stale
+        run: git diff --exit-code -- backend/Acordanza.Api/openapi
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: bun install --frozen-lockfile
+
+      - name: Regenerate frontend API types
+        working-directory: frontend
+        run: bun run generate-api
+
+      - name: Fail if the committed generated types are stale
+        run: git diff --exit-code -- frontend/src/api/generated.ts
+
   security-scan:
     name: Security scan
     runs-on: ubuntu-latest
@@ -149,7 +209,7 @@ jobs:
 
   terraform:
     name: Terraform plan/apply
-    needs: [build-test-backend, build-test-frontend, security-scan]
+    needs: [build-test-backend, build-test-frontend, openapi-contract-check, security-scan]
     # Runs triggered by Dependabot don't get repository secrets (by GitHub
     # design, so a compromised dependency bump can't exfiltrate them), and
     # TF_VAR_postgres_admin_password/TF_VAR_jwt_key come through empty —

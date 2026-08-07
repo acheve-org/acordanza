@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Npgsql;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -196,7 +197,28 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    // Controllers deserialize with JsonSerializerDefaults.Web, which sets
+    // NumberHandling = AllowReadingFromString (so query/form-bound numbers tolerate
+    // quoted JSON); the schema generator reflects that leniency by typing every
+    // numeric property as `integer|number` OR `string`, which turns every id/count
+    // in the generated frontend types into a `number | string` union. Responses
+    // never actually serialize numbers as strings, so trim the `string` alternative
+    // back off — this only affects the published schema, not runtime (de)serialization.
+    options.AddSchemaTransformer((schema, context, cancellationToken) =>
+    {
+        if (schema.Type is { } type &&
+            type.HasFlag(JsonSchemaType.String) &&
+            (type.HasFlag(JsonSchemaType.Integer) || type.HasFlag(JsonSchemaType.Number)))
+        {
+            schema.Type = type & ~JsonSchemaType.String;
+            schema.Pattern = null;
+        }
+
+        return Task.CompletedTask;
+    });
+});
 
 // Caps how many password-reset emails a single caller (by IP) can trigger —
 // the endpoint already avoids leaking whether an account exists, but without
