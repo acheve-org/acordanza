@@ -5,7 +5,7 @@ import type { MyInvitesResponse } from '../api/types';
 import { ApiError } from '../api/client';
 import { InviteUserModal } from '../components/InviteUserModal';
 
-const emptyResult: MyInvitesResponse = { invites: [], invitesLeft: null };
+const emptyResult: MyInvitesResponse = { invites: [], invitesLeft: null, maxInvites: null };
 
 export function MyInvitesPage() {
   const [result, setResult] = useState<MyInvitesResponse>(emptyResult);
@@ -43,7 +43,7 @@ export function MyInvitesPage() {
       <p>
         {result.invitesLeft === null
           ? 'Invitaciones ilimitadas.'
-          : `Te quedan ${result.invitesLeft} de 5 invitaciones.`}
+          : `Te quedan ${result.invitesLeft} de ${result.maxInvites} invitaciones.`}
       </p>
 
       {error && <p className="error-text">{error}</p>}

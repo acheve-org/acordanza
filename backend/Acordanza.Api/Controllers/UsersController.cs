@@ -26,8 +26,17 @@ public class UsersController(
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
-    private const int MaxInvitesForNonAdmins = 5;
+    private const int DefaultMaxInvitesForUser = 5;
+    private const int DefaultMaxInvitesForModerator = 10;
     private static readonly HashSet<string> SortableFields = ["name", "email", "role"];
+
+    // Configurable via Invites:MaxForUser/Invites:MaxForModerator (see appsettings.json) rather
+    // than hardcoded, so the lifetime invite cap can be tuned per deployment without a rebuild.
+    // Admins are unlimited regardless (checked separately via the UserManage claim).
+    private int GetInviteLimit() =>
+        User.IsInRole(Roles.Moderator)
+            ? configuration.GetValue("Invites:MaxForModerator", DefaultMaxInvitesForModerator)
+            : configuration.GetValue("Invites:MaxForUser", DefaultMaxInvitesForUser);
 
     [Authorize(Policy = Permissions.UserManage)]
     [HttpGet]
@@ -99,6 +108,7 @@ public class UsersController(
     {
         var callerId = userManager.GetUserId(User)!;
         var unlimited = User.HasClaim("permission", Permissions.UserManage);
+        var maxInvites = unlimited ? (int?)null : GetInviteLimit();
 
         var invites = await db.Users.AsNoTracking()
             .Where(u => u.InvitedByUserId == callerId)
@@ -109,7 +119,8 @@ public class UsersController(
                 db.Users.Any(u2 => u2.InvitedByUserId == u.Id)))
             .ToListAsync();
 
-        return Ok(new MyInvitesResponse(invites, unlimited ? null : MaxInvitesForNonAdmins - invites.Count));
+        var invitesLeft = maxInvites is null ? null : (int?)Math.Max(0, maxInvites.Value - invites.Count);
+        return Ok(new MyInvitesResponse(invites, invitesLeft, maxInvites));
     }
 
     // Creates the account up front (with no usable password — CheckPasswordAsync fails
@@ -176,9 +187,10 @@ public class UsersController(
                 if (!unlimited && (existing is null || isTakeover))
                 {
                     var usedCount = await db.Users.CountAsync(u => u.InvitedByUserId == callerId);
-                    if (usedCount >= MaxInvitesForNonAdmins)
+                    var maxInvites = GetInviteLimit();
+                    if (usedCount >= maxInvites)
                     {
-                        return Conflict(new { error = $"Has alcanzado el límite de {MaxInvitesForNonAdmins} invitaciones" });
+                        return Conflict(new { error = $"Has alcanzado el límite de {maxInvites} invitaciones" });
                     }
                 }
 

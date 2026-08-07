@@ -265,6 +265,7 @@ export interface MyInvite {
 export interface MyInvitesResponse {
   invites: MyInvite[];
   invitesLeft: number | null;
+  maxInvites: number | null;
 }
 
 // Mirrors backend/Acordanza.Api/Authorization/Roles.cs

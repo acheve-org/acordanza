@@ -8,4 +8,4 @@ public record InviteUserRequest(string Email, string Role);
 
 public record MyInviteDto(string Email, bool Pending, bool HasInvitedOthers);
 
-public record MyInvitesResponse(List<MyInviteDto> Invites, int? InvitesLeft);
+public record MyInvitesResponse(List<MyInviteDto> Invites, int? InvitesLeft, int? MaxInvites);
