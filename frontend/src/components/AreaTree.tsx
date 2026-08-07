@@ -57,6 +57,7 @@ function AreaTreeNode({
   const polygonAreaFallback: AreaSummary = {
     id: node.id,
     name: node.name,
+    slug: node.slug,
     parentAreaId,
     polygon: [],
     centroidLat: null,

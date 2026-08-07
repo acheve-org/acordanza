@@ -3,6 +3,7 @@ using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
+using Azure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,17 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/areas")]
-public class AreasController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
+public class AreasController(AppDbContext db, UserManager<ApplicationUser> userManager, BlobStorageService blobStorage)
+    : ControllerBase
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
+
+    private static readonly HashSet<string> AllowedMediaContentTypes = ["image/jpeg", "image/png", "image/webp"];
+    private const long MaxMediaBytes = 15 * 1024 * 1024;
+    private static readonly TimeSpan MediaUrlLifetime = TimeSpan.FromMinutes(15);
+
+    private sealed record AreaNode(int Id, string Name, string Slug, int? ParentAreaId);
 
     [HttpGet]
     public async Task<ActionResult<List<AreaDto>>> GetAreas(
@@ -60,6 +68,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             .Select(a => new AreaDto(
                 a.Id,
                 a.Name,
+                a.Slug,
                 a.ParentAreaId,
                 a.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
                 a.CentroidLat,
@@ -88,7 +97,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             .OrderBy(a => a.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => new AreaNodeDto(a.Id, a.Name, a.Children.Any()))
+            .Select(a => new AreaNodeDto(a.Id, a.Name, a.Slug, a.Children.Any()))
             .ToListAsync();
 
         return Ok(new PagedAreaNodesResponse(items, totalCount, page, pageSize));
@@ -105,7 +114,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         var children = await db.Areas.AsNoTracking()
             .Where(a => a.ParentAreaId == id)
             .OrderBy(a => a.Name)
-            .Select(a => new AreaNodeDto(a.Id, a.Name, a.Children.Any()))
+            .Select(a => new AreaNodeDto(a.Id, a.Name, a.Slug, a.Children.Any()))
             .ToListAsync();
 
         return Ok(children);
@@ -160,6 +169,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         return Ok(new AreaDto(
             area.Id,
             area.Name,
+            area.Slug,
             area.ParentAreaId,
             [],
             null,
@@ -230,6 +240,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         return Ok(new AreaDto(
             area.Id,
             area.Name,
+            area.Slug,
             area.ParentAreaId,
             area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
             area.CentroidLat,
@@ -258,11 +269,265 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             return BadRequest(new { error = "el sector o alguno de sus subsectores tiene vías asociadas; muévelas o elimínalas primero" });
         }
 
+        // AreaMedia rows cascade-delete with their area (see AppDbContext), but that's
+        // DB-only — their blobs won't clean themselves up, so their names are captured
+        // now (while still queryable) but not actually deleted from storage until after
+        // the area removal below has committed. Deleting the blobs first would leave
+        // them orphaned-gone if SaveChangesAsync then failed (e.g. a route or child area
+        // inserted concurrently after the AnyAsync check above trips the Restrict FK).
+        var mediaToDelete = await db.AreaMedia.Where(m => idsToDelete.Contains(m.AreaId)).ToListAsync();
+
         var areasToDelete = await db.Areas.Where(a => idsToDelete.Contains(a.Id)).ToListAsync();
         db.Areas.RemoveRange(areasToDelete);
         await db.SaveChangesAsync();
 
+        foreach (var media in mediaToDelete)
+        {
+            await blobStorage.DeleteAsync(media.BlobName);
+        }
+
         return NoContent();
+    }
+
+    // Returns a single area resolved by its full slug path (e.g. "pena-rua/sector-1"),
+    // walked level by level since Area.Slug is only unique among siblings — see
+    // RoutesController.AreaSlugPath for the same walk used to build blob prefixes.
+    [HttpGet("by-slug-path/{*path}")]
+    public async Task<ActionResult<AreaDetailDto>> GetAreaBySlugPath(string path)
+    {
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0)
+        {
+            return NotFound(new { error = "el sector no existe" });
+        }
+
+        var areas = await db.Areas.AsNoTracking()
+            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
+            .ToListAsync();
+        var areaById = areas.ToDictionary(a => a.Id);
+
+        int? currentParentId = null;
+        AreaNode? resolved = null;
+        foreach (var segment in segments)
+        {
+            resolved = areas.FirstOrDefault(a => a.ParentAreaId == currentParentId && a.Slug == segment);
+            if (resolved is null)
+            {
+                return NotFound(new { error = "el sector no existe" });
+            }
+            currentParentId = resolved.Id;
+        }
+
+        var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == resolved!.Id);
+        if (area is null)
+        {
+            return NotFound(new { error = "el sector no existe" });
+        }
+
+        var ancestors = new List<AreaAncestorDto>();
+        var ancestorId = area.ParentAreaId;
+        while (ancestorId is int aid && areaById.TryGetValue(aid, out var ancestor))
+        {
+            ancestors.Insert(0, new AreaAncestorDto(ancestor.Id, ancestor.Name, ancestor.Slug));
+            ancestorId = ancestor.ParentAreaId;
+        }
+
+        var children = await db.Areas.AsNoTracking()
+            .Where(a => a.ParentAreaId == area.Id)
+            .OrderBy(a => a.Name)
+            .Select(a => new AreaChildDto(a.Id, a.Name, a.Slug, a.Children.Any()))
+            .ToListAsync();
+
+        var media = await db.AreaMedia.AsNoTracking()
+            .Where(m => m.AreaId == area.Id)
+            .Include(m => m.UploadedBy)
+            .OrderBy(m => m.CreatedAt)
+            .ToListAsync();
+        var mediaDtos = new List<TopoDto>();
+        foreach (var m in media)
+        {
+            var url = await blobStorage.GetReadSasUrlAsync(m.BlobName, MediaUrlLifetime);
+            mediaDtos.Add(new TopoDto(m.Id, url, m.FileName, m.CreatedAt, m.UploadedBy.Name));
+        }
+
+        var canManageMedia = await BuildCanManageAreaMediaCheckAsync(areaById, area.Id);
+
+        return Ok(new AreaDetailDto(
+            area.Id,
+            area.Name,
+            area.Slug,
+            area.ParentAreaId,
+            ancestors,
+            children,
+            area.ValidatedAt,
+            await GetValidatedByNameAsync(area.ValidatedByUserId),
+            canManageMedia,
+            mediaDtos));
+    }
+
+    [HttpPost("{id:int}/media")]
+    [RequestSizeLimit(MaxMediaBytes)]
+    public async Task<ActionResult<TopoDto>> UploadAreaMedia(int id, IFormFile? file)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { error = "la imagen es obligatoria" });
+        }
+        if (!AllowedMediaContentTypes.Contains(file.ContentType))
+        {
+            return BadRequest(new { error = "el formato de la imagen no es válido (usa JPEG, PNG o WebP)" });
+        }
+        if (file.Length > MaxMediaBytes)
+        {
+            return BadRequest(new { error = "la imagen es demasiado grande (máximo 15 MB)" });
+        }
+
+        var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == id);
+        if (area is null) return NotFound(new { error = "No encontrado" });
+
+        var areas = await db.Areas.AsNoTracking()
+            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
+            .ToListAsync();
+        var areaById = areas.ToDictionary(a => a.Id);
+
+        var canManageMedia = await BuildCanManageAreaMediaCheckAsync(areaById, id);
+        if (!canManageMedia)
+        {
+            return Forbid();
+        }
+
+        var currentUser = await userManager.GetUserAsync(User);
+        if (currentUser is null) return Unauthorized();
+
+        // Named after the area's own slug plus a numeric suffix, same convention as
+        // route topos (RoutesController.UploadTopo) — the next number is the highest
+        // one actually in use under this prefix, not just this area's media count.
+        // The "/_media-" segment (not just "-") is deliberate: without it, this area's
+        // prefix would be "{ParentPath}/{area.Slug}-", identical to a route topo's
+        // "{ParentPath}/{routeSlug}-" prefix whenever a route in the parent area happens
+        // to slugify to the same name as this area — Slugify.ToSlug never emits "_", so
+        // no route/area slug can ever collide with this reserved marker.
+        var extension = Path.GetExtension(file.FileName);
+        var blobPrefix = $"{AreaSlugPath(areaById, id)}/_media-";
+        var usedBlobNames = await db.AreaMedia.AsNoTracking()
+            .Where(m => m.BlobName.StartsWith(blobPrefix))
+            .Select(m => m.BlobName)
+            .ToListAsync();
+        var nextNumber = HighestMediaNumber(usedBlobNames, blobPrefix) + 1;
+
+        const int maxAttempts = 5;
+        string? blobName = null;
+        for (var attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var candidate = $"{blobPrefix}{nextNumber + attempt:D2}{extension}";
+            try
+            {
+                await using var stream = file.OpenReadStream();
+                await blobStorage.UploadAsync(candidate, stream, file.ContentType, overwrite: false);
+                blobName = candidate;
+                break;
+            }
+            catch (RequestFailedException ex) when (ex.Status == 412)
+            {
+                // Name taken by a racing upload — try the next number.
+            }
+        }
+
+        if (blobName is null)
+        {
+            return Conflict(new { error = "no se pudo subir la imagen, inténtalo de nuevo" });
+        }
+
+        var media = new AreaMedia
+        {
+            AreaId = area.Id,
+            BlobName = blobName,
+            ContentType = file.ContentType,
+            FileName = file.FileName,
+            UploadedByUserId = currentUser.Id
+        };
+        db.AreaMedia.Add(media);
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // The blob already landed in storage — if the row can't be saved (e.g. the
+            // area or uploader was deleted concurrently), delete it too rather than
+            // leaving an orphaned blob that occupies this name forever.
+            await blobStorage.DeleteAsync(blobName);
+            throw;
+        }
+
+        var url = await blobStorage.GetReadSasUrlAsync(media.BlobName, MediaUrlLifetime);
+        return Ok(new TopoDto(media.Id, url, media.FileName, media.CreatedAt, currentUser.Name));
+    }
+
+    // Admins/moderators (area.edit) can manage any area's media; otherwise, only an
+    // approved AreaExpert of the area's top-level ancestor can — same "ownership scoped
+    // to a query, not a claim" pattern RoutesController.BuildCanValidateAreaCheckAsync uses.
+    private async Task<bool> BuildCanManageAreaMediaCheckAsync(Dictionary<int, AreaNode> areaById, int areaId)
+    {
+        if (User.HasClaim("permission", Permissions.AreaEdit))
+        {
+            return true;
+        }
+
+        var userId = userManager.GetUserId(User)!;
+        var expertAreaIds = await db.AreaExperts
+            .Where(e => e.UserId == userId && e.Status == AreaExpertStatus.Approved)
+            .Select(e => e.AreaId)
+            .ToListAsync();
+
+        if (expertAreaIds.Count == 0)
+        {
+            return false;
+        }
+
+        return expertAreaIds.Contains(TopLevelAreaId(areaById, areaId));
+    }
+
+    private static int TopLevelAreaId(Dictionary<int, AreaNode> areaById, int id)
+    {
+        var result = id;
+        int? currentId = id;
+        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
+        {
+            result = aid;
+            currentId = area.ParentAreaId;
+        }
+        return result;
+    }
+
+    // Same ancestor walk as GetAreaBySlugPath's Ancestors, but joining Slug (not Name)
+    // with "/" — this is the blob-name prefix this area's own media is stored under.
+    private static string AreaSlugPath(Dictionary<int, AreaNode> areaById, int id)
+    {
+        var parts = new List<string>();
+        int? currentId = id;
+        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
+        {
+            parts.Insert(0, area.Slug);
+            currentId = area.ParentAreaId;
+        }
+        return string.Join("/", parts);
+    }
+
+    // Parses the trailing "-{number}" out of each blob name (after the shared prefix,
+    // before the extension) and returns the highest one found, or 0 if none/none parse.
+    private static int HighestMediaNumber(List<string> blobNames, string prefix)
+    {
+        var highest = 0;
+        foreach (var blobName in blobNames)
+        {
+            var numberPart = Path.GetFileNameWithoutExtension(blobName[prefix.Length..]);
+            if (int.TryParse(numberPart, out var number) && number > highest)
+            {
+                highest = number;
+            }
+        }
+        return highest;
     }
 
     // Two sibling areas can never share a Name (checked above), but different names can
@@ -363,6 +628,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         return Ok(new AreaDto(
             area.Id,
             area.Name,
+            area.Slug,
             area.ParentAreaId,
             area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
             area.CentroidLat,

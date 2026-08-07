@@ -32,7 +32,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
         [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? gear, [FromQuery] string? tag,
-        [FromQuery] bool? hasTopo)
+        [FromQuery] bool? hasTopo, [FromQuery] bool exactArea = false)
     {
         var areas = await db.Areas.AsNoTracking()
             .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
@@ -53,7 +53,10 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         }
         if (areaId is int requestedAreaId)
         {
-            var ids = DescendantAreaIds(areas, requestedAreaId);
+            // The area detail page (issue #105) wants only this exact area's own routes —
+            // its child areas' routes get their own section there — so it opts out of the
+            // usual subtree expansion every other caller (filters, area picker) relies on.
+            List<int> ids = exactArea ? [requestedAreaId] : DescendantAreaIds(areas, requestedAreaId);
             query = query.Where(r => ids.Contains(r.AreaId));
         }
         if (!string.IsNullOrWhiteSpace(gear))

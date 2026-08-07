@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<FirstAscensionist> FirstAscensionists => Set<FirstAscensionist>();
     public DbSet<Topo> Topos => Set<Topo>();
+    public DbSet<AreaMedia> AreaMedia => Set<AreaMedia>();
     public DbSet<AreaExpert> AreaExperts => Set<AreaExpert>();
     public DbSet<FirstAscensionistLinkRequest> FirstAscensionistLinkRequests => Set<FirstAscensionistLinkRequest>();
 
@@ -151,6 +152,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasOne(t => t.UploadedBy)
                 .WithMany()
                 .HasForeignKey(t => t.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<AreaMedia>(entity =>
+        {
+            entity.ToTable("AreaMedia", "core");
+
+            entity.HasIndex(m => m.AreaId);
+
+            entity.HasOne(m => m.Area)
+                .WithMany()
+                .HasForeignKey(m => m.AreaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.UploadedBy)
+                .WithMany()
+                .HasForeignKey(m => m.UploadedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

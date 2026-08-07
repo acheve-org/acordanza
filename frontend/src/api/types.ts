@@ -6,6 +6,7 @@ export interface GeoPoint {
 export interface AreaSummary {
   id: number;
   name: string;
+  slug: string;
   parentAreaId: number | null;
   polygon: GeoPoint[];
   centroidLat: number | null;
@@ -24,6 +25,7 @@ export interface AreaBounds {
 export interface AreaNode {
   id: number;
   name: string;
+  slug: string;
   hasChildren: boolean;
 }
 
@@ -32,6 +34,32 @@ export interface PagedAreaNodes {
   totalCount: number;
   page: number;
   pageSize: number;
+}
+
+export interface AreaAncestor {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export interface AreaChild {
+  id: number;
+  name: string;
+  slug: string;
+  hasChildren: boolean;
+}
+
+export interface AreaDetail {
+  id: number;
+  name: string;
+  slug: string;
+  parentAreaId: number | null;
+  ancestors: AreaAncestor[];
+  children: AreaChild[];
+  validatedAt: string | null;
+  validatedBy: string | null;
+  canManageMedia: boolean;
+  media: TopoSummary[];
 }
 
 export interface AreaExpert {

@@ -12,6 +12,7 @@ import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { AcceptInviteScreen } from './pages/AcceptInviteScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
 import { MapPage } from './pages/MapPage';
+import { AreaPage } from './pages/AreaPage';
 import { AreasPage } from './pages/AreasPage';
 import { MyAreasPage } from './pages/MyAreasPage';
 import { ClaimFirstAscensionistPage } from './pages/ClaimFirstAscensionistPage';
@@ -148,6 +149,7 @@ function App() {
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
         <Route path="map" element={<MapPage />} />
+        <Route path="areas/*" element={<AreaPage />} />
         {/* Pre-#77 top-level paths — kept as redirects so old bookmarks/links still land. */}
         <Route path="my-areas" element={<Navigate to="/my-acordanza/my-areas" replace />} />
         <Route

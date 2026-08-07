@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { AreaBounds, AreaNode, AreaSummary, GeoPoint, PagedAreaNodes } from './types';
+import type { AreaBounds, AreaDetail, AreaNode, AreaSummary, GeoPoint, PagedAreaNodes, TopoSummary } from './types';
 
 export function listRootAreas(page: number, pageSize = 10): Promise<PagedAreaNodes> {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
@@ -39,6 +39,22 @@ export function updateAreaCoordinates(id: number, polygon: GeoPoint[]): Promise<
 
 export function validateArea(id: number): Promise<{ ok: true }> {
   return api.post<{ ok: true }>(`/areas/${id}/validate`);
+}
+
+// `path` is the area's full slug path (e.g. "pena-rua/sector-1") — see
+// AreasController.GetAreaBySlugPath. Slugs are already URL-safe, no encoding needed.
+export function getAreaBySlugPath(path: string): Promise<AreaDetail> {
+  return api.get<AreaDetail>(`/areas/by-slug-path/${path}`);
+}
+
+export function uploadAreaMedia(areaId: number, file: File): Promise<TopoSummary> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.postForm<TopoSummary>(`/areas/${areaId}/media`, formData);
+}
+
+export function deleteAreaMedia(id: number): Promise<{ ok: true }> {
+  return api.delete<{ ok: true }>(`/area-media/${id}`);
 }
 
 // Builds the "Padre › Hijo › Nieto" breadcrumb for an area given a lookup of all areas by id.

@@ -201,6 +201,45 @@ namespace Acordanza.Api.Migrations
                     b.ToTable("AreaExperts", "core");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.AreaMedia", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AreaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BlobName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("UploadedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AreaId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.ToTable("AreaMedia", "core");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
                 {
                     b.Property<int>("Id")
@@ -672,6 +711,25 @@ namespace Acordanza.Api.Migrations
                     b.Navigation("DecidedBy");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Acordanza.Api.Models.AreaMedia", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.Area", "Area")
+                        .WithMany()
+                        .HasForeignKey("AreaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Area");
+
+                    b.Navigation("UploadedBy");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>

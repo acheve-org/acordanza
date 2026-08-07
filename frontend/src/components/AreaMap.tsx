@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, Polygon, Popup, TileLayer, useMapEvents } from 'react-leaflet';
+import { Link } from 'react-router';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { Button } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import type { AreaBounds, AreaSummary, GeoPoint } from '../api/types';
 
@@ -118,7 +120,14 @@ export function AreaMap() {
           if (!centroid) return null;
           return (
             <Marker key={area.id} position={[centroid.lat, centroid.lng]}>
-              <Popup>{area.name}</Popup>
+              <Popup>
+                <div className="area-map-popup">
+                  <span>{area.name}</span>
+                  <Button as={Link} variant="ghost" small to={`/areas/${area.slug}`}>
+                    Ver
+                  </Button>
+                </div>
+              </Popup>
             </Marker>
           );
         })}
@@ -137,7 +146,14 @@ export function AreaMap() {
               positions={area.polygon.map((p): [number, number] => [p.lat, p.lng])}
               pathOptions={{ color: '#38a169' }}
             >
-              <Popup>{area.name}</Popup>
+              <Popup>
+                <div className="area-map-popup">
+                  <span>{area.name}</span>
+                  <Button as={Link} variant="ghost" small to={`/areas/${activeTopLevelArea!.slug}/${area.slug}`}>
+                    Ver
+                  </Button>
+                </div>
+              </Popup>
             </Polygon>
           ) : null,
         )}

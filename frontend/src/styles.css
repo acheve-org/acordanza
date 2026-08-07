@@ -468,6 +468,31 @@ input:focus, select:focus, textarea:focus {
 .expert-banner p { margin: 0; color: var(--text-dim); font-size: 13px; }
 .expert-banner strong { color: var(--text); }
 
+/* Area detail page (issue #105) — same boxed width as settings/users, plus a
+   navigable breadcrumb back to its parents and reuses .settings-section for
+   its children/media sections and .routes-panel (unwrapped) for its routes. */
+.area-page {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--space-xxl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+.area-page h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.area-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.area-breadcrumb a { color: var(--text-dim); }
+.area-breadcrumb a:hover { color: var(--text); }
+.area-breadcrumb-sep { color: var(--text-dim); }
+.area-breadcrumb-current { color: var(--text); font-weight: 600; }
+
 .users-page-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
 .users-toolbar { display: flex; gap: var(--space-md); }
 .users-toolbar input { flex: 1; }
@@ -654,6 +679,8 @@ input:focus, select:focus, textarea:focus {
   color: var(--text);
 }
 .leaflet-container a.leaflet-popup-close-button { color: var(--text-dim); }
+
+.area-map-popup { display: flex; align-items: center; gap: var(--space-sm); }
 
 /* Keep this block last: at equal specificity, a same-selector rule declared later in the
    cascade wins regardless of the media query, so every base rule it overrides must appear
