@@ -6,8 +6,10 @@ description: Build, start, and drive the Acordanza climbing-route-log app (ASP.N
 Acordanza is a two-part app: `backend/Acordanza.Api` (ASP.NET Core Web
 API on .NET 10, EF Core + Npgsql) and `frontend/` (React + Vite, run
 with Bun). Drive the running app with the Playwright script
-`.claude/skills/run-acordanza/driver.mjs` — it logs in, adds a route,
-logs/deletes a tick, edits the route, exercises the filters, and
+`.claude/skills/run-acordanza/driver.mjs` — it logs in, checks the home
+page's four sections (Busca/Explora/Sigue/Mi acordanza), adds a route,
+logs a tick and deletes it from "Mis ascensiones", edits the route,
+checks the opener's page under "Sigue", exercises the filters, and
 deletes the route, taking a screenshot at each step. All paths below
 are relative to the repo root.
 
@@ -42,9 +44,14 @@ Apply EF Core migrations and create a login (accounts are
 admin-provisioned — there's no public register endpoint):
 ```bash
 dotnet ef database update
-dotnet run -- create-user hugo testpass123
-# → "Username 'hugo' is already taken." on repeat runs is fine — ignore it.
+dotnet run -- create-user hugo@example.com testpass123 Hugo admin
+# → "Username 'hugo@example.com' is already taken." on repeat runs is fine — ignore it.
 ```
+
+The role matters: the driver edits and deletes a route, and `route.edit`/
+`route.delete` start at `moderator` (see `Authorization/RolePermissions.cs`),
+so a plain `user` account makes it fail with the detail modal's "Editar"
+button never appearing.
 
 Install the frontend's own deps, and the driver's (Playwright):
 ```bash
@@ -87,12 +94,12 @@ bun run driver.mjs
 Prints `PASS: golden path completed with no console errors` and exits
 0 on success, or `FAIL: <assertion message>` with exit code 1.
 Screenshots land in `.claude/skills/run-acordanza/shots/`, numbered in
-order (`01-login-screen.png` … `07-route-deleted.png`); the last one
+order (`01-login-screen.png` … `15-route-deleted.png`); the last one
 before a failure is `NN-failure-state.png`.
 
 Override credentials/URL if needed:
 ```bash
-ACORDANZA_USER=hugo ACORDANZA_PASSWORD=testpass123 ACORDANZA_FRONTEND_URL=http://localhost:5173 bun run driver.mjs
+ACORDANZA_USER=hugo@example.com ACORDANZA_PASSWORD=testpass123 ACORDANZA_FRONTEND_URL=http://localhost:5173 bun run driver.mjs
 ```
 
 Stop both servers when done:
@@ -141,20 +148,23 @@ verification right now.
 - **First Playwright run downloads Chromium** (~170MB) via `bunx
   playwright install chromium` — do this once per machine, it's cached
   under `~/Library/Caches/ms-playwright`.
-- **The delete-route confirm dialog**: `DetailModal`'s delete button
-  triggers a native `confirm()`. Register `page.once('dialog', d =>
-  d.accept())` *before* the click that triggers it — Playwright
-  auto-dismisses dialogs with no handler attached in time.
+- **The delete-route confirmation** is a `ConfirmModal` stacked on top of
+  the detail modal, not a native `confirm()` — accept it by clicking
+  "Eliminar" inside `page.locator('.modal').last()`, not with a
+  `page.once('dialog', …)` handler.
 - **Vite prints a Node version warning** on this machine (`Node.js
   22.6.0`, Vite wants `20.19+`/`22.12+`) — it's noise, the dev server
   still starts and serves fine; don't treat it as a failure signal.
 
 ## Troubleshooting
 
-- **Login stuck at 401 / driver fails at `Sesión iniciada como hugo`**: the
-  `hugo` user doesn't exist yet in this Postgres volume (e.g. after
-  `docker compose down -v`). Re-run `dotnet run -- create-user hugo
-  testpass123` from `backend/Acordanza.Api`.
+- **Login stuck at 401 / driver never gets past the login screen**: the
+  `hugo@example.com` user doesn't exist yet in this Postgres volume (e.g.
+  after `docker compose down -v`). Re-run `dotnet run -- create-user
+  hugo@example.com testpass123 Hugo admin` from `backend/Acordanza.Api`.
+- **Driver fails waiting for the detail modal's "Editar" button**: the
+  account it logged in as is a plain `user` — point `ACORDANZA_USER` at an
+  admin/moderator account (see Setup).
 - **`dotnet ef` not found**: install the tool once —
   `dotnet tool install --global dotnet-ef` (needs `dotnet` on `PATH`;
   `dotnet ef` then works regardless of whether `dotnet-ef` itself is

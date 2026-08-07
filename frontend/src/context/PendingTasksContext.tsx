@@ -4,10 +4,9 @@ import * as areasApi from '../api/areas';
 import * as areaExpertsApi from '../api/areaExperts';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type { AreaExpert, AreaSummary, FirstAscensionistLinkRequestSummary, RouteSummary } from '../api/types';
+import { emptyRouteFilters } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from './AuthContext';
-
-const emptyRouteFilters = { q: '', areaId: '', gear: '', tag: '', hasTopo: '' };
 
 interface PendingTasksValue {
   pendingRoutes: RouteSummary[];

@@ -5,6 +5,7 @@ import * as areasApi from '../api/areas';
 import * as routesApi from '../api/routes';
 import * as toposApi from '../api/topos';
 import type { AreaDetail, CreateTickInput, RouteDetail, RouteSummary } from '../api/types';
+import { emptyRouteFilters } from '../api/types';
 import { RoutesList } from '../components/RoutesList';
 import { DetailModal } from '../components/DetailModal';
 
@@ -36,7 +37,7 @@ export function AreaPage() {
   }
 
   function refreshRoutes(areaId: number) {
-    routesApi.listRoutes({ q: '', areaId: String(areaId), gear: '', tag: '', hasTopo: '' }, true).then(setRoutes);
+    routesApi.listRoutes({ ...emptyRouteFilters, areaId: String(areaId) }, true).then(setRoutes);
   }
 
   useEffect(() => {
@@ -127,8 +128,8 @@ export function AreaPage() {
     return (
       <main className="area-page">
         <EmptyState>Este sector no existe.</EmptyState>
-        <Button as={Link} variant="ghost" small to="/map">
-          Volver al mapa
+        <Button as={Link} variant="ghost" small to="/explore">
+          Volver a explorar
         </Button>
       </main>
     );

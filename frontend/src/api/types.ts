@@ -82,6 +82,12 @@ export interface FirstAscensionistSummary {
   linkedUserName: string | null;
 }
 
+// A first ascensionist as the "Sigue" section shows them — the summary plus what they opened.
+export interface FirstAscensionistProfile extends FirstAscensionistSummary {
+  routeCount: number;
+  areaNames: string[];
+}
+
 export interface FirstAscensionistLinkRequestSummary {
   id: number;
   firstAscensionistId: number;
@@ -131,10 +137,22 @@ export interface RouteDetail extends Omit<RouteSummary, 'hasTopos'> {
 export interface RouteFilters {
   q: string;
   areaId: string;
+  grade: string;
+  orientation: string;
   gear: string;
   tag: string;
   hasTopo: string;
 }
+
+export const emptyRouteFilters: RouteFilters = {
+  q: '',
+  areaId: '',
+  grade: '',
+  orientation: '',
+  gear: '',
+  tag: '',
+  hasTopo: '',
+};
 
 export interface TickFilters {
   q: string;

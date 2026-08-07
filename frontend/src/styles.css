@@ -240,6 +240,73 @@ input:focus, select:focus, textarea:focus {
 .user-menu-item svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-dim); }
 .user-menu-item:hover { background: var(--bg-card-hover); }
 
+/* Home page (issue #108) — the hub over the app's four sections. Boxed like settings,
+   since a 2x2 card grid stops reading as a set once it stretches. */
+.home-page {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--space-xxl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxl);
+}
+.home-header { display: flex; flex-direction: column; gap: var(--space-xs); }
+.home-eyebrow {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--dim);
+  margin: 0;
+}
+.home-page h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.home-lede { color: var(--text-dim); margin: 0; }
+
+.home-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-lg); }
+.home-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.home-card:hover { background: var(--bg-card-hover); border-color: var(--border-strong); }
+.home-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--accent-2-bg);
+  color: var(--accent-2);
+  margin-bottom: var(--space-xs);
+}
+.home-card-icon svg { width: 20px; height: 20px; }
+.home-card h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.home-card p { flex: 1; color: var(--text-dim); font-size: 14px; line-height: 1.5; margin: 0; }
+.home-card-cta { color: var(--accent); font-weight: 600; font-size: 14px; }
+
 .layout {
   display: grid;
   grid-template-columns: 260px 1fr;
@@ -493,6 +560,48 @@ input:focus, select:focus, textarea:focus {
 .area-breadcrumb-sep { color: var(--text-dim); }
 .area-breadcrumb-current { color: var(--text); font-weight: 600; }
 
+/* "Sigue" — the aperturista list and one aperturista's page (issue #108), boxed like
+   the area page it mirrors. */
+.fa-page {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--space-xxl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.fa-page h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.fa-page .hint { margin: 0; }
+.fa-page input { max-width: 360px; }
+
+.fa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
+}
+.fa-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.fa-card:hover { background: var(--bg-card-hover); border-color: var(--border-strong); }
+.fa-card-name { font-weight: 600; font-size: 15px; }
+.fa-card-count { color: var(--text-dim); font-size: 13px; }
+
 .users-page-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
 .users-toolbar { display: flex; gap: var(--space-md); }
 .users-toolbar input { flex: 1; }
@@ -604,15 +713,15 @@ input:focus, select:focus, textarea:focus {
 .tab-item:hover { color: var(--text); }
 .tab-item.active { color: var(--text); border-bottom-color: var(--accent); }
 
-/* Map page — no max-width: the map canvas is the one surface that benefits from
-   using the full viewport width. */
-.map-page {
+/* Explore page ("Explora") — no max-width: the map canvas is the one surface that
+   benefits from using the full viewport width. */
+.explore-page {
   padding: var(--space-xxl);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
 }
-.map-page h1 {
+.explore-page h1 {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 24px;
@@ -698,5 +807,8 @@ input:focus, select:focus, textarea:focus {
   .users-page-header { flex-direction: column; align-items: stretch; }
   .users-toolbar { flex-direction: column; }
   .users-toolbar select { width: 100%; }
-  .map-page { padding: var(--space-xl); }
+  .explore-page { padding: var(--space-xl); }
+  .home-page { padding: var(--space-xl); }
+  .home-grid { grid-template-columns: 1fr; }
+  .fa-page { padding: var(--space-xl); }
 }

@@ -14,12 +14,24 @@ export function listRoutes(filters: RouteFilters, exactArea?: boolean): Promise<
   const params = new URLSearchParams();
   if (filters.q) params.set('q', filters.q);
   if (filters.areaId) params.set('areaId', filters.areaId);
+  if (filters.grade) params.set('grade', filters.grade);
+  if (filters.orientation) params.set('orientation', filters.orientation);
   if (filters.gear) params.set('gear', filters.gear);
   if (filters.tag) params.set('tag', filters.tag);
   if (filters.hasTopo) params.set('hasTopo', filters.hasTopo);
   if (exactArea) params.set('exactArea', 'true');
   const qs = params.toString();
   return api.get<RouteSummary[]>(`/routes${qs ? `?${qs}` : ''}`);
+}
+
+// Routes opened by one first ascensionist — the "Sigue" section's per-aperturista list.
+export function listRoutesByFirstAscensionist(firstAscensionistId: number): Promise<RouteSummary[]> {
+  return api.get<RouteSummary[]>(`/routes?firstAscensionistId=${firstAscensionistId}`);
+}
+
+// The grades actually in use, for the search filter's dropdown.
+export function listGrades(): Promise<string[]> {
+  return api.get<string[]>('/routes/grades');
 }
 
 export function getRoute(id: number): Promise<RouteDetail> {

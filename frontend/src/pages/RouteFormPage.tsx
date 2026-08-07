@@ -55,7 +55,7 @@ export function RouteFormPage() {
       <main className="settings-page">
         <h1>Editar vía</h1>
         <p className="error-text">{loadError}</p>
-        <Button as={Link} variant="ghost" small to="/">
+        <Button as={Link} variant="ghost" small to="/routes">
           Volver
         </Button>
       </main>
@@ -82,7 +82,7 @@ export function RouteFormPage() {
     } else {
       await routesApi.createRoute(input);
     }
-    navigate('/');
+    navigate('/routes');
   }
 
   return (
@@ -160,7 +160,7 @@ export function RouteFormPage() {
             />
           </label>
           <ModalActions>
-            <Button as={Link} variant="ghost" to="/">
+            <Button as={Link} variant="ghost" to="/routes">
               Cancelar
             </Button>
             <Button type="submit" disabled={!form.areaId}>

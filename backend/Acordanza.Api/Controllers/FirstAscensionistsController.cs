@@ -32,6 +32,68 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         return Ok(firstAscensionists);
     }
 
+    // Backs the "Sigue" section (issue #108): the same list, plus how much each one has
+    // opened and where. The openings are read from the route side because the
+    // ClimbingRoute <-> FirstAscensionist many-to-many has no inverse navigation.
+    [HttpGet("profiles")]
+    public async Task<ActionResult<List<FirstAscensionistProfileDto>>> GetFirstAscensionistProfiles(
+        [FromQuery] string? q)
+    {
+        var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            query = query.Where(o => o.Name.Contains(q));
+        }
+
+        var firstAscensionists = await query.OrderBy(o => o.Name).ToListAsync();
+        var openingsById = await OpeningsByFirstAscensionistAsync();
+
+        return Ok(firstAscensionists.Select(o => ToProfileDto(o, openingsById)).ToList());
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<FirstAscensionistProfileDto>> GetFirstAscensionist(int id)
+    {
+        var firstAscensionist = await db.FirstAscensionists.AsNoTracking()
+            .Include(o => o.User)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (firstAscensionist is null) return NotFound(new { error = "No encontrado" });
+
+        return Ok(ToProfileDto(firstAscensionist, await OpeningsByFirstAscensionistAsync(id)));
+    }
+
+    private async Task<Dictionary<int, List<string>>> OpeningsByFirstAscensionistAsync(int? firstAscensionistId = null)
+    {
+        var query = db.Routes.AsNoTracking().AsQueryable();
+        if (firstAscensionistId is int id)
+        {
+            query = query.Where(r => r.FirstAscensionists.Any(o => o.Id == id));
+        }
+
+        var openings = await query
+            .SelectMany(r => r.FirstAscensionists.Select(o => new { FirstAscensionistId = o.Id, AreaName = r.Area.Name }))
+            .ToListAsync();
+
+        return openings
+            .GroupBy(o => o.FirstAscensionistId)
+            .ToDictionary(g => g.Key, g => g.Select(o => o.AreaName).ToList());
+    }
+
+    private static FirstAscensionistProfileDto ToProfileDto(
+        FirstAscensionist firstAscensionist, Dictionary<int, List<string>> openingsById)
+    {
+        var areaNames = openingsById.TryGetValue(firstAscensionist.Id, out var openings) ? openings : [];
+        return new FirstAscensionistProfileDto(
+            firstAscensionist.Id,
+            firstAscensionist.Name,
+            firstAscensionist.UserId,
+            firstAscensionist.User?.Name,
+            areaNames.Count,
+            areaNames.Distinct().OrderBy(name => name).ToList());
+    }
+
     // Creates an unlinked FirstAscensionist record (e.g. a historic route opener
     // with no account yet). Linking one to a user account always goes through
     // FirstAscensionistLinksController's request/approve flow now, even for

@@ -31,8 +31,9 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
-        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? gear, [FromQuery] string? tag,
-        [FromQuery] bool? hasTopo, [FromQuery] bool exactArea = false)
+        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string? orientation,
+        [FromQuery] string? gear, [FromQuery] string? tag, [FromQuery] bool? hasTopo,
+        [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false)
     {
         var areas = await db.Areas.AsNoTracking()
             .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
@@ -59,6 +60,14 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             List<int> ids = exactArea ? [requestedAreaId] : DescendantAreaIds(areas, requestedAreaId);
             query = query.Where(r => ids.Contains(r.AreaId));
         }
+        if (!string.IsNullOrWhiteSpace(grade))
+        {
+            query = query.Where(r => r.Grade == grade);
+        }
+        if (!string.IsNullOrWhiteSpace(orientation))
+        {
+            query = query.Where(r => r.Orientation == orientation);
+        }
         if (!string.IsNullOrWhiteSpace(gear))
         {
             query = query.Where(r => r.Gear == gear);
@@ -70,6 +79,11 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         if (hasTopo == true)
         {
             query = query.Where(r => r.Topos.Any());
+        }
+        // Backs the "Sigue" section's per-aperturista route list (issue #108).
+        if (firstAscensionistId is int openerId)
+        {
+            query = query.Where(r => r.FirstAscensionists.Any(o => o.Id == openerId));
         }
 
         List<ClimbingRoute> routes;
@@ -98,6 +112,20 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             canValidateArea(r.AreaId))).ToList();
 
         return Ok(dtos);
+    }
+
+    // Grades are free text (see Models/ClimbingRoute), so the search filter offers the
+    // ones actually in use rather than a hardcoded scale.
+    [HttpGet("grades")]
+    public async Task<ActionResult<List<string>>> GetGrades()
+    {
+        var grades = await db.Routes.AsNoTracking()
+            .Select(r => r.Grade)
+            .Distinct()
+            .OrderBy(g => g)
+            .ToListAsync();
+
+        return Ok(grades);
     }
 
     [HttpGet("{id:int}")]

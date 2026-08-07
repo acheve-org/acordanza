@@ -40,7 +40,18 @@ Two independent processes talking over a JSON REST API (`VITE_API_URL`, default 
 
 All user-facing text — frontend UI (labels, buttons, placeholders, empty states, `confirm()`/error messages) and any string that can surface in the frontend (e.g. backend `{ error }` payloads returned to the client) — must be in Spanish. Code, comments, identifiers, commit messages, and CLAUDE.md docs stay in English. `frontend/src/api/types.ts` has `orientationLabels`/`gearLabels`/`roleLabels` maps for translating the backend's English enum values at display time; reuse them rather than hardcoding translations per component.
 
-Route slugs (the `path`/`to` values in `frontend/src/App.tsx`'s `<Route>`/`<Link>`/`<NavLink>` elements) count as identifiers, not user-facing text — keep them in English (`/map`, `/routes/new`, `/my-acordanza/my-areas`, `/my-acordanza/claim-first-ascensionist`, `/my-acordanza/my-routes`, `/my-acordanza/my-openings`, `/manage/areas`, `/manage/users`, `/manage/pending-tasks`) even though the label rendered inside the link stays Spanish (`Mapa`, `Sectores`, ...). Note `/my-acordanza/my-routes` ("Mis vías") is the current user's tick history, not the routes they opened — that's `/my-acordanza/my-openings` ("Mis aperturas"). Both `/my-acordanza` (`pages/MyAcordanzaLayout.tsx`, reached from the user menu's "Mi acordanza" item) and `/manage` (`pages/ManageLayout.tsx`, reached from the top nav's "Gestionar" item, shown only if the user can edit areas or manage users) are left-nav shells over nested pages — see `frontend/CLAUDE.md`.
+Route slugs (the `path`/`to` values in `frontend/src/App.tsx`'s `<Route>`/`<Link>`/`<NavLink>` elements) count as identifiers, not user-facing text — keep them in English (`/routes`, `/explore`, `/first-ascensionists`, `/routes/new`, `/my-acordanza/my-areas`, `/my-acordanza/claim-first-ascensionist`, `/my-acordanza/my-routes`, `/my-acordanza/my-openings`, `/manage/areas`, `/manage/first-ascensionists`, `/manage/users`, `/manage/pending-tasks`) even though the label rendered inside the link stays Spanish (`Busca`, `Explora`, `Sectores`, ...). Note `/my-acordanza/my-routes` ("Mis vías") is the current user's tick history, not the routes they opened — that's `/my-acordanza/my-openings` ("Mis aperturas"). Both `/my-acordanza` (`pages/MyAcordanzaLayout.tsx`) and `/manage` (`pages/ManageLayout.tsx`, reached from the top nav's "Gestionar" item, shown only if the user can edit areas or manage users) are left-nav shells over nested pages — see `frontend/CLAUDE.md`.
+
+The app is organized around four sections (issue #108), which are the top nav's items, the home page's four cards, and one dedicated page each — keep the three in sync when adding or renaming one:
+
+| Section | Path | Page | What it's for |
+|---|---|---|---|
+| Busca | `/routes` | `pages/SearchPage.tsx` | the routes list + filters (name, sector, grade, orientation, gear, tag, topo) |
+| Explora | `/explore` | `pages/ExplorePage.tsx` | the map plus a browsable list of zones, leading into `/areas/*` |
+| Sigue | `/first-ascensionists` | `pages/FirstAscensionistsDirectoryPage.tsx` (+ `FirstAscensionistPage.tsx` per opener) | discovering aperturistas and what they've opened |
+| Mi acordanza | `/my-acordanza` | `pages/MyAcordanzaLayout.tsx` | the user's own ticks, invites, areas, claims |
+
+`/` is the home page (`pages/HomePage.tsx`), a hub over those four — not a content page of its own.
 
 ## Cross-cutting notes
 

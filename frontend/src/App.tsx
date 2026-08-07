@@ -6,14 +6,17 @@ import { usePendingTasks } from './context/PendingTasksContext';
 import { Permissions } from './api/permissions';
 import { LoginScreen } from './components/LoginScreen';
 import { Brand } from './components/Brand';
-import { MainView } from './pages/MainView';
+import { HomePage } from './pages/HomePage';
+import { SearchPage } from './pages/SearchPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { AcceptInviteScreen } from './pages/AcceptInviteScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
-import { MapPage } from './pages/MapPage';
+import { ExplorePage } from './pages/ExplorePage';
 import { AreaPage } from './pages/AreaPage';
+import { FirstAscensionistsDirectoryPage } from './pages/FirstAscensionistsDirectoryPage';
+import { FirstAscensionistPage } from './pages/FirstAscensionistPage';
 import { AreasPage } from './pages/AreasPage';
 import { FirstAscensionistsPage } from './pages/FirstAscensionistsPage';
 import { MyAreasPage } from './pages/MyAreasPage';
@@ -48,12 +51,19 @@ function AppLayout() {
         <Link to="/" className="brand">
           <Brand />
         </Link>
+        {/* The app's four sections (issue #108) — the same four the home page lists, in the same order. */}
         <nav className="main-nav">
-          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/" end>
-            Rutas
+          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/routes">
+            Busca
           </NavLink>
-          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/map">
-            Mapa
+          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/explore">
+            Explora
+          </NavLink>
+          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/first-ascensionists">
+            Sigue
+          </NavLink>
+          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza">
+            Mi acordanza
           </NavLink>
         </nav>
         <div className="topbar-right">
@@ -93,13 +103,6 @@ function AppLayout() {
               <div className="user-menu-popup">
                 <span className="user-menu-name">{name}</span>
                 <div className="user-menu-divider" />
-                <Link className="user-menu-item" to="/my-acordanza" onClick={() => setUserMenuOpen(false)}>
-                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 20c0-4.418 3.582-8 8-8s8 3.582 8 8v1H4v-1z" />
-                  </svg>
-                  Mi acordanza
-                </Link>
                 <Link className="user-menu-item" to="/settings" onClick={() => setUserMenuOpen(false)}>
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.41h-3.84a.5.5 0 0 0-.5.41l-.36 2.54a7.03 7.03 0 0 0-1.62.94l-2.39-.96a.5.5 0 0 0-.59.22L2.74 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54a.5.5 0 0 0 .5.41h3.84a.5.5 0 0 0 .5-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z" />
@@ -146,11 +149,18 @@ function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route index element={<MainView />} />
+        <Route index element={<HomePage />} />
+        <Route path="routes" element={<SearchPage />} />
         <Route path="routes/new" element={<RouteFormPage />} />
         <Route path="routes/:id/edit" element={<RouteFormPage />} />
-        <Route path="map" element={<MapPage />} />
+        <Route path="explore" element={<ExplorePage />} />
         <Route path="areas/*" element={<AreaPage />} />
+        {/* "Sigue" — browsing aperturistas. The admin CRUD over the same records is a
+            separate page under /manage/first-ascensionists. */}
+        <Route path="first-ascensionists" element={<FirstAscensionistsDirectoryPage />} />
+        <Route path="first-ascensionists/:id" element={<FirstAscensionistPage />} />
+        {/* Pre-#108: the routes list was the index page and the map lived at /map. */}
+        <Route path="map" element={<Navigate to="/explore" replace />} />
         {/* Pre-#77 top-level paths — kept as redirects so old bookmarks/links still land. */}
         <Route path="my-areas" element={<Navigate to="/my-acordanza/my-areas" replace />} />
         <Route

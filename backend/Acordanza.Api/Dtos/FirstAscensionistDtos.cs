@@ -2,6 +2,17 @@ namespace Acordanza.Api.Dtos;
 
 public record FirstAscensionistDto(int Id, string Name, string? UserId, string? LinkedUserName);
 
+// The "Sigue" section's view of a first ascensionist: the plain DTO plus what they've
+// opened. Kept separate from FirstAscensionistDto because that one is embedded in every
+// route payload, where the extra aggregate columns would be dead weight.
+public record FirstAscensionistProfileDto(
+    int Id,
+    string Name,
+    string? UserId,
+    string? LinkedUserName,
+    int RouteCount,
+    List<string> AreaNames);
+
 public record CreateFirstAscensionistRequest(string Name);
 
 public record UpdateFirstAscensionistRequest(string Name);
