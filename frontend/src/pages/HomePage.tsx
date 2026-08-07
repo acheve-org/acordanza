@@ -72,9 +72,8 @@ export function HomePage() {
   return (
     <main className="home-page">
       <header className="home-header">
-        <p className="home-eyebrow">Acordanza</p>
         <h1>{name ? `Hola, ${name}.` : 'Hola.'}</h1>
-        <p className="home-lede">Un catálogo de vías para que no se pierdan en el olvido.</p>
+        <p className="home-lede">¿Qué quieres hacer hoy?</p>
       </header>
 
       <div className="home-grid">

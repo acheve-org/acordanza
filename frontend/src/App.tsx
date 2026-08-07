@@ -51,7 +51,6 @@ function AppLayout() {
         <Link to="/" className="brand">
           <Brand />
         </Link>
-        {/* The app's four sections (issue #108) — the same four the home page lists, in the same order. */}
         <nav className="main-nav">
           <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/routes">
             Busca

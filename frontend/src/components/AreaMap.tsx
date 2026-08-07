@@ -108,10 +108,10 @@ export function AreaMap() {
 
   return (
     <div className="area-map-wrap">
-      <MapContainer center={SPAIN_CENTER} zoom={SPAIN_ZOOM} className="area-map">
+      <MapContainer center={SPAIN_CENTER} zoom={SPAIN_ZOOM} maxZoom={17} className="area-map">
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='Datos: &copy; colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, SRTM | Mapa: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+          url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
         />
         <BoundsTracker onChange={handleBoundsChange} />
 
