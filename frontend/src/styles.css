@@ -28,7 +28,7 @@ body {
 
 /* Brand — cobalt violet is reserved for the wordmark glyph only (DESIGN.md: "a deliberate stamp") */
 .brand { display: flex; align-items: center; gap: var(--space-sm); }
-.brand-mark { color: var(--color-primary); font-size: 20px; }
+.brand-mark { color: var(--color-primary); width: 22px; height: 22px; flex: none; }
 .brand-name {
   font-family: var(--font-display);
   font-weight: 600;

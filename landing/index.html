@@ -149,7 +149,7 @@
     grid-template-columns: 1.05fr 0.95fr;
     align-items: center;
     gap: var(--space-xxxl);
-    padding: clamp(48px, 8vw, 96px) var(--space-xxl) var(--space-xxxl);
+    padding: clamp(24px, 3vw, 40px) var(--space-xxl) var(--space-xxxl);
   }
   .hero-copy { max-width: 560px; }
   .tagline {
@@ -209,7 +209,7 @@
     stroke-linejoin: round;
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
-    animation: draw-route 6s ease-in-out infinite;
+    animation: draw-route 1.8s 0.4s cubic-bezier(0.65, 0, 0.35, 1) forwards;
   }
   .ridge {
     fill: var(--surface);
@@ -222,10 +222,11 @@
     stroke-width: 2;
     opacity: 0;
     transform-origin: center;
+    animation: pop-anchor 0.5s ease forwards;
   }
-  .anchor-dot.a1 { animation: pop-anchor-a1 6s ease-in-out infinite; }
-  .anchor-dot.a2 { animation: pop-anchor-a2 6s ease-in-out infinite; }
-  .anchor-dot.a3 { animation: pop-anchor-a3 6s ease-in-out infinite; }
+  .anchor-dot.a1 { animation-delay: 0.9s; }
+  .anchor-dot.a2 { animation-delay: 1.4s; }
+  .anchor-dot.a3 { animation-delay: 1.9s; }
   .grade-flag {
     position: absolute;
     font-family: var(--font-mono);
@@ -237,38 +238,18 @@
     border-radius: var(--radius-sm);
     padding: 3px 9px;
     opacity: 0;
+    animation: pop-anchor 0.5s ease 2.1s forwards;
   }
-  .grade-flag.g1 { top: 6%; left: 58%; animation: pop-anchor-a3 6s ease-in-out infinite; }
-  .grade-flag.g2 { top: 46%; left: 6%; animation: pop-anchor-a1 6s ease-in-out infinite; }
+  .grade-flag.g1 { top: 6%; left: 58%; }
+  .grade-flag.g2 { top: 46%; left: 6%; }
 
-  /* One shared 6s cycle: draw the route in, hold it, retract it, then loop —
-     dots/flags fade in step with the draw reaching them and fade out as it retracts past them. */
-  @keyframes draw-route {
-    0% { stroke-dashoffset: 100; }
-    38% { stroke-dashoffset: 0; }
-    68% { stroke-dashoffset: 0; }
-    100% { stroke-dashoffset: 100; }
-  }
-  @keyframes pop-anchor-a1 {
-    0%, 100% { opacity: 0; transform: scale(0.4); }
-    10%, 92% { opacity: 0; transform: scale(0.4); }
-    16%, 86% { opacity: 1; transform: scale(1); }
-  }
-  @keyframes pop-anchor-a2 {
-    0%, 100% { opacity: 0; transform: scale(0.4); }
-    21%, 82% { opacity: 0; transform: scale(0.4); }
-    27%, 76% { opacity: 1; transform: scale(1); }
-  }
-  @keyframes pop-anchor-a3 {
-    0%, 100% { opacity: 0; transform: scale(0.4); }
-    34%, 71% { opacity: 0; transform: scale(0.4); }
-    40%, 65% { opacity: 1; transform: scale(1); }
-  }
+  @keyframes draw-route { to { stroke-dashoffset: 0; } }
+  @keyframes pop-anchor { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
 
   @media (prefers-reduced-motion: reduce) {
     .route-line, .anchor-dot, .grade-flag { animation: none !important; }
     .route-line { stroke-dashoffset: 0; }
-    .anchor-dot, .grade-flag { opacity: 1; transform: none; }
+    .anchor-dot, .grade-flag { opacity: 1; }
   }
 
   /* ---------- shared section chrome ---------- */
@@ -286,7 +267,7 @@
     font-weight: 700;
     font-size: clamp(1.6rem, 3vw, 2.15rem);
     margin-bottom: var(--space-xl);
-    max-width: 32rem;
+    max-width: 50rem;
   }
 
   /* ---------- features ---------- */
@@ -374,7 +355,7 @@
     font-weight: 700;
     font-size: 1.3rem;
     letter-spacing: -0.01em;
-    max-width: 28rem;
+    max-width: 50rem;
     margin: 0 auto var(--space-xl);
   }
   footer .colophon {
@@ -402,8 +383,9 @@
 <header class="topbar">
   <a class="brand" href="#top">
     <svg viewBox="0 0 48 48" aria-hidden="true">
-      <path class="mark-a" d="M4 38 18 14l6 10 4-6 16 20z"/>
-      <path fill="#ffffff" d="m18 14 4 6.8-4.6 5.9-5-3.2z"/>
+      <rect class="mark-a" width="48" height="48" rx="11"/>
+      <path fill="#ffffff" opacity=".55" d="M19 37 30 17l11 20z"/>
+      <path fill="#ffffff" d="M7 37 18 15l11 22z"/>
     </svg>
     Acordanza
   </a>

@@ -3,6 +3,7 @@ import { Button } from 'acordanza-design-system';
 import { useAuth, type PasskeyChallenge } from '../context/AuthContext';
 import { ApiError } from '../api/client';
 import * as authApi from '../api/auth';
+import { Brand } from './Brand';
 
 export function LoginScreen() {
   const { login, beginPasskeyLogin, completeLoginWithPasskey } = useAuth();
@@ -76,8 +77,7 @@ export function LoginScreen() {
       <div className="login-screen">
         <div className="login-card">
           <div className="brand">
-            <span className="brand-mark">&#9670;</span>
-            <span className="brand-name">Acordanza</span>
+            <Brand />
           </div>
           {forgotSubmitted ? (
             <>
@@ -120,8 +120,7 @@ export function LoginScreen() {
       <div className="login-screen">
         <div className="login-card">
           <div className="brand">
-            <span className="brand-mark">&#9670;</span>
-            <span className="brand-name">Acordanza</span>
+            <Brand />
           </div>
           <p className="login-sub">Confirma tu identidad con tu llave de acceso.</p>
           <div className="login-mfa">
@@ -142,8 +141,7 @@ export function LoginScreen() {
     <div className="login-screen">
       <div className="login-card">
         <div className="brand">
-          <span className="brand-mark">&#9670;</span>
-          <span className="brand-name">Acordanza</span>
+          <Brand />
         </div>
         <p className="login-sub">Encuentra la ruta que quieres escalar. Solo para miembros.</p>
         <form onSubmit={handleSubmit}>

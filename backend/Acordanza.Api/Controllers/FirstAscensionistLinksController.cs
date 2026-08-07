@@ -17,6 +17,7 @@ public class FirstAscensionistLinksController(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
     IEmailSender emailSender,
+    IConfiguration configuration,
     ILogger<FirstAscensionistLinksController> logger) : ControllerBase
 {
     [HttpGet("mine")]
@@ -200,9 +201,11 @@ public class FirstAscensionistLinksController(
 
         try
         {
+            var frontendBaseUrl = configuration["Frontend:BaseUrl"]
+                ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
             var (subject, html) = approved
-                ? EmailTemplates.FirstAscensionistLinkApproved(link.FirstAscensionist.Name)
-                : EmailTemplates.FirstAscensionistLinkRejected(link.FirstAscensionist.Name, reason!);
+                ? EmailTemplates.FirstAscensionistLinkApproved(link.FirstAscensionist.Name, frontendBaseUrl)
+                : EmailTemplates.FirstAscensionistLinkRejected(link.FirstAscensionist.Name, reason!, frontendBaseUrl);
             await emailSender.SendAsync(link.User.Email, subject, html);
         }
         catch (Exception ex)

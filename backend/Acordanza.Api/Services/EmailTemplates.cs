@@ -29,56 +29,56 @@ public static class EmailTemplates
     private static readonly string ParagraphStyle = $"margin:0 0 16px; font-size:15px; line-height:1.5; color:{InkColor};";
     private static readonly string MutedStyle = $"margin:16px 0 0; font-size:13px; line-height:1.5; color:{InkDimColor};";
 
-    public static (string Subject, string Html) ResetPassword(string resetLink) => (
+    public static (string Subject, string Html) ResetPassword(string resetLink, string frontendBaseUrl) => (
         "Restablece tu contraseña de Acordanza",
         Layout($"""
             <p style="{ParagraphStyle}">Has solicitado restablecer tu contraseña de Acordanza.</p>
             {Button("Elegir nueva contraseña", resetLink)}
             <p style="{MutedStyle}">Si tú no has solicitado esto, puedes ignorar este correo.</p>
-            """));
+            """, frontendBaseUrl));
 
-    public static (string Subject, string Html) InviteUser(string inviteLink) => (
+    public static (string Subject, string Html) InviteUser(string inviteLink, string frontendBaseUrl) => (
         "Te han invitado a Acordanza",
         Layout($"""
             <p style="{ParagraphStyle}">Te han invitado a unirte a Acordanza.</p>
             {Button("Completar registro", inviteLink)}
             <p style="{MutedStyle}">Si no esperabas esta invitación, puedes ignorar este correo.</p>
-            """));
+            """, frontendBaseUrl));
 
-    public static (string Subject, string Html) NewUserRegistered(string name, string email) => (
+    public static (string Subject, string Html) NewUserRegistered(string name, string email, string frontendBaseUrl) => (
         "Nuevo usuario registrado en Acordanza",
         Layout($"""
             <p style="{ParagraphStyle}">Un nuevo usuario ha completado su registro en Acordanza.</p>
             <p style="{ParagraphStyle}"><strong>{WebUtility.HtmlEncode(name)}</strong> ({WebUtility.HtmlEncode(email)})</p>
-            """));
+            """, frontendBaseUrl));
 
-    public static (string Subject, string Html) AreaExpertApproved(string areaName) => (
+    public static (string Subject, string Html) AreaExpertApproved(string areaName, string frontendBaseUrl) => (
         "Tu solicitud de experto ha sido aprobada",
         Layout($"""
             <p style="{ParagraphStyle}">Tu solicitud para ser experto del sector <strong>{WebUtility.HtmlEncode(areaName)}</strong> ha sido aprobada.</p>
             <p style="{MutedStyle}">Ya puedes validar vías de este sector.</p>
-            """));
+            """, frontendBaseUrl));
 
-    public static (string Subject, string Html) AreaExpertRejected(string areaName, string reason) => (
+    public static (string Subject, string Html) AreaExpertRejected(string areaName, string reason, string frontendBaseUrl) => (
         "Tu solicitud de experto ha sido rechazada",
         Layout($"""
             <p style="{ParagraphStyle}">Tu solicitud para ser experto del sector <strong>{WebUtility.HtmlEncode(areaName)}</strong> ha sido rechazada.</p>
             <p style="{ParagraphStyle}"><strong>Motivo:</strong> {WebUtility.HtmlEncode(reason)}</p>
-            """));
+            """, frontendBaseUrl));
 
-    public static (string Subject, string Html) FirstAscensionistLinkApproved(string firstAscensionistName) => (
+    public static (string Subject, string Html) FirstAscensionistLinkApproved(string firstAscensionistName, string frontendBaseUrl) => (
         "Tu vínculo de aperturista ha sido aprobado",
         Layout($"""
             <p style="{ParagraphStyle}">Tu solicitud para vincular tu cuenta con el aperturista <strong>{WebUtility.HtmlEncode(firstAscensionistName)}</strong> ha sido aprobada.</p>
             <p style="{ParagraphStyle}">Ya puedes editar y validar las vías abiertas por este aperturista.</p>
-            """));
+            """, frontendBaseUrl));
 
-    public static (string Subject, string Html) FirstAscensionistLinkRejected(string firstAscensionistName, string reason) => (
+    public static (string Subject, string Html) FirstAscensionistLinkRejected(string firstAscensionistName, string reason, string frontendBaseUrl) => (
         "Tu vínculo de aperturista ha sido rechazado",
         Layout($"""
             <p style="{ParagraphStyle}">Tu solicitud para vincular tu cuenta con el aperturista <strong>{WebUtility.HtmlEncode(firstAscensionistName)}</strong> ha sido rechazada.</p>
             <p style="{ParagraphStyle}"><strong>Motivo:</strong> {WebUtility.HtmlEncode(reason)}</p>
-            """));
+            """, frontendBaseUrl));
 
     private static string Button(string label, string url)
     {
@@ -94,7 +94,12 @@ public static class EmailTemplates
             """;
     }
 
-    private static string Layout(string bodyHtml) => $"""
+    // The brand mark is a hosted PNG (frontend/public/brand-email.png, the same
+    // tile mark as favicon.svg) referenced absolutely via Frontend:BaseUrl —
+    // email clients strip inline SVG and most block data: URIs, so a fetched
+    // image is the only portable option. The adjacent wordmark keeps the header
+    // readable when images are blocked.
+    private static string Layout(string bodyHtml, string frontendBaseUrl) => $"""
         <!DOCTYPE html>
         <html lang="es">
           <head>
@@ -110,8 +115,12 @@ public static class EmailTemplates
                   <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background-color:{SurfaceColor}; border-radius:{RadiusLg}; overflow:hidden;">
                     <tr>
                       <td style="background-color:{AccentColor}; padding:24px 32px;">
-                        <span style="color:{OnAccentColor}; font-size:18px; vertical-align:middle;">&#9670;</span>
-                        <span style="color:{OnAccentColor}; font-family:{DisplayFontStack}; font-weight:600; letter-spacing:0.12em; font-size:14px; vertical-align:middle;">Acordanza</span>
+                        <table role="presentation" cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="padding-right:10px;"><img src="{WebUtility.HtmlEncode(frontendBaseUrl.TrimEnd('/'))}/brand-email.png" width="26" height="26" alt="" style="display:block; border:0;" /></td>
+                            <td style="color:{OnAccentColor}; font-family:{DisplayFontStack}; font-weight:600; letter-spacing:0.12em; font-size:14px;">Acordanza</td>
+                          </tr>
+                        </table>
                       </td>
                     </tr>
                     <tr>

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { Button } from 'acordanza-design-system';
 import * as authApi from '../api/auth';
 import { ApiError } from '../api/client';
+import { Brand } from '../components/Brand';
 
 export function AcceptInviteScreen() {
   const [params] = useSearchParams();
@@ -36,8 +37,7 @@ export function AcceptInviteScreen() {
       <div className="login-screen">
         <div className="login-card">
           <div className="brand">
-            <span className="brand-mark">&#9670;</span>
-            <span className="brand-name">Acordanza</span>
+            <Brand />
           </div>
           <p className="login-sub">Comprobando enlace…</p>
         </div>
@@ -50,8 +50,7 @@ export function AcceptInviteScreen() {
       <div className="login-screen">
         <div className="login-card">
           <div className="brand">
-            <span className="brand-mark">&#9670;</span>
-            <span className="brand-name">Acordanza</span>
+            <Brand />
           </div>
           <p className="login-sub">No se pudo comprobar el enlace.</p>
           <Button small fullWidth onClick={() => setRetryCount((c) => c + 1)}>
@@ -67,8 +66,7 @@ export function AcceptInviteScreen() {
       <div className="login-screen">
         <div className="login-card">
           <div className="brand">
-            <span className="brand-mark">&#9670;</span>
-            <span className="brand-name">Acordanza</span>
+            <Brand />
           </div>
           <p className="login-sub">El enlace no es válido o ha caducado.</p>
           <Button as={Link} variant="ghost" small fullWidth to="/">
@@ -100,8 +98,7 @@ export function AcceptInviteScreen() {
     <div className="login-screen">
       <div className="login-card">
         <div className="brand">
-          <span className="brand-mark">&#9670;</span>
-          <span className="brand-name">Acordanza</span>
+          <Brand />
         </div>
         {success ? (
           <>

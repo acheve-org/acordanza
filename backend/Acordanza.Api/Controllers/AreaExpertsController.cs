@@ -17,6 +17,7 @@ public class AreaExpertsController(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
     IEmailSender emailSender,
+    IConfiguration configuration,
     ILogger<AreaExpertsController> logger) : ControllerBase
 {
     [HttpGet("mine")]
@@ -163,9 +164,11 @@ public class AreaExpertsController(
 
         try
         {
+            var frontendBaseUrl = configuration["Frontend:BaseUrl"]
+                ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
             var (subject, html) = approved
-                ? EmailTemplates.AreaExpertApproved(expert.Area.Name)
-                : EmailTemplates.AreaExpertRejected(expert.Area.Name, reason!);
+                ? EmailTemplates.AreaExpertApproved(expert.Area.Name, frontendBaseUrl)
+                : EmailTemplates.AreaExpertRejected(expert.Area.Name, reason!, frontendBaseUrl);
             await emailSender.SendAsync(expert.User.Email, subject, html);
         }
         catch (Exception ex)

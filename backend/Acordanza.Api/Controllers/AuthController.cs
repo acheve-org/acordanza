@@ -151,7 +151,7 @@ public class AuthController(
                 ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
             var resetLink = $"{frontendBaseUrl}/reset-password" +
                 $"?email={Uri.EscapeDataString(user.Email!)}&token={encodedToken}";
-            var (subject, html) = EmailTemplates.ResetPassword(resetLink);
+            var (subject, html) = EmailTemplates.ResetPassword(resetLink, frontendBaseUrl);
             await emailSender.SendAsync(user.Email!, subject, html);
         }
 
@@ -274,7 +274,9 @@ public class AuthController(
         {
             try
             {
-                var (subject, html) = EmailTemplates.NewUserRegistered(user.Name, user.Email!);
+                var frontendBaseUrl = configuration["Frontend:BaseUrl"]
+                    ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
+                var (subject, html) = EmailTemplates.NewUserRegistered(user.Name, user.Email!, frontendBaseUrl);
                 await emailSender.SendAsync(admin.Email!, subject, html);
             }
             catch (Exception ex)

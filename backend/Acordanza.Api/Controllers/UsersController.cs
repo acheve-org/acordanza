@@ -261,7 +261,7 @@ public class UsersController(
             ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
         var inviteLink = $"{frontendBaseUrl}/accept-invite" +
             $"?email={Uri.EscapeDataString(email)}&token={encodedToken}";
-        var (subject, html) = EmailTemplates.InviteUser(inviteLink);
+        var (subject, html) = EmailTemplates.InviteUser(inviteLink, frontendBaseUrl);
         await emailSender.SendAsync(email, subject, html);
 
         return Ok(new { ok = true });

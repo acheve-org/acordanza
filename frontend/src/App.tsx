@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 import { usePendingTasks } from './context/PendingTasksContext';
 import { Permissions } from './api/permissions';
 import { LoginScreen } from './components/LoginScreen';
+import { Brand } from './components/Brand';
 import { MainView } from './pages/MainView';
 import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
@@ -44,8 +45,7 @@ function AppLayout() {
     <div className="app">
       <header className="topbar">
         <Link to="/" className="brand">
-          <span className="brand-mark">&#9670;</span>
-          <span className="brand-name">Acordanza</span>
+          <Brand />
         </Link>
         <nav className="main-nav">
           <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/" end>
