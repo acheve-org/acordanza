@@ -1,6 +1,6 @@
 namespace Acordanza.Api.Models;
 
-public class ClimbingRoute
+public class ClimbingRoute : IValidatable
 {
     public int Id { get; set; }
     public required string Name { get; set; }

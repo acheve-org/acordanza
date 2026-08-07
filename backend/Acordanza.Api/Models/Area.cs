@@ -1,6 +1,6 @@
 namespace Acordanza.Api.Models;
 
-public class Area
+public class Area : IValidatable
 {
     public int Id { get; set; }
     public required string Name { get; set; }

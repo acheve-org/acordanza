@@ -232,6 +232,16 @@ public class RoutesController(
         var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
         if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
+        var newFirstAscensionistIds = firstAscensionists!.Select(fa => fa.Id).ToHashSet();
+        var changed = route.Name != request.Name ||
+            route.AreaId != request.AreaId ||
+            route.Grade != request.Grade ||
+            (route.Orientation ?? "") != (request.Orientation ?? "") ||
+            (route.Gear ?? "") != (request.Gear ?? "") ||
+            route.Description != (request.Description ?? "") ||
+            route.Tags != (request.Tags ?? "") ||
+            !route.FirstAscensionists.Select(fa => fa.Id).ToHashSet().SetEquals(newFirstAscensionistIds);
+
         route.Name = request.Name;
         route.AreaId = request.AreaId;
         route.Grade = request.Grade;
@@ -243,9 +253,7 @@ public class RoutesController(
         route.FirstAscensionists.Clear();
         route.FirstAscensionists.AddRange(firstAscensionists!);
 
-        // An edit invalidates any prior validation of the route's info.
-        route.ValidatedAt = null;
-        route.ValidatedByUserId = null;
+        Validation.InvalidateIfChanged(route, changed);
 
         await db.SaveChangesAsync();
         return Ok(new { ok = true });
@@ -268,8 +276,7 @@ public class RoutesController(
             return Forbid();
         }
 
-        route.ValidatedAt = DateTimeOffset.UtcNow;
-        route.ValidatedByUserId = userId;
+        Validation.MarkValidated(route, userId);
 
         await db.SaveChangesAsync();
         return Ok(new { ok = true });

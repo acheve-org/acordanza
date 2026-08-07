@@ -1,6 +1,6 @@
 # Single-source the validation lifecycle (ValidatedAt / ValidatedByUserId)
 
-Status: planned (not started)
+Status: done
 Depends on: nothing (smallest plan of the set; good warm-up task)
 
 ## Problem

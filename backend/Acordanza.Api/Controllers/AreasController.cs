@@ -150,8 +150,7 @@ public class AreasController(
         // left pending for a moderator/admin to review via POST /{id}/validate.
         if (User.HasClaim("permission", Permissions.AreaValidate))
         {
-            area.ValidatedAt = DateTimeOffset.UtcNow;
-            area.ValidatedByUserId = userManager.GetUserId(User)!;
+            Validation.MarkValidated(area, userManager.GetUserId(User)!);
         }
 
         db.Areas.Add(area);
@@ -225,15 +224,7 @@ public class AreasController(
         area.Name = newName;
         area.ParentAreaId = request.ParentAreaId;
 
-        // An edit invalidates any prior validation of the area's info, same rule
-        // as RoutesController.UpdateRoute — but only when something actually
-        // changed, so re-saving the form as-is doesn't generate a spurious
-        // pending-validation task.
-        if (changed)
-        {
-            area.ValidatedAt = null;
-            area.ValidatedByUserId = null;
-        }
+        Validation.InvalidateIfChanged(area, changed);
 
         await db.SaveChangesAsync();
 
@@ -455,15 +446,7 @@ public class AreasController(
             area.CentroidLng = area.Polygon.Average(p => p.Lng);
         }
 
-        // An edit invalidates any prior validation of the area's info, same rule
-        // as RoutesController.UpdateRoute — but only when the polygon actually
-        // changed, so re-saving it as-is doesn't generate a spurious
-        // pending-validation task.
-        if (changed)
-        {
-            area.ValidatedAt = null;
-            area.ValidatedByUserId = null;
-        }
+        Validation.InvalidateIfChanged(area, changed);
 
         await db.SaveChangesAsync();
 
@@ -486,8 +469,7 @@ public class AreasController(
         var area = await db.Areas.FindAsync(id);
         if (area is null) return NotFound(new { error = "el sector no existe" });
 
-        area.ValidatedAt = DateTimeOffset.UtcNow;
-        area.ValidatedByUserId = userManager.GetUserId(User)!;
+        Validation.MarkValidated(area, userManager.GetUserId(User)!);
 
         await db.SaveChangesAsync();
         return Ok(new { ok = true });
