@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { get, type CredentialRequestOptionsJSON } from '@github/webauthn-json';
 import { api, setAuthToken } from '../api/client';
+import { queryClient } from '../queryClient';
 import type { LoginResponse, MeResponse } from '../api/types';
 
 const STORAGE_KEY = 'acordanza.auth';
@@ -79,6 +80,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function applySession(token: string) {
+    // Drop any query-cache data fetched under a previous identity (or no
+    // identity) before this one starts issuing requests of its own.
+    queryClient.clear();
     setAuthToken(token);
     const me = await api.get<MeResponse>('/auth/me');
     localStorage.setItem(
@@ -134,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     localStorage.removeItem(STORAGE_KEY);
     setAuthToken(null);
+    queryClient.clear();
     setId(null);
     setUsername(null);
     setName(null);

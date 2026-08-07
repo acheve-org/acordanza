@@ -1,87 +1,120 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Filters } from '../components/Filters';
 import { RoutesList } from '../components/RoutesList';
 import { DetailModal } from '../components/DetailModal';
 import * as routesApi from '../api/routes';
 import * as toposApi from '../api/topos';
-import type { CreateTickInput, RouteDetail, RouteFilters, RouteSummary } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
+import { errorMessage } from '../api/errorMessage';
+import type { CreateTickInput, RouteFilters } from '../api/types';
 import { emptyRouteFilters } from '../api/types';
 
 export function SearchPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<RouteFilters>(emptyRouteFilters);
-  const [routes, setRoutes] = useState<RouteSummary[]>([]);
-
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
   const [detailRouteId, setDetailRouteId] = useState<number | null>(null);
-  const [detailRoute, setDetailRoute] = useState<RouteDetail | null>(null);
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
-    const handle = setTimeout(() => {
-      routesApi.listRoutes(filters).then(setRoutes);
-    }, 250);
+    const handle = setTimeout(() => setDebouncedFilters(filters), 250);
     return () => clearTimeout(handle);
   }, [filters]);
 
-  useEffect(() => {
-    if (detailRouteId === null) {
-      setDetailRoute(null);
-      return;
-    }
-    routesApi.getRoute(detailRouteId).then(setDetailRoute);
-  }, [detailRouteId]);
+  const { data: routes = [], error: routesError } = useQuery({
+    queryKey: queryKeys.routes(debouncedFilters),
+    queryFn: () => routesApi.listRoutes(debouncedFilters),
+  });
 
-  function refreshRoutes() {
-    routesApi.listRoutes(filters).then(setRoutes);
+  const { data: detailRoute } = useQuery({
+    queryKey: queryKeys.route(detailRouteId ?? 0),
+    queryFn: () => routesApi.getRoute(detailRouteId!),
+    enabled: detailRouteId !== null,
+  });
+
+  function invalidateRouteQueries() {
+    queryClient.invalidateQueries({ queryKey: ['routes'] });
+    if (detailRouteId !== null) queryClient.invalidateQueries({ queryKey: queryKeys.route(detailRouteId) });
   }
 
-  function refreshDetail() {
-    if (detailRouteId !== null) routesApi.getRoute(detailRouteId).then(setDetailRoute);
-  }
+  const deleteRouteMutation = useMutation({
+    mutationFn: (id: number) => routesApi.deleteRoute(id),
+    onSuccess: () => {
+      setDetailRouteId(null);
+      queryClient.invalidateQueries({ queryKey: ['routes'] });
+    },
+    onError: (err) => setActionError(errorMessage(err, 'No se pudo eliminar la vía')),
+  });
+
+  const validateRouteMutation = useMutation({
+    mutationFn: (id: number) => routesApi.validateRoute(id),
+    onSuccess: invalidateRouteQueries,
+    onError: (err) => setActionError(errorMessage(err, 'No se pudo validar la vía')),
+  });
+
+  const addTickMutation = useMutation({
+    mutationFn: ({ routeId, input }: { routeId: number; input: CreateTickInput }) =>
+      routesApi.createTick(routeId, input),
+    onSuccess: invalidateRouteQueries,
+  });
+
+  const uploadTopoMutation = useMutation({
+    mutationFn: ({ routeId, file }: { routeId: number; file: File }) => toposApi.uploadTopo(routeId, file),
+    onSuccess: invalidateRouteQueries,
+  });
+
+  const deleteTopoMutation = useMutation({
+    mutationFn: (topoId: number) => toposApi.deleteTopo(topoId),
+    onSuccess: invalidateRouteQueries,
+    onError: (err) => setActionError(errorMessage(err, 'No se pudo eliminar el topo')),
+  });
 
   async function handleDeleteRoute() {
     if (!detailRouteId) return;
-    await routesApi.deleteRoute(detailRouteId);
-    setDetailRouteId(null);
-    refreshRoutes();
+    setActionError('');
+    await deleteRouteMutation.mutateAsync(detailRouteId);
   }
 
   async function handleAddTick(input: CreateTickInput) {
     if (!detailRouteId) return;
-    await routesApi.createTick(detailRouteId, input);
-    refreshDetail();
-    refreshRoutes();
+    // AddTickModal shows its own error locally, so let the rejection propagate.
+    await addTickMutation.mutateAsync({ routeId: detailRouteId, input });
   }
 
   async function handleUploadTopo(file: File) {
     if (!detailRouteId) return;
-    await toposApi.uploadTopo(detailRouteId, file);
-    refreshDetail();
-    refreshRoutes();
+    // DetailModal shows its own upload error locally, so let the rejection propagate.
+    await uploadTopoMutation.mutateAsync({ routeId: detailRouteId, file });
   }
 
   async function handleDeleteTopo(topoId: number) {
-    await toposApi.deleteTopo(topoId);
-    refreshDetail();
-    refreshRoutes();
+    setActionError('');
+    await deleteTopoMutation.mutateAsync(topoId);
   }
 
   async function handleValidateRoute() {
     if (!detailRouteId) return;
-    await routesApi.validateRoute(detailRouteId);
-    refreshDetail();
-    refreshRoutes();
+    setActionError('');
+    await validateRouteMutation.mutateAsync(detailRouteId);
   }
 
   return (
     <>
       <main className="layout">
         <Filters filters={filters} onChange={setFilters} onAddRoute={() => navigate('/routes/new')} />
-        <RoutesList routes={routes} onSelect={setDetailRouteId} />
+        {routesError ? (
+          <p className="error-text">{errorMessage(routesError, 'No se pudieron cargar las vías')}</p>
+        ) : (
+          <RoutesList routes={routes} onSelect={setDetailRouteId} />
+        )}
       </main>
 
       <DetailModal
-        route={detailRoute}
+        route={detailRoute ?? null}
+        error={actionError}
         onClose={() => setDetailRouteId(null)}
         onEdit={() => {
           if (detailRouteId !== null) navigate(`/routes/${detailRouteId}/edit`);

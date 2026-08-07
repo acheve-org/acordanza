@@ -8,6 +8,8 @@ import { AddTickModal } from './AddTickModal';
 
 interface Props {
   route: RouteDetail | null;
+  /** Error from a delete/validate action, surfaced by the caller (e.g. a mutation's onError). */
+  error?: string;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -19,7 +21,7 @@ interface Props {
 
 const ACCEPTED_TOPO_TYPES = 'image/jpeg,image/png,image/webp';
 
-export function DetailModal({ route, onClose, onEdit, onDelete, onValidate, onAddTick, onUploadTopo, onDeleteTopo }: Props) {
+export function DetailModal({ route, error, onClose, onEdit, onDelete, onValidate, onAddTick, onUploadTopo, onDeleteTopo }: Props) {
   const { hasPermission } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
@@ -70,6 +72,7 @@ export function DetailModal({ route, onClose, onEdit, onDelete, onValidate, onAd
                 ✓ Validada por {route.validatedBy} el {new Date(route.validatedAt).toLocaleDateString()}
               </p>
             )}
+            {error && <p className="error-text">{error}</p>}
           </div>
           <div className="detail-actions">
             {!route.validatedAt && route.canValidate && (
