@@ -1,6 +1,6 @@
 # Extract the approval-workflow primitive (not the controllers)
 
-Status: planned (not started) — deliberately deferred until a third flow appears or these controllers are next touched
+Status: done
 Depends on: nothing
 
 ## Problem

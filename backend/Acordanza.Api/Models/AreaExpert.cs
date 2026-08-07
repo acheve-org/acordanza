@@ -1,13 +1,6 @@
 namespace Acordanza.Api.Models;
 
-public enum AreaExpertStatus
-{
-    Pending,
-    Approved,
-    Rejected
-}
-
-public class AreaExpert
+public class AreaExpert : IReviewableRequest
 {
     public int Id { get; set; }
     public int AreaId { get; set; }
@@ -16,7 +9,7 @@ public class AreaExpert
     public ApplicationUser User { get; set; } = null!;
     public DateTimeOffset RequestedAt { get; set; } = DateTimeOffset.UtcNow;
 
-    public AreaExpertStatus Status { get; set; } = AreaExpertStatus.Pending;
+    public ReviewStatus Status { get; set; } = ReviewStatus.Pending;
     public DateTimeOffset? DecidedAt { get; set; }
     public string? DecidedByUserId { get; set; }
     public ApplicationUser? DecidedBy { get; set; }

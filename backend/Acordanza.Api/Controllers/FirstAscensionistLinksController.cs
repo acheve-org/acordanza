@@ -33,7 +33,7 @@ public class FirstAscensionistLinksController(
     public async Task<ActionResult<List<FirstAscensionistLinkRequestDto>>> GetPending()
     {
         var links = await Query()
-            .Where(l => l.Status == FirstAscensionistLinkStatus.Pending)
+            .Where(l => l.Status == ReviewStatus.Pending)
             .OrderBy(l => l.RequestedAt)
             .ToListAsync();
         return Ok(links.Select(ToDto).ToList());
@@ -54,7 +54,7 @@ public class FirstAscensionistLinksController(
         var alreadyPending = await db.FirstAscensionistLinkRequests.AnyAsync(l =>
             l.FirstAscensionistId == request.FirstAscensionistId &&
             l.UserId == userId &&
-            l.Status == FirstAscensionistLinkStatus.Pending);
+            l.Status == ReviewStatus.Pending);
         if (alreadyPending)
         {
             return BadRequest(new { error = "ya has solicitado este vínculo" });
@@ -83,7 +83,6 @@ public class FirstAscensionistLinksController(
     public async Task<ActionResult<FirstAscensionistLinkRequestDto>> Approve(int id)
     {
         var approverId = userManager.GetUserId(User)!;
-        var decidedAt = DateTimeOffset.UtcNow;
 
         await using var transaction = await db.Database.BeginTransactionAsync();
 
@@ -91,24 +90,21 @@ public class FirstAscensionistLinksController(
         // request that still finds Status == Pending when the UPDATE runs is
         // affected, so a double-click (or two reviewers approving at once) can't
         // process the same request twice.
-        var statusUpdated = await db.FirstAscensionistLinkRequests
-            .Where(l => l.Id == id && l.Status == FirstAscensionistLinkStatus.Pending)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(l => l.Status, FirstAscensionistLinkStatus.Approved)
-                .SetProperty(l => l.DecidedAt, decidedAt)
-                .SetProperty(l => l.DecidedByUserId, approverId));
-
-        if (statusUpdated == 0)
+        var outcome = await ReviewRequestService.ApproveAsync(db.FirstAscensionistLinkRequests, id, approverId);
+        if (outcome != DecisionOutcome.Applied)
         {
-            var exists = await db.FirstAscensionistLinkRequests.AnyAsync(l => l.Id == id);
-            return exists ? BadRequest(new { error = "ya se ha resuelto esta solicitud" }) : NotFound(new { error = "No encontrado" });
+            return outcome == DecisionOutcome.AlreadyResolved
+                ? BadRequest(new { error = "ya se ha resuelto esta solicitud" })
+                : NotFound(new { error = "No encontrado" });
         }
 
         var link = await Query().FirstAsync(l => l.Id == id);
 
         // A second atomic UPDATE, conditioned on the target still being unlinked —
         // guards against it having been claimed by a different, already-approved
-        // competing request between the two operations.
+        // competing request between the two operations. This is the genuinely
+        // different shape that keeps this Approve inline rather than going
+        // through the shared service.
         var linked = await db.FirstAscensionists
             .Where(f => f.Id == link.FirstAscensionistId && f.UserId == null)
             .ExecuteUpdateAsync(setters => setters.SetProperty(f => f.UserId, link.UserId));
@@ -119,12 +115,14 @@ public class FirstAscensionistLinksController(
             // be approved (the target is already linked to someone else), yet its
             // unique filtered index would still block the requester from submitting
             // a fresh one. Auto-resolve it as rejected instead, so it's not stuck.
+            // Status is already Approved at this point (the update above), not
+            // Pending, so this can't go through ReviewRequestService.RejectAsync.
             const string reason = "Este aperturista ya ha sido vinculado a otra cuenta.";
             await db.FirstAscensionistLinkRequests
                 .Where(l => l.Id == id)
                 .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(l => l.Status, FirstAscensionistLinkStatus.Rejected)
-                    .SetProperty(l => l.DecidedAt, decidedAt)
+                    .SetProperty(l => l.Status, ReviewStatus.Rejected)
+                    .SetProperty(l => l.DecidedAt, DateTimeOffset.UtcNow)
                     .SetProperty(l => l.DecidedByUserId, approverId)
                     .SetProperty(l => l.RejectionReason, reason));
             await transaction.CommitAsync();
@@ -153,18 +151,12 @@ public class FirstAscensionistLinksController(
         var approverId = userManager.GetUserId(User)!;
         var reason = request.Reason.Trim();
 
-        var updated = await db.FirstAscensionistLinkRequests
-            .Where(l => l.Id == id && l.Status == FirstAscensionistLinkStatus.Pending)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(l => l.Status, FirstAscensionistLinkStatus.Rejected)
-                .SetProperty(l => l.DecidedAt, DateTimeOffset.UtcNow)
-                .SetProperty(l => l.DecidedByUserId, approverId)
-                .SetProperty(l => l.RejectionReason, reason));
-
-        if (updated == 0)
+        var outcome = await ReviewRequestService.RejectAsync(db.FirstAscensionistLinkRequests, id, approverId, reason);
+        if (outcome != DecisionOutcome.Applied)
         {
-            var exists = await db.FirstAscensionistLinkRequests.AnyAsync(l => l.Id == id);
-            return exists ? BadRequest(new { error = "ya se ha resuelto esta solicitud" }) : NotFound(new { error = "No encontrado" });
+            return outcome == DecisionOutcome.AlreadyResolved
+                ? BadRequest(new { error = "ya se ha resuelto esta solicitud" })
+                : NotFound(new { error = "No encontrado" });
         }
 
         var link = await Query().FirstAsync(l => l.Id == id);
@@ -178,28 +170,23 @@ public class FirstAscensionistLinksController(
     {
         var userId = userManager.GetUserId(User)!;
 
-        var deleted = await db.FirstAscensionistLinkRequests
-            .Where(l => l.Id == id && l.UserId == userId && l.Status == FirstAscensionistLinkStatus.Pending)
-            .ExecuteDeleteAsync();
-
-        if (deleted == 0)
+        var outcome = await ReviewRequestService.CancelAsync(db.FirstAscensionistLinkRequests, id, userId);
+        if (outcome != DecisionOutcome.Applied)
         {
-            var exists = await db.FirstAscensionistLinkRequests.AnyAsync(l => l.Id == id);
-            return exists ? Forbid() : NotFound(new { error = "No encontrado" });
+            return outcome == DecisionOutcome.AlreadyResolved ? Forbid() : NotFound(new { error = "No encontrado" });
         }
 
         return Ok(new { ok = true });
     }
 
-    // Best-effort email notification (try/catch + log, same pattern as
-    // AuthController.AcceptInvite's admin notification) shared by Approve
-    // (including its auto-reject-on-conflict path) and Reject, so the two
-    // decisions can't drift in how they notify the requester.
+    // Best-effort email notification shared by Approve (including its
+    // auto-reject-on-conflict path) and Reject, so the two decisions can't
+    // drift in how they notify the requester.
     private async Task NotifyDecisionAsync(FirstAscensionistLinkRequest link, bool approved, string? reason)
     {
         if (string.IsNullOrEmpty(link.User.Email)) return;
 
-        try
+        await Notifications.BestEffortAsync(logger, async () =>
         {
             var frontendBaseUrl = configuration["Frontend:BaseUrl"]
                 ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
@@ -207,12 +194,8 @@ public class FirstAscensionistLinksController(
                 ? EmailTemplates.FirstAscensionistLinkApproved(link.FirstAscensionist.Name, frontendBaseUrl)
                 : EmailTemplates.FirstAscensionistLinkRejected(link.FirstAscensionist.Name, reason!, frontendBaseUrl);
             await emailSender.SendAsync(link.User.Email, subject, html);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to notify user {UserId} of {Decision} first-ascensionist link {LinkId}",
-                link.UserId, approved ? "approved" : "rejected", link.Id);
-        }
+        }, "Failed to notify user {UserId} of {Decision} first-ascensionist link {LinkId}",
+            link.UserId, approved ? "approved" : "rejected", link.Id);
     }
 
     private IQueryable<FirstAscensionistLinkRequest> Query() =>

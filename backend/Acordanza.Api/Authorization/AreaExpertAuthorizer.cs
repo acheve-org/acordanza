@@ -29,7 +29,7 @@ public class AreaExpertAuthorizer(
 
         var userId = userManager.GetUserId(user)!;
         var expertAreaIds = await db.AreaExperts
-            .Where(e => e.UserId == userId && e.Status == AreaExpertStatus.Approved)
+            .Where(e => e.UserId == userId && e.Status == ReviewStatus.Approved)
             .Select(e => e.AreaId)
             .ToListAsync();
 

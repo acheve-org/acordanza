@@ -33,7 +33,7 @@ public class AreaExpertsController(
     public async Task<ActionResult<List<AreaExpertDto>>> GetPending()
     {
         var experts = await Query()
-            .Where(e => e.Status == AreaExpertStatus.Pending)
+            .Where(e => e.Status == ReviewStatus.Pending)
             .OrderBy(e => e.RequestedAt)
             .ToListAsync();
         return Ok(experts.Select(ToDto).ToList());
@@ -51,7 +51,7 @@ public class AreaExpertsController(
         var alreadyActive = await db.AreaExperts.AnyAsync(e =>
             e.AreaId == request.AreaId &&
             e.UserId == userId &&
-            e.Status != AreaExpertStatus.Rejected);
+            e.Status != ReviewStatus.Rejected);
         if (alreadyActive)
         {
             return BadRequest(new { error = "ya has solicitado ser experto de este sector" });
@@ -80,23 +80,13 @@ public class AreaExpertsController(
     public async Task<ActionResult<AreaExpertDto>> Approve(int id)
     {
         var approverId = userManager.GetUserId(User)!;
-        var decidedAt = DateTimeOffset.UtcNow;
 
-        // A single conditional UPDATE, not a load-check-save round trip: if two
-        // reviewers approve concurrently, only the request that still finds
-        // Status == Pending when the UPDATE runs affects a row — the loser gets
-        // 0 rows affected instead of silently overwriting the first approval.
-        var updated = await db.AreaExperts
-            .Where(e => e.Id == id && e.Status == AreaExpertStatus.Pending)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(e => e.Status, AreaExpertStatus.Approved)
-                .SetProperty(e => e.DecidedAt, decidedAt)
-                .SetProperty(e => e.DecidedByUserId, approverId));
-
-        if (updated == 0)
+        var outcome = await ReviewRequestService.ApproveAsync(db.AreaExperts, id, approverId);
+        if (outcome != DecisionOutcome.Applied)
         {
-            var exists = await db.AreaExperts.AnyAsync(e => e.Id == id);
-            return exists ? BadRequest(new { error = "ya se ha resuelto esta solicitud" }) : NotFound(new { error = "No encontrado" });
+            return outcome == DecisionOutcome.AlreadyResolved
+                ? BadRequest(new { error = "ya se ha resuelto esta solicitud" })
+                : NotFound(new { error = "No encontrado" });
         }
 
         var saved = await Query().FirstAsync(e => e.Id == id);
@@ -117,18 +107,12 @@ public class AreaExpertsController(
         var approverId = userManager.GetUserId(User)!;
         var reason = request.Reason.Trim();
 
-        var updated = await db.AreaExperts
-            .Where(e => e.Id == id && e.Status == AreaExpertStatus.Pending)
-            .ExecuteUpdateAsync(setters => setters
-                .SetProperty(e => e.Status, AreaExpertStatus.Rejected)
-                .SetProperty(e => e.DecidedAt, DateTimeOffset.UtcNow)
-                .SetProperty(e => e.DecidedByUserId, approverId)
-                .SetProperty(e => e.RejectionReason, reason));
-
-        if (updated == 0)
+        var outcome = await ReviewRequestService.RejectAsync(db.AreaExperts, id, approverId, reason);
+        if (outcome != DecisionOutcome.Applied)
         {
-            var exists = await db.AreaExperts.AnyAsync(e => e.Id == id);
-            return exists ? BadRequest(new { error = "ya se ha resuelto esta solicitud" }) : NotFound(new { error = "No encontrado" });
+            return outcome == DecisionOutcome.AlreadyResolved
+                ? BadRequest(new { error = "ya se ha resuelto esta solicitud" })
+                : NotFound(new { error = "No encontrado" });
         }
 
         var saved = await Query().FirstAsync(e => e.Id == id);
@@ -142,27 +126,23 @@ public class AreaExpertsController(
     {
         var userId = userManager.GetUserId(User)!;
 
-        var deleted = await db.AreaExperts
-            .Where(e => e.Id == id && e.UserId == userId && e.Status == AreaExpertStatus.Pending)
-            .ExecuteDeleteAsync();
-
-        if (deleted == 0)
+        var outcome = await ReviewRequestService.CancelAsync(db.AreaExperts, id, userId);
+        if (outcome != DecisionOutcome.Applied)
         {
-            var exists = await db.AreaExperts.AnyAsync(e => e.Id == id);
-            return exists ? Forbid() : NotFound(new { error = "No encontrado" });
+            return outcome == DecisionOutcome.AlreadyResolved ? Forbid() : NotFound(new { error = "No encontrado" });
         }
 
         return Ok(new { ok = true });
     }
 
-    // Best-effort email notification (try/catch + log) shared by Approve and
-    // Reject, so the two decisions can't drift in how they notify the
-    // requester — same pattern as FirstAscensionistLinksController.
+    // Best-effort email notification shared by Approve and Reject, so the two
+    // decisions can't drift in how they notify the requester — same pattern
+    // as FirstAscensionistLinksController.
     private async Task NotifyDecisionAsync(AreaExpert expert, bool approved, string? reason)
     {
         if (string.IsNullOrEmpty(expert.User.Email)) return;
 
-        try
+        await Notifications.BestEffortAsync(logger, async () =>
         {
             var frontendBaseUrl = configuration["Frontend:BaseUrl"]
                 ?? throw new InvalidOperationException("Missing Frontend:BaseUrl configuration");
@@ -170,12 +150,8 @@ public class AreaExpertsController(
                 ? EmailTemplates.AreaExpertApproved(expert.Area.Name, frontendBaseUrl)
                 : EmailTemplates.AreaExpertRejected(expert.Area.Name, reason!, frontendBaseUrl);
             await emailSender.SendAsync(expert.User.Email, subject, html);
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to notify {UserEmail} of {Decision} area-expert request for area {AreaId}",
-                expert.User.Email, approved ? "approved" : "rejected", expert.AreaId);
-        }
+        }, "Failed to notify {UserEmail} of {Decision} area-expert request for area {AreaId}",
+            expert.User.Email, approved ? "approved" : "rejected", expert.AreaId);
     }
 
     private IQueryable<AreaExpert> Query() =>

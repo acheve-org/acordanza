@@ -22,7 +22,7 @@ public static class DynamicPermissions
         AppDbContext db, IEnumerable<string> roles, string userId)
     {
         var isFirstAscensionist = await db.FirstAscensionists.AnyAsync(f => f.UserId == userId);
-        var isAreaExpert = await db.AreaExperts.AnyAsync(e => e.UserId == userId && e.Status == AreaExpertStatus.Approved);
+        var isAreaExpert = await db.AreaExperts.AnyAsync(e => e.UserId == userId && e.Status == ReviewStatus.Approved);
         IReadOnlyCollection<string> permissions = RolePermissions.PermissionsFor(roles);
         if (isFirstAscensionist)
         {

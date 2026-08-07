@@ -1,13 +1,6 @@
 namespace Acordanza.Api.Models;
 
-public enum FirstAscensionistLinkStatus
-{
-    Pending,
-    Approved,
-    Rejected
-}
-
-public class FirstAscensionistLinkRequest
+public class FirstAscensionistLinkRequest : IReviewableRequest
 {
     public int Id { get; set; }
     public int FirstAscensionistId { get; set; }
@@ -16,7 +9,7 @@ public class FirstAscensionistLinkRequest
     public ApplicationUser User { get; set; } = null!;
     public DateTimeOffset RequestedAt { get; set; } = DateTimeOffset.UtcNow;
 
-    public FirstAscensionistLinkStatus Status { get; set; } = FirstAscensionistLinkStatus.Pending;
+    public ReviewStatus Status { get; set; } = ReviewStatus.Pending;
     public DateTimeOffset? DecidedAt { get; set; }
     public string? DecidedByUserId { get; set; }
     public ApplicationUser? DecidedBy { get; set; }
