@@ -309,6 +309,12 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
+    // Must run on every boot, not just in the create-user CLI branch above: besides
+    // creating the role catalog, this is what backfills the `user` role onto accounts
+    // holding none and retires the legacy first-ascensionist role. Those only take
+    // effect on deploy if they run here. Idempotent — see RoleSeeder.
+    await RoleSeeder.EnsureSeededAsync(scope.ServiceProvider);
+
     var blobStorage = scope.ServiceProvider.GetRequiredService<BlobStorageService>();
     await blobStorage.EnsureContainerExistsAsync();
 

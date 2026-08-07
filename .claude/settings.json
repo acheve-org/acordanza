@@ -19,6 +19,8 @@
       "Bash(dotnet build *)",
       "Bash(dotnet ef *)",
       "Bash(dotnet run *)",
+      "Bash(dotnet list *)",
+      "Bash(dotnet test *)",
       "Bash(dotnet user-secrets *)",
       "Bash(gh issue *)",
       "Bash(gh pr *)",
