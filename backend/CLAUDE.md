@@ -20,7 +20,7 @@ First-time setup (once per machine): `dotnet user-secrets set "Jwt:Key" "$(opens
 
 Migrations run automatically on startup (`db.Database.MigrateAsync()` in `Program.cs`) as well as before the `create-user` CLI path — you don't need to run `dotnet ef database update` before every `dotnet run`, only when you want the schema applied without booting the full app.
 
-No test project exists yet.
+`backend/Acordanza.Api.Tests/` (xUnit v3 + Shouldly) holds the test suite; run it from the repo root with `dotnet test Acordanza.slnx`, or from `backend/Acordanza.Api.Tests/` with plain `dotnet test`. No Docker or database needed — everything in the project today tests pure classes with no `DbContext`/`HttpContext` (`Services/Slugify`, `Models/Validation`, `Services/AreaHierarchy`, `Authorization/RolePermissions`, `Authorization/Permissions`). Docker-dependent integration tests land in a later phase, gated behind a `Category=Integration` trait so this stays instant.
 
 ## Architecture
 

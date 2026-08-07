@@ -1,6 +1,6 @@
 # Test harness + first pure unit tests
 
-Status: planned (not started)
+Status: done
 Depends on: nothing — this is the entry point for [08](08-backend-integration-tests.md) and [09](09-frontend-component-tests.md)
 
 ## Problem

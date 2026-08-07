@@ -14,9 +14,11 @@ bun dev              # dev server on http://localhost:5173
 bun run build        # tsc -b (typecheck) then vite build -> dist/
 bun run lint         # oxlint
 bun run preview      # preview a production build
+bun run test         # vitest run
+bun run test:watch   # vitest, watch mode
 ```
 
-Needs `frontend/.env` (copy from `.env.example`) with `VITE_API_URL`, pointing at the backend (`http://localhost:5073/api` by default). No test suite exists yet.
+Needs `frontend/.env` (copy from `.env.example`) with `VITE_API_URL`, pointing at the backend (`http://localhost:5073/api` by default). Vitest (jsdom + `@testing-library/react`) is configured via the `test` block in `vite.config.ts`, with global `describe`/`it`/`expect` (see `tsconfig.app.json`'s `vitest/globals` type) and jest-dom matchers loaded in `src/test/setup.ts`. Today's suite only covers pure modules (`api/routes.ts`, `api/errorMessage.ts`, `api/queryKeys.ts`, `api/types.ts`'s label maps) — no rendering tests yet; component tests land in a later phase once `design-system/` gets its own test setup.
 
 ## Architecture
 

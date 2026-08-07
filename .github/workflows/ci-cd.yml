@@ -43,9 +43,6 @@ jobs:
   build-test-backend:
     name: Backend build & test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend/Acordanza.Api
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -56,18 +53,13 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore
-        run: dotnet restore Acordanza.Api.csproj
+        run: dotnet restore Acordanza.slnx
 
       - name: Build
-        run: dotnet build Acordanza.Api.csproj --no-restore -c Release
+        run: dotnet build Acordanza.slnx --no-restore -c Release
 
       - name: Test
-        run: |
-          if find .. -iname '*.Tests.csproj' | grep -q .; then
-            dotnet test --no-build -c Release
-          else
-            echo "No test projects yet — skipping."
-          fi
+        run: dotnet test Acordanza.slnx --no-build -c Release
 
   build-test-frontend:
     name: Frontend build & test
@@ -100,6 +92,9 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: Test
+        run: bun run test
 
       - name: Build
         # Sanity-check the build compiles (tsc + vite build). VITE_API_URL is

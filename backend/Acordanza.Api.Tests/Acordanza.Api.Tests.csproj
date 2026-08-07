@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>   <!-- xunit.v3 runs as its own executable -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <!-- Required, and not just boilerplate: without it the ASP.NET Core assemblies
+       this project pulls in through the API reference resolve as NuGet packages
+       rather than from the shared framework, which drags in a vulnerable
+       System.Security.Cryptography.Xml 10.0.7 (five high-severity advisories).
+       The API project doesn't have this problem because it's Microsoft.NET.Sdk.Web;
+       a plain Microsoft.NET.Sdk test project needs to ask for the framework. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="3.2.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Acordanza.Api/Acordanza.Api.csproj" />
+  </ItemGroup>
+</Project>
