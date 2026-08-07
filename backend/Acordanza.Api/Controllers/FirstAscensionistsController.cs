@@ -3,6 +3,7 @@ using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,7 +12,7 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/first-ascensionists")]
-public class FirstAscensionistsController(AppDbContext db) : ControllerBase
+public class FirstAscensionistsController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<FirstAscensionistDto>>> GetFirstAscensionists([FromQuery] string? q)
@@ -49,5 +50,69 @@ public class FirstAscensionistsController(AppDbContext db) : ControllerBase
         await db.SaveChangesAsync();
 
         return Ok(new FirstAscensionistDto(firstAscensionist.Id, firstAscensionist.Name, null, null));
+    }
+
+    [Authorize(Policy = Permissions.FirstAscensionistEdit)]
+    [HttpPut("{id}")]
+    public async Task<ActionResult<FirstAscensionistDto>> UpdateFirstAscensionist(int id, UpdateFirstAscensionistRequest request)
+    {
+        var firstAscensionist = await db.FirstAscensionists.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == id);
+        if (firstAscensionist is null)
+        {
+            return NotFound(new { error = "el aperturista no existe" });
+        }
+
+        // first-ascensionist.edit is granted both to moderators/admins (any record) and, dynamically,
+        // to a user linked to their own FirstAscensionist record (see DynamicPermissions) — since both
+        // carry the same claim, a linked user editing someone else's record has to be blocked here,
+        // same "ownership scoped to a query, not a claim" pattern
+        // AreasController.BuildCanManageAreaMediaCheckAsync uses for AreaExperts.
+        var isPrivileged = User.IsInRole(Roles.Moderator) || User.IsInRole(Roles.Admin);
+        if (!isPrivileged && firstAscensionist.UserId != userManager.GetUserId(User))
+        {
+            return Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { error = "el nombre es obligatorio" });
+        }
+
+        firstAscensionist.Name = request.Name.Trim();
+        await db.SaveChangesAsync();
+
+        return Ok(new FirstAscensionistDto(
+            firstAscensionist.Id, firstAscensionist.Name, firstAscensionist.UserId, firstAscensionist.User?.Name));
+    }
+
+    [Authorize(Policy = Permissions.FirstAscensionistDelete)]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteFirstAscensionist(int id)
+    {
+        if (!await db.FirstAscensionists.AnyAsync(f => f.Id == id))
+        {
+            return NotFound(new { error = "el aperturista no existe" });
+        }
+
+        // ClimbingRoute<->FirstAscensionist is many-to-many with a Cascade FK on the join
+        // table (see AppDbContext), so nothing would stop the delete at the DB level —
+        // block it explicitly here instead, same pattern as AreasController.DeleteArea. Doing
+        // the "has routes" check and the delete as a single statement (rather than a separate
+        // AnyAsync then Remove) closes the window where a route create/edit could link this
+        // first ascensionist in between, which would otherwise get silently cascade-deleted.
+        var deleted = await db.FirstAscensionists
+            .Where(f => f.Id == id && !db.Routes.Any(r => r.FirstAscensionists.Any(fa => fa.Id == id)))
+            .ExecuteDeleteAsync();
+
+        if (deleted == 0)
+        {
+            if (!await db.FirstAscensionists.AnyAsync(f => f.Id == id))
+            {
+                return NotFound(new { error = "el aperturista no existe" });
+            }
+            return BadRequest(new { error = "el aperturista tiene vías asociadas; quítalo de esas vías primero" });
+        }
+
+        return NoContent();
     }
 }

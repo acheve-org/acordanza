@@ -9,3 +9,11 @@ export function listFirstAscensionists(q?: string): Promise<FirstAscensionistSum
 export function createFirstAscensionist(name: string): Promise<FirstAscensionistSummary> {
   return api.post<FirstAscensionistSummary>('/first-ascensionists', { name });
 }
+
+export function updateFirstAscensionist(id: number, name: string): Promise<FirstAscensionistSummary> {
+  return api.put<FirstAscensionistSummary>(`/first-ascensionists/${id}`, { name });
+}
+
+export function deleteFirstAscensionist(id: number): Promise<void> {
+  return api.delete<void>(`/first-ascensionists/${id}`);
+}

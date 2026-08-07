@@ -10,8 +10,11 @@ export function ManageLayout() {
 
   const canUsers = hasPermission(Permissions.userManage);
   const canAreas = hasPermission(Permissions.areaEdit);
+  // first-ascensionist.delete (unlike .edit) is only ever granted to moderators/admins,
+  // never dynamically to a linked FA user — see FirstAscensionistsPage.
+  const canFirstAscensionists = hasPermission(Permissions.firstAscensionistDelete);
 
-  if (!canUsers  && !canAreas && !pendingTasksVisible) return <Navigate to="/" replace />;
+  if (!canUsers && !canAreas && !canFirstAscensionists && !pendingTasksVisible) return <Navigate to="/" replace />;
 
   return (
     <main className="side-nav-layout">
@@ -25,6 +28,14 @@ export function ManageLayout() {
         {canAreas && (
           <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/manage/areas">
             Sectores
+          </NavLink>
+        )}
+        {canFirstAscensionists && (
+          <NavLink
+            className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`}
+            to="/manage/first-ascensionists"
+          >
+            Aperturistas
           </NavLink>
         )}
         {pendingTasksVisible && (
@@ -50,6 +61,7 @@ export function ManageIndexRedirect() {
 
   if (hasPermission(Permissions.areaEdit)) return <Navigate to="/manage/areas" replace />;
   if (hasPermission(Permissions.userManage)) return <Navigate to="/manage/users" replace />;
+  if (hasPermission(Permissions.firstAscensionistDelete)) return <Navigate to="/manage/first-ascensionists" replace />;
   if (pendingTasksVisible) return <Navigate to="/manage/pending-tasks" replace />;
   return <Navigate to="/" replace />;
 }

@@ -15,6 +15,7 @@ import { RouteFormPage } from './pages/RouteFormPage';
 import { MapPage } from './pages/MapPage';
 import { AreaPage } from './pages/AreaPage';
 import { AreasPage } from './pages/AreasPage';
+import { FirstAscensionistsPage } from './pages/FirstAscensionistsPage';
 import { MyAreasPage } from './pages/MyAreasPage';
 import { ClaimFirstAscensionistPage } from './pages/ClaimFirstAscensionistPage';
 import { MyOpeningsPage } from './pages/MyOpeningsPage';
@@ -170,6 +171,7 @@ function App() {
         <Route path="manage" element={<ManageLayout />}>
           <Route index element={<ManageIndexRedirect />} />
           <Route path="areas" element={<AreasPage />} />
+          <Route path="first-ascensionists" element={<FirstAscensionistsPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="pending-tasks" element={<PendingTasksPage />} />
         </Route>

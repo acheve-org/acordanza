@@ -4,6 +4,8 @@ public record FirstAscensionistDto(int Id, string Name, string? UserId, string? 
 
 public record CreateFirstAscensionistRequest(string Name);
 
+public record UpdateFirstAscensionistRequest(string Name);
+
 public record FirstAscensionistLinkRequestDto(
     int Id,
     int FirstAscensionistId,
