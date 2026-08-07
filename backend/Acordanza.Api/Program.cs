@@ -122,6 +122,7 @@ builder.Services.AddScoped<JwtTokenService>();
 builder.Services.AddScoped<AreaHierarchyService>();
 builder.Services.AddScoped<AreaExpertAuthorizer>();
 builder.Services.AddSingleton<BlobStorageService>();
+builder.Services.AddSingleton<MediaUploadService>();
 
 // Data Protection keys default to local disk, which doesn't survive Container
 // Apps' scale-to-zero restarts — a fresh key ring on every cold start would

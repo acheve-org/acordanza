@@ -4,7 +4,6 @@ using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
-using Azure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +18,7 @@ public class RoutesController(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
     BlobStorageService blobStorage,
+    MediaUploadService mediaUpload,
     AreaHierarchyService areaHierarchy,
     AreaExpertAuthorizer areaExpertAuthorizer) : ControllerBase
 {
@@ -26,10 +26,6 @@ public class RoutesController(
         ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
 
     private static readonly HashSet<string> AllowedGear = ["bolted", "removable", "pitons", "aiders"];
-
-    private static readonly HashSet<string> AllowedTopoContentTypes = ["image/jpeg", "image/png", "image/webp"];
-    private const long MaxTopoBytes = 15 * 1024 * 1024;
-    private static readonly TimeSpan TopoUrlLifetime = TimeSpan.FromMinutes(15);
 
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
@@ -150,7 +146,7 @@ public class RoutesController(
         var topoDtos = new List<TopoDto>();
         foreach (var topo in route.Topos.OrderBy(t => t.CreatedAt))
         {
-            var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, TopoUrlLifetime);
+            var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, MediaUploadService.ImageUrlLifetime);
             topoDtos.Add(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, topo.UploadedBy.Name));
         }
 
@@ -301,21 +297,11 @@ public class RoutesController(
     }
 
     [HttpPost("{id:int}/topos")]
-    [RequestSizeLimit(MaxTopoBytes)]
+    [RequestSizeLimit(MediaUploadService.MaxImageBytes)]
     public async Task<ActionResult<TopoDto>> UploadTopo(int id, IFormFile? file)
     {
-        if (file is null || file.Length == 0)
-        {
-            return BadRequest(new { error = "la imagen es obligatoria" });
-        }
-        if (!AllowedTopoContentTypes.Contains(file.ContentType))
-        {
-            return BadRequest(new { error = "el formato de la imagen no es válido (usa JPEG, PNG o WebP)" });
-        }
-        if (file.Length > MaxTopoBytes)
-        {
-            return BadRequest(new { error = "la imagen es demasiado grande (máximo 15 MB)" });
-        }
+        var validationError = mediaUpload.ValidateImage(file);
+        if (validationError is not null) return BadRequest(new { error = validationError.Message });
 
         var route = await db.Routes.FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new { error = "No encontrado" });
@@ -326,41 +312,16 @@ public class RoutesController(
         if (currentUser is null) return Unauthorized();
 
         // Topos are named after the route's slug plus a numeric suffix, e.g.
-        // "some-route-01.jpg". The next number is the highest one actually in
-        // use under this exact area+slug prefix, not just this route's topo
-        // count: (a) two different routes can slugify to the same name, so the
-        // prefix (not RouteId) is what has to stay collision-free, and (b) if
-        // an earlier topo was deleted, a plain count could reissue a number a
-        // surviving topo with a higher number still owns.
-        var extension = Path.GetExtension(file.FileName);
+        // "some-route-01.jpg" — two different routes can slugify to the same name, so
+        // the prefix (not RouteId) is what has to stay collision-free.
+        var extension = Path.GetExtension(file!.FileName);
         var blobPrefix = $"{areas.SlugPath(route.AreaId)}/{Slugify.ToSlug(route.Name)}-";
         var usedBlobNames = await db.Topos.AsNoTracking()
             .Where(t => t.BlobName.StartsWith(blobPrefix))
             .Select(t => t.BlobName)
             .ToListAsync();
-        var nextNumber = HighestToposNumber(usedBlobNames, blobPrefix) + 1;
 
-        // A concurrent upload could grab the same number between the query above and
-        // the write below — upload conditionally (fails instead of overwriting if the
-        // name is already taken) and retry under the next number when that happens.
-        const int maxAttempts = 5;
-        string? blobName = null;
-        for (var attempt = 0; attempt < maxAttempts; attempt++)
-        {
-            var candidate = $"{blobPrefix}{nextNumber + attempt:D2}{extension}";
-            try
-            {
-                await using var stream = file.OpenReadStream();
-                await blobStorage.UploadAsync(candidate, stream, file.ContentType, overwrite: false);
-                blobName = candidate;
-                break;
-            }
-            catch (RequestFailedException ex) when (ex.Status == 412)
-            {
-                // Name taken by a racing upload — try the next number.
-            }
-        }
-
+        var blobName = await mediaUpload.UploadNumberedAsync(blobPrefix, extension, usedBlobNames, file);
         if (blobName is null)
         {
             return Conflict(new { error = "no se pudo subir la imagen, inténtalo de nuevo" });
@@ -375,9 +336,9 @@ public class RoutesController(
             UploadedByUserId = currentUser.Id
         };
         db.Topos.Add(topo);
-        await db.SaveChangesAsync();
+        await mediaUpload.SaveOrCleanupAsync(blobName, () => db.SaveChangesAsync());
 
-        var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, TopoUrlLifetime);
+        var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, MediaUploadService.ImageUrlLifetime);
         return Ok(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, currentUser.Name));
     }
 
@@ -434,20 +395,4 @@ public class RoutesController(
     }
 
     private static FirstAscensionistDto ToFirstAscensionistDto(FirstAscensionist o) => new(o.Id, o.Name, o.UserId, o.User?.Name);
-
-    // Parses the trailing "-{number}" out of each blob name (after the shared prefix,
-    // before the extension) and returns the highest one found, or 0 if none/none parse.
-    private static int HighestToposNumber(List<string> blobNames, string prefix)
-    {
-        var highest = 0;
-        foreach (var blobName in blobNames)
-        {
-            var numberPart = Path.GetFileNameWithoutExtension(blobName[prefix.Length..]);
-            if (int.TryParse(numberPart, out var number) && number > highest)
-            {
-                highest = number;
-            }
-        }
-        return highest;
-    }
 }

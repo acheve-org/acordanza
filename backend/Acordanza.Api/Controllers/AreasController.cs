@@ -3,7 +3,6 @@ using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
 using Acordanza.Api.Services;
-using Azure;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -19,15 +18,12 @@ public class AreasController(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
     BlobStorageService blobStorage,
+    MediaUploadService mediaUpload,
     AreaHierarchyService areaHierarchy,
     AreaExpertAuthorizer areaExpertAuthorizer) : ControllerBase
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
-
-    private static readonly HashSet<string> AllowedMediaContentTypes = ["image/jpeg", "image/png", "image/webp"];
-    private const long MaxMediaBytes = 15 * 1024 * 1024;
-    private static readonly TimeSpan MediaUrlLifetime = TimeSpan.FromMinutes(15);
 
     [HttpGet]
     public async Task<ActionResult<List<AreaDto>>> GetAreas(
@@ -332,7 +328,7 @@ public class AreasController(
         var mediaDtos = new List<TopoDto>();
         foreach (var m in media)
         {
-            var url = await blobStorage.GetReadSasUrlAsync(m.BlobName, MediaUrlLifetime);
+            var url = await blobStorage.GetReadSasUrlAsync(m.BlobName, MediaUploadService.ImageUrlLifetime);
             mediaDtos.Add(new TopoDto(m.Id, url, m.FileName, m.CreatedAt, m.UploadedBy.Name));
         }
 
@@ -352,21 +348,11 @@ public class AreasController(
     }
 
     [HttpPost("{id:int}/media")]
-    [RequestSizeLimit(MaxMediaBytes)]
+    [RequestSizeLimit(MediaUploadService.MaxImageBytes)]
     public async Task<ActionResult<TopoDto>> UploadAreaMedia(int id, IFormFile? file)
     {
-        if (file is null || file.Length == 0)
-        {
-            return BadRequest(new { error = "la imagen es obligatoria" });
-        }
-        if (!AllowedMediaContentTypes.Contains(file.ContentType))
-        {
-            return BadRequest(new { error = "el formato de la imagen no es válido (usa JPEG, PNG o WebP)" });
-        }
-        if (file.Length > MaxMediaBytes)
-        {
-            return BadRequest(new { error = "la imagen es demasiado grande (máximo 15 MB)" });
-        }
+        var validationError = mediaUpload.ValidateImage(file);
+        if (validationError is not null) return BadRequest(new { error = validationError.Message });
 
         var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == id);
         if (area is null) return NotFound(new { error = "No encontrado" });
@@ -380,40 +366,21 @@ public class AreasController(
         if (currentUser is null) return Unauthorized();
 
         // Named after the area's own slug plus a numeric suffix, same convention as
-        // route topos (RoutesController.UploadTopo) — the next number is the highest
-        // one actually in use under this prefix, not just this area's media count.
-        // The "/_media-" segment (not just "-") is deliberate: without it, this area's
-        // prefix would be "{ParentPath}/{area.Slug}-", identical to a route topo's
+        // route topos (RoutesController.UploadTopo). The "/_media-" segment (not just
+        // "-") is deliberate: without it, this area's prefix would be
+        // "{ParentPath}/{area.Slug}-", identical to a route topo's
         // "{ParentPath}/{routeSlug}-" prefix whenever a route in the parent area happens
         // to slugify to the same name as this area — Slugify.ToSlug never emits "_", so
         // no route/area slug can ever collide with this reserved marker.
-        var extension = Path.GetExtension(file.FileName);
+        var extension = Path.GetExtension(file!.FileName);
         var hierarchy = await areaHierarchy.GetAsync();
         var blobPrefix = $"{hierarchy.SlugPath(id)}/_media-";
         var usedBlobNames = await db.AreaMedia.AsNoTracking()
             .Where(m => m.BlobName.StartsWith(blobPrefix))
             .Select(m => m.BlobName)
             .ToListAsync();
-        var nextNumber = HighestMediaNumber(usedBlobNames, blobPrefix) + 1;
 
-        const int maxAttempts = 5;
-        string? blobName = null;
-        for (var attempt = 0; attempt < maxAttempts; attempt++)
-        {
-            var candidate = $"{blobPrefix}{nextNumber + attempt:D2}{extension}";
-            try
-            {
-                await using var stream = file.OpenReadStream();
-                await blobStorage.UploadAsync(candidate, stream, file.ContentType, overwrite: false);
-                blobName = candidate;
-                break;
-            }
-            catch (RequestFailedException ex) when (ex.Status == 412)
-            {
-                // Name taken by a racing upload — try the next number.
-            }
-        }
-
+        var blobName = await mediaUpload.UploadNumberedAsync(blobPrefix, extension, usedBlobNames, file);
         if (blobName is null)
         {
             return Conflict(new { error = "no se pudo subir la imagen, inténtalo de nuevo" });
@@ -428,37 +395,10 @@ public class AreasController(
             UploadedByUserId = currentUser.Id
         };
         db.AreaMedia.Add(media);
-        try
-        {
-            await db.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            // The blob already landed in storage — if the row can't be saved (e.g. the
-            // area or uploader was deleted concurrently), delete it too rather than
-            // leaving an orphaned blob that occupies this name forever.
-            await blobStorage.DeleteAsync(blobName);
-            throw;
-        }
+        await mediaUpload.SaveOrCleanupAsync(blobName, () => db.SaveChangesAsync());
 
-        var url = await blobStorage.GetReadSasUrlAsync(media.BlobName, MediaUrlLifetime);
+        var url = await blobStorage.GetReadSasUrlAsync(media.BlobName, MediaUploadService.ImageUrlLifetime);
         return Ok(new TopoDto(media.Id, url, media.FileName, media.CreatedAt, currentUser.Name));
-    }
-
-    // Parses the trailing "-{number}" out of each blob name (after the shared prefix,
-    // before the extension) and returns the highest one found, or 0 if none/none parse.
-    private static int HighestMediaNumber(List<string> blobNames, string prefix)
-    {
-        var highest = 0;
-        foreach (var blobName in blobNames)
-        {
-            var numberPart = Path.GetFileNameWithoutExtension(blobName[prefix.Length..]);
-            if (int.TryParse(numberPart, out var number) && number > highest)
-            {
-                highest = number;
-            }
-        }
-        return highest;
     }
 
     // Two sibling areas can never share a Name (checked above), but different names can
