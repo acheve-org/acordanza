@@ -128,7 +128,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         // to a user linked to their own FirstAscensionist record (see DynamicPermissions) — since both
         // carry the same claim, a linked user editing someone else's record has to be blocked here,
         // same "ownership scoped to a query, not a claim" pattern
-        // AreasController.BuildCanManageAreaMediaCheckAsync uses for AreaExperts.
+        // AreaExpertAuthorizer implements for AreaExperts.
         var isPrivileged = User.IsInRole(Roles.Moderator) || User.IsInRole(Roles.Admin);
         if (!isPrivileged && firstAscensionist.UserId != userManager.GetUserId(User))
         {

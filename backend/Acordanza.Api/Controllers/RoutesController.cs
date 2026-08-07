@@ -15,8 +15,12 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/routes")]
-public class RoutesController(AppDbContext db, UserManager<ApplicationUser> userManager, BlobStorageService blobStorage)
-    : ControllerBase
+public class RoutesController(
+    AppDbContext db,
+    UserManager<ApplicationUser> userManager,
+    BlobStorageService blobStorage,
+    AreaHierarchyService areaHierarchy,
+    AreaExpertAuthorizer areaExpertAuthorizer) : ControllerBase
 {
     private static readonly HashSet<string> AllowedOrientations =
         ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
@@ -27,18 +31,13 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     private const long MaxTopoBytes = 15 * 1024 * 1024;
     private static readonly TimeSpan TopoUrlLifetime = TimeSpan.FromMinutes(15);
 
-    private sealed record AreaNode(int Id, string Name, string Slug, int? ParentAreaId);
-
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
         [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string? orientation,
         [FromQuery] string? gear, [FromQuery] string? tag, [FromQuery] bool? hasTopo,
         [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false)
     {
-        var areas = await db.Areas.AsNoTracking()
-            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
-            .ToListAsync();
-        var areaById = areas.ToDictionary(a => a.Id);
+        var areas = await areaHierarchy.GetAsync();
 
         var query = db.Routes
             .Include(r => r.AddedBy)
@@ -57,7 +56,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             // The area detail page (issue #105) wants only this exact area's own routes —
             // its child areas' routes get their own section there — so it opts out of the
             // usual subtree expansion every other caller (filters, area picker) relies on.
-            List<int> ids = exactArea ? [requestedAreaId] : DescendantAreaIds(areas, requestedAreaId);
+            List<int> ids = exactArea ? [requestedAreaId] : areas.DescendantIds(requestedAreaId);
             query = query.Where(r => ids.Contains(r.AreaId));
         }
         if (!string.IsNullOrWhiteSpace(grade))
@@ -93,7 +92,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             await transaction.CommitAsync();
         }
 
-        var canValidateArea = await BuildCanValidateAreaCheckAsync(areaById);
+        var canValidateArea = await areaExpertAuthorizer.BuildAreaCheckAsync(User, Permissions.RouteValidate);
 
         var userId = userManager.GetUserId(User)!;
         var tickedRouteIds = (await db.Ticks
@@ -102,7 +101,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             .ToListAsync()).ToHashSet();
 
         var dtos = routes.Select(r => new RouteDto(
-            r.Id, r.Name, r.AreaId, areaById[r.AreaId].Name, AreaPath(areaById, r.AreaId),
+            r.Id, r.Name, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId),
             r.Grade, r.Orientation, r.Gear, r.Description, r.Tags,
             r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             r.AddedBy.Name, r.CreatedAt,
@@ -146,10 +145,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
 
         if (route is null) return NotFound(new { error = "No encontrado" });
 
-        var areas = await db.Areas.AsNoTracking()
-            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
-            .ToListAsync();
-        var areaById = areas.ToDictionary(a => a.Id);
+        var areas = await areaHierarchy.GetAsync();
 
         var topoDtos = new List<TopoDto>();
         foreach (var topo in route.Topos.OrderBy(t => t.CreatedAt))
@@ -158,13 +154,13 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
             topoDtos.Add(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, topo.UploadedBy.Name));
         }
 
-        var canValidateArea = await BuildCanValidateAreaCheckAsync(areaById);
+        var canValidateArea = await areaExpertAuthorizer.BuildAreaCheckAsync(User, Permissions.RouteValidate);
 
         var userId = userManager.GetUserId(User)!;
         var hasTick = await db.Ticks.AnyAsync(t => t.RouteId == route.Id && t.ClimberUserId == userId);
 
         var dto = new RouteDetailDto(
-            route.Id, route.Name, route.AreaId, areaById[route.AreaId].Name, AreaPath(areaById, route.AreaId),
+            route.Id, route.Name, route.AreaId, areas[route.AreaId].Name, areas.NamePath(route.AreaId),
             route.Grade, route.Orientation, route.Gear, route.Description, route.Tags,
             route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             route.AddedBy.Name, route.CreatedAt,
@@ -271,15 +267,9 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         // Route validation is normally role-gated (route.validate), but an area
         // expert can also validate routes within the top-level area they're an
         // approved expert of (and any of its subareas) even without that role.
-        if (!User.HasClaim("permission", Permissions.RouteValidate))
+        if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
         {
-            var areas = await db.Areas.AsNoTracking()
-                .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
-                .ToListAsync();
-            var topAreaId = TopLevelAreaId(areas.ToDictionary(a => a.Id), route.AreaId);
-            var isExpert = await db.AreaExperts.AnyAsync(
-                e => e.UserId == userId && e.Status == AreaExpertStatus.Approved && e.AreaId == topAreaId);
-            if (!isExpert) return Forbid();
+            return Forbid();
         }
 
         route.ValidatedAt = DateTimeOffset.UtcNow;
@@ -330,10 +320,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         var route = await db.Routes.FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
-        var areas = await db.Areas.AsNoTracking()
-            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
-            .ToListAsync();
-        var areaById = areas.ToDictionary(a => a.Id);
+        var areas = await areaHierarchy.GetAsync();
 
         var currentUser = await userManager.GetUserAsync(User);
         if (currentUser is null) return Unauthorized();
@@ -346,7 +333,7 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
         // an earlier topo was deleted, a plain count could reissue a number a
         // surviving topo with a higher number still owns.
         var extension = Path.GetExtension(file.FileName);
-        var blobPrefix = $"{AreaSlugPath(areaById, route.AreaId)}/{Slugify.ToSlug(route.Name)}-";
+        var blobPrefix = $"{areas.SlugPath(route.AreaId)}/{Slugify.ToSlug(route.Name)}-";
         var usedBlobNames = await db.Topos.AsNoTracking()
             .Where(t => t.BlobName.StartsWith(blobPrefix))
             .Select(t => t.BlobName)
@@ -447,93 +434,6 @@ public class RoutesController(AppDbContext db, UserManager<ApplicationUser> user
     }
 
     private static FirstAscensionistDto ToFirstAscensionistDto(FirstAscensionist o) => new(o.Id, o.Name, o.UserId, o.User?.Name);
-
-    private static List<int> DescendantAreaIds(List<AreaNode> areas, int rootId)
-    {
-        var childrenByParent = areas
-            .Where(a => a.ParentAreaId is not null)
-            .GroupBy(a => a.ParentAreaId!.Value)
-            .ToDictionary(g => g.Key, g => g.Select(a => a.Id).ToList());
-
-        var result = new List<int> { rootId };
-        var queue = new Queue<int>();
-        queue.Enqueue(rootId);
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-            if (!childrenByParent.TryGetValue(current, out var children)) continue;
-            foreach (var child in children)
-            {
-                result.Add(child);
-                queue.Enqueue(child);
-            }
-        }
-
-        return result;
-    }
-
-    // Builds a per-route check for the RouteDto.CanValidate flag: users with the
-    // route.validate permission can validate anything; otherwise, only routes
-    // under a top-level area the current user is an approved expert of.
-    private async Task<Func<int, bool>> BuildCanValidateAreaCheckAsync(Dictionary<int, AreaNode> areaById)
-    {
-        if (User.HasClaim("permission", Permissions.RouteValidate))
-        {
-            return _ => true;
-        }
-
-        var userId = userManager.GetUserId(User)!;
-        var expertAreaIds = await db.AreaExperts
-            .Where(e => e.UserId == userId && e.Status == AreaExpertStatus.Approved)
-            .Select(e => e.AreaId)
-            .ToListAsync();
-
-        if (expertAreaIds.Count == 0)
-        {
-            return _ => false;
-        }
-
-        return areaId => expertAreaIds.Contains(TopLevelAreaId(areaById, areaId));
-    }
-
-    private static int TopLevelAreaId(Dictionary<int, AreaNode> areaById, int id)
-    {
-        var result = id;
-        int? currentId = id;
-        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
-        {
-            result = aid;
-            currentId = area.ParentAreaId;
-        }
-        return result;
-    }
-
-    private static string AreaPath(Dictionary<int, AreaNode> areaById, int id)
-    {
-        var parts = new List<string>();
-        int? currentId = id;
-        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
-        {
-            parts.Insert(0, area.Name);
-            currentId = area.ParentAreaId;
-        }
-        return string.Join(" › ", parts);
-    }
-
-    // Same ancestor walk as AreaPath, but joining Slug (not Name) with "/" —
-    // this is the blob-name prefix topo images for routes under this area
-    // are stored under.
-    private static string AreaSlugPath(Dictionary<int, AreaNode> areaById, int id)
-    {
-        var parts = new List<string>();
-        int? currentId = id;
-        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
-        {
-            parts.Insert(0, area.Slug);
-            currentId = area.ParentAreaId;
-        }
-        return string.Join("/", parts);
-    }
 
     // Parses the trailing "-{number}" out of each blob name (after the shared prefix,
     // before the extension) and returns the highest one found, or 0 if none/none parse.

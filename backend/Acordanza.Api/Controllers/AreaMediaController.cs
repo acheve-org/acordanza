@@ -1,22 +1,17 @@
 using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
-using Acordanza.Api.Models;
 using Acordanza.Api.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Acordanza.Api.Controllers;
 
 [Authorize]
 [ApiController]
 [Route("api/area-media")]
-public class AreaMediaController(AppDbContext db, BlobStorageService blobStorage, UserManager<ApplicationUser> userManager)
+public class AreaMediaController(AppDbContext db, BlobStorageService blobStorage, AreaExpertAuthorizer areaExpertAuthorizer)
     : ControllerBase
 {
-    private sealed record AreaNode(int Id, int? ParentAreaId);
-
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteAreaMedia(int id)
     {
@@ -26,7 +21,10 @@ public class AreaMediaController(AppDbContext db, BlobStorageService blobStorage
             return Ok(new { ok = true });
         }
 
-        if (!await CanManageAreaMediaAsync(media.AreaId))
+        // Admins/moderators (area.edit) can manage any area's media; otherwise only
+        // an approved AreaExpert of the area's top-level ancestor can — see
+        // AreaExpertAuthorizer, the same rule AreasController.UploadAreaMedia uses.
+        if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.AreaEdit, media.AreaId))
         {
             return Forbid();
         }
@@ -36,41 +34,5 @@ public class AreaMediaController(AppDbContext db, BlobStorageService blobStorage
         await db.SaveChangesAsync();
 
         return Ok(new { ok = true });
-    }
-
-    // Same "admins/moderators, or an approved AreaExpert of the top-level ancestor"
-    // check as AreasController.BuildCanManageAreaMediaCheckAsync — duplicated rather
-    // than shared, matching this codebase's existing per-controller helper pattern.
-    private async Task<bool> CanManageAreaMediaAsync(int areaId)
-    {
-        if (User.HasClaim("permission", Permissions.AreaEdit))
-        {
-            return true;
-        }
-
-        var userId = userManager.GetUserId(User)!;
-        var expertAreaIds = await db.AreaExperts
-            .Where(e => e.UserId == userId && e.Status == AreaExpertStatus.Approved)
-            .Select(e => e.AreaId)
-            .ToListAsync();
-
-        if (expertAreaIds.Count == 0)
-        {
-            return false;
-        }
-
-        var areaById = await db.Areas.AsNoTracking()
-            .Select(a => new AreaNode(a.Id, a.ParentAreaId))
-            .ToDictionaryAsync(a => a.Id);
-
-        var topLevelId = areaId;
-        int? currentId = areaId;
-        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
-        {
-            topLevelId = aid;
-            currentId = area.ParentAreaId;
-        }
-
-        return expertAreaIds.Contains(topLevelId);
     }
 }

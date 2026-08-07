@@ -119,6 +119,8 @@ builder.Services.AddAuthorization(options =>
     }
 });
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<AreaHierarchyService>();
+builder.Services.AddScoped<AreaExpertAuthorizer>();
 builder.Services.AddSingleton<BlobStorageService>();
 
 // Data Protection keys default to local disk, which doesn't survive Container

@@ -15,8 +15,12 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/areas")]
-public class AreasController(AppDbContext db, UserManager<ApplicationUser> userManager, BlobStorageService blobStorage)
-    : ControllerBase
+public class AreasController(
+    AppDbContext db,
+    UserManager<ApplicationUser> userManager,
+    BlobStorageService blobStorage,
+    AreaHierarchyService areaHierarchy,
+    AreaExpertAuthorizer areaExpertAuthorizer) : ControllerBase
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
@@ -24,8 +28,6 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
     private static readonly HashSet<string> AllowedMediaContentTypes = ["image/jpeg", "image/png", "image/webp"];
     private const long MaxMediaBytes = 15 * 1024 * 1024;
     private static readonly TimeSpan MediaUrlLifetime = TimeSpan.FromMinutes(15);
-
-    private sealed record AreaNode(int Id, string Name, string Slug, int? ParentAreaId);
 
     [HttpGet]
     public async Task<ActionResult<List<AreaDto>>> GetAreas(
@@ -49,14 +51,13 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             // A matched subarea is useless to AreaMap without its top-level ancestor
             // (needed to resolve the active hierarchy), even if that ancestor's own
             // centroid falls outside the box — so pull ancestors in regardless of bounds.
-            var parentById = await db.Areas.AsNoTracking().ToDictionaryAsync(a => a.Id, a => a.ParentAreaId);
+            var hierarchy = await areaHierarchy.GetAsync();
             var idsToInclude = new HashSet<int>(matchedIds);
             foreach (var id in matchedIds)
             {
-                var current = parentById.GetValueOrDefault(id);
-                while (current is int parentId && idsToInclude.Add(parentId))
+                foreach (var ancestor in hierarchy.Ancestors(id))
                 {
-                    current = parentById.GetValueOrDefault(parentId);
+                    idsToInclude.Add(ancestor.Id);
                 }
             }
 
@@ -262,10 +263,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             return NotFound(new { error = "el sector no existe" });
         }
 
-        var allAreaIds = await db.Areas.AsNoTracking()
-            .Select(a => new AreaIdParent(a.Id, a.ParentAreaId))
-            .ToListAsync();
-        var idsToDelete = DescendantAreaIds(allAreaIds, id);
+        var idsToDelete = (await areaHierarchy.GetAsync()).DescendantIds(id);
 
         if (await db.Routes.AnyAsync(r => idsToDelete.Contains(r.AreaId)))
         {
@@ -292,9 +290,8 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         return NoContent();
     }
 
-    // Returns a single area resolved by its full slug path (e.g. "pena-rua/sector-1"),
-    // walked level by level since Area.Slug is only unique among siblings — see
-    // RoutesController.AreaSlugPath for the same walk used to build blob prefixes.
+    // Returns a single area resolved by its full slug path (e.g. "pena-rua/sector-1") —
+    // see AreaHierarchy.ResolveSlugPath for the level-by-level walk.
     [HttpGet("by-slug-path/{*path}")]
     public async Task<ActionResult<AreaDetailDto>> GetAreaBySlugPath(string path)
     {
@@ -304,36 +301,22 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             return NotFound(new { error = "el sector no existe" });
         }
 
-        var areas = await db.Areas.AsNoTracking()
-            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
-            .ToListAsync();
-        var areaById = areas.ToDictionary(a => a.Id);
-
-        int? currentParentId = null;
-        AreaNode? resolved = null;
-        foreach (var segment in segments)
+        var hierarchy = await areaHierarchy.GetAsync();
+        var resolved = hierarchy.ResolveSlugPath(segments);
+        if (resolved is null)
         {
-            resolved = areas.FirstOrDefault(a => a.ParentAreaId == currentParentId && a.Slug == segment);
-            if (resolved is null)
-            {
-                return NotFound(new { error = "el sector no existe" });
-            }
-            currentParentId = resolved.Id;
+            return NotFound(new { error = "el sector no existe" });
         }
 
-        var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == resolved!.Id);
+        var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == resolved.Id);
         if (area is null)
         {
             return NotFound(new { error = "el sector no existe" });
         }
 
-        var ancestors = new List<AreaAncestorDto>();
-        var ancestorId = area.ParentAreaId;
-        while (ancestorId is int aid && areaById.TryGetValue(aid, out var ancestor))
-        {
-            ancestors.Insert(0, new AreaAncestorDto(ancestor.Id, ancestor.Name, ancestor.Slug));
-            ancestorId = ancestor.ParentAreaId;
-        }
+        var ancestors = hierarchy.Ancestors(area.Id)
+            .Select(a => new AreaAncestorDto(a.Id, a.Name, a.Slug))
+            .ToList();
 
         var children = await db.Areas.AsNoTracking()
             .Where(a => a.ParentAreaId == area.Id)
@@ -353,7 +336,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             mediaDtos.Add(new TopoDto(m.Id, url, m.FileName, m.CreatedAt, m.UploadedBy.Name));
         }
 
-        var canManageMedia = await BuildCanManageAreaMediaCheckAsync(areaById, area.Id);
+        var canManageMedia = await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.AreaEdit, area.Id);
 
         return Ok(new AreaDetailDto(
             area.Id,
@@ -388,13 +371,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == id);
         if (area is null) return NotFound(new { error = "No encontrado" });
 
-        var areas = await db.Areas.AsNoTracking()
-            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
-            .ToListAsync();
-        var areaById = areas.ToDictionary(a => a.Id);
-
-        var canManageMedia = await BuildCanManageAreaMediaCheckAsync(areaById, id);
-        if (!canManageMedia)
+        if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.AreaEdit, id))
         {
             return Forbid();
         }
@@ -411,7 +388,8 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         // to slugify to the same name as this area — Slugify.ToSlug never emits "_", so
         // no route/area slug can ever collide with this reserved marker.
         var extension = Path.GetExtension(file.FileName);
-        var blobPrefix = $"{AreaSlugPath(areaById, id)}/_media-";
+        var hierarchy = await areaHierarchy.GetAsync();
+        var blobPrefix = $"{hierarchy.SlugPath(id)}/_media-";
         var usedBlobNames = await db.AreaMedia.AsNoTracking()
             .Where(m => m.BlobName.StartsWith(blobPrefix))
             .Select(m => m.BlobName)
@@ -467,56 +445,6 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         return Ok(new TopoDto(media.Id, url, media.FileName, media.CreatedAt, currentUser.Name));
     }
 
-    // Admins/moderators (area.edit) can manage any area's media; otherwise, only an
-    // approved AreaExpert of the area's top-level ancestor can — same "ownership scoped
-    // to a query, not a claim" pattern RoutesController.BuildCanValidateAreaCheckAsync uses.
-    private async Task<bool> BuildCanManageAreaMediaCheckAsync(Dictionary<int, AreaNode> areaById, int areaId)
-    {
-        if (User.HasClaim("permission", Permissions.AreaEdit))
-        {
-            return true;
-        }
-
-        var userId = userManager.GetUserId(User)!;
-        var expertAreaIds = await db.AreaExperts
-            .Where(e => e.UserId == userId && e.Status == AreaExpertStatus.Approved)
-            .Select(e => e.AreaId)
-            .ToListAsync();
-
-        if (expertAreaIds.Count == 0)
-        {
-            return false;
-        }
-
-        return expertAreaIds.Contains(TopLevelAreaId(areaById, areaId));
-    }
-
-    private static int TopLevelAreaId(Dictionary<int, AreaNode> areaById, int id)
-    {
-        var result = id;
-        int? currentId = id;
-        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
-        {
-            result = aid;
-            currentId = area.ParentAreaId;
-        }
-        return result;
-    }
-
-    // Same ancestor walk as GetAreaBySlugPath's Ancestors, but joining Slug (not Name)
-    // with "/" — this is the blob-name prefix this area's own media is stored under.
-    private static string AreaSlugPath(Dictionary<int, AreaNode> areaById, int id)
-    {
-        var parts = new List<string>();
-        int? currentId = id;
-        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
-        {
-            parts.Insert(0, area.Slug);
-            currentId = area.ParentAreaId;
-        }
-        return string.Join("/", parts);
-    }
-
     // Parses the trailing "-{number}" out of each blob name (after the shared prefix,
     // before the extension) and returns the highest one found, or 0 if none/none parse.
     private static int HighestMediaNumber(List<string> blobNames, string prefix)
@@ -554,35 +482,6 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         validatedByUserId is null
             ? null
             : await db.Users.Where(u => u.Id == validatedByUserId).Select(u => u.Name).FirstOrDefaultAsync();
-
-    private record AreaIdParent(int Id, int? ParentAreaId);
-
-    // Breadth-first walk collecting `rootId` and every descendant, so callers can check
-    // for routes linked anywhere in the subtree and delete the whole subtree at once —
-    // EF's DeleteBehavior.Restrict on Area.ParentArea means nothing cascades on its own.
-    private static List<int> DescendantAreaIds(List<AreaIdParent> areas, int rootId)
-    {
-        var childrenByParent = areas
-            .Where(a => a.ParentAreaId is not null)
-            .GroupBy(a => a.ParentAreaId!.Value)
-            .ToDictionary(g => g.Key, g => g.Select(a => a.Id).ToList());
-
-        var result = new List<int> { rootId };
-        var queue = new Queue<int>();
-        queue.Enqueue(rootId);
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-            if (!childrenByParent.TryGetValue(current, out var children)) continue;
-            foreach (var child in children)
-            {
-                result.Add(child);
-                queue.Enqueue(child);
-            }
-        }
-
-        return result;
-    }
 
     [Authorize(Policy = Permissions.AreaEdit)]
     [HttpPut("{id}/coordinates")]

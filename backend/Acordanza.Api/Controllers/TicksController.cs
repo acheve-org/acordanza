@@ -2,6 +2,7 @@ using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
+using Acordanza.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +13,11 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/ticks")]
-public class TicksController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
+public class TicksController(AppDbContext db, UserManager<ApplicationUser> userManager, AreaHierarchyService areaHierarchy)
+    : ControllerBase
 {
     private const int DefaultPageSize = 20;
     private const int MaxPageSize = 100;
-
-    private sealed record AreaNode(int Id, string Name, string Slug, int? ParentAreaId);
 
     // The current user's own ticks, newest ascent first — the data source for the
     // "Mis vías" page. Ticks are private: this never exposes another user's rows,
@@ -30,10 +30,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
         if (page < 1) page = 1;
         if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
 
-        var areas = await db.Areas.AsNoTracking()
-            .Select(a => new AreaNode(a.Id, a.Name, a.Slug, a.ParentAreaId))
-            .ToListAsync();
-        var areaById = areas.ToDictionary(a => a.Id);
+        var areas = await areaHierarchy.GetAsync();
 
         var userId = userManager.GetUserId(User)!;
         var query = db.Ticks
@@ -47,7 +44,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
         }
         if (areaId is int requestedAreaId)
         {
-            var ids = DescendantAreaIds(areas, requestedAreaId);
+            var ids = areas.DescendantIds(requestedAreaId);
             query = query.Where(t => ids.Contains(t.Route.AreaId));
         }
         if (!string.IsNullOrWhiteSpace(gear))
@@ -67,7 +64,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
             .ToListAsync();
 
         var items = ticks.Select(t => new MyTickDto(
-            t.Id, t.RouteId, t.Route.Name, t.Route.AreaId, areaById[t.Route.AreaId].Name, AreaPath(areaById, t.Route.AreaId),
+            t.Id, t.RouteId, t.Route.Name, t.Route.AreaId, areas[t.Route.AreaId].Name, areas.NamePath(t.Route.AreaId),
             t.Route.Grade, t.Route.Orientation, t.Route.Gear, t.Route.Tags,
             t.Date, t.Rating, t.Notes, t.CreatedAt)).ToList();
 
@@ -91,43 +88,5 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
             await db.SaveChangesAsync();
         }
         return Ok(new { ok = true });
-    }
-
-    // Same ancestor walk as RoutesController.DescendantAreaIds — duplicated rather
-    // than shared, matching this codebase's flat controller-per-resource style.
-    private static List<int> DescendantAreaIds(List<AreaNode> areas, int rootId)
-    {
-        var childrenByParent = areas
-            .Where(a => a.ParentAreaId is not null)
-            .GroupBy(a => a.ParentAreaId!.Value)
-            .ToDictionary(g => g.Key, g => g.Select(a => a.Id).ToList());
-
-        var result = new List<int> { rootId };
-        var queue = new Queue<int>();
-        queue.Enqueue(rootId);
-        while (queue.Count > 0)
-        {
-            var current = queue.Dequeue();
-            if (!childrenByParent.TryGetValue(current, out var children)) continue;
-            foreach (var child in children)
-            {
-                result.Add(child);
-                queue.Enqueue(child);
-            }
-        }
-
-        return result;
-    }
-
-    private static string AreaPath(Dictionary<int, AreaNode> areaById, int id)
-    {
-        var parts = new List<string>();
-        int? currentId = id;
-        while (currentId is int aid && areaById.TryGetValue(aid, out var area))
-        {
-            parts.Insert(0, area.Name);
-            currentId = area.ParentAreaId;
-        }
-        return string.Join(" › ", parts);
     }
 }
