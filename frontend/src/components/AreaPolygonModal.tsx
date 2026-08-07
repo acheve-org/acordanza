@@ -62,26 +62,53 @@ function PolygonDrawer({ onCreated }: { onCreated: (points: GeoPoint[]) => void 
 }
 
 interface Props {
-  area: AreaSummary;
-  parentPolygon: GeoPoint[] | null;
+  areaId: number;
+  areaName: string;
+  parentAreaId: number | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function AreaPolygonModal({ area, parentPolygon, onClose, onSaved }: Props) {
+export function AreaPolygonModal({ areaId, areaName, parentAreaId, onClose, onSaved }: Props) {
+  // Vertex data is only worth fetching once this modal is open — it's the only screen that
+  // draws polygons, so the area tree behind it deliberately doesn't carry any.
+  const [polygon, setPolygon] = useState<GeoPoint[] | null>(null);
+  const [parentPolygon, setParentPolygon] = useState<GeoPoint[] | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [pendingPolygon, setPendingPolygon] = useState<GeoPoint[] | null>(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const hasPolygon = area.polygon.length > 0;
+  useEffect(() => {
+    let cancelled = false;
+    areasApi
+      .listAreas()
+      .then((areas) => {
+        if (cancelled) return;
+        const byId = new Map<number, AreaSummary>(areas.map((a) => [a.id, a]));
+        setPolygon(byId.get(areaId)?.polygon ?? []);
+        setParentPolygon(parentAreaId !== null ? byId.get(parentAreaId)?.polygon ?? null : null);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Fall back to a polygon-less area so drawing — the only entry point for creating
+        // a boundary — stays usable instead of the modal being stuck on "Cargando…".
+        setPolygon([]);
+        setError('No se pudieron cargar los polígonos existentes');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [areaId, parentAreaId]);
+
+  const hasPolygon = polygon !== null && polygon.length > 0;
 
   async function handleSave() {
     if (!pendingPolygon) return;
     setSaving(true);
     setError('');
     try {
-      await areasApi.updateAreaCoordinates(area.id, pendingPolygon);
+      await areasApi.updateAreaCoordinates(areaId, pendingPolygon);
       onSaved();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No se pudo guardar el polígono');
@@ -92,46 +119,54 @@ export function AreaPolygonModal({ area, parentPolygon, onClose, onSaved }: Prop
 
   return (
     <Modal onClose={onClose} wide>
-      <h2>{hasPolygon ? 'Editar polígono' : 'Dibujar polígono'} — {area.name}</h2>
+      <h2>{hasPolygon ? 'Editar polígono' : 'Dibujar polígono'} — {areaName}</h2>
 
-      <div className="area-map-editor">
-        {!drawing && !pendingPolygon && (
-          <Button variant="ghost" small type="button" onClick={() => setDrawing(true)}>
-            {hasPolygon ? 'Redibujar polígono' : 'Dibujar polígono'}
-          </Button>
-        )}
-        {drawing && <p className="hint">Haz clic para colocar los vértices y doble clic para cerrar el polígono.</p>}
-        {pendingPolygon && (
-          <ModalActions>
-            <Button variant="ghost" small type="button" onClick={() => setPendingPolygon(null)}>
-              Cancelar
-            </Button>
-            <Button type="button" disabled={saving} onClick={handleSave}>
-              {saving ? 'Guardando…' : 'Guardar polígono'}
-            </Button>
-          </ModalActions>
-        )}
-      </div>
+      {/* The map is held back until the polygons land: InitialView frames the view once,
+          on mount, so mounting it early would leave it stuck on the Spain-wide default. */}
+      {polygon === null ? (
+        <p className="hint">Cargando…</p>
+      ) : (
+        <>
+          <div className="area-map-editor">
+            {!drawing && !pendingPolygon && (
+              <Button variant="ghost" small type="button" onClick={() => setDrawing(true)}>
+                {hasPolygon ? 'Redibujar polígono' : 'Dibujar polígono'}
+              </Button>
+            )}
+            {drawing && <p className="hint">Haz clic para colocar los vértices y doble clic para cerrar el polígono.</p>}
+            {pendingPolygon && (
+              <ModalActions>
+                <Button variant="ghost" small type="button" onClick={() => setPendingPolygon(null)}>
+                  Cancelar
+                </Button>
+                <Button type="button" disabled={saving} onClick={handleSave}>
+                  {saving ? 'Guardando…' : 'Guardar polígono'}
+                </Button>
+              </ModalActions>
+            )}
+          </div>
 
-      <MapContainer center={SPAIN_CENTER} zoom={SPAIN_ZOOM} className="area-map">
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <InitialView ownPolygon={area.polygon} parentPolygon={parentPolygon} />
+          <MapContainer center={SPAIN_CENTER} zoom={SPAIN_ZOOM} className="area-map">
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <InitialView ownPolygon={polygon} parentPolygon={parentPolygon} />
 
-        {area.polygon.length === 0 && parentPolygon && parentPolygon.length > 0 && (
-          <Polygon positions={toLatLngs(parentPolygon)} pathOptions={{ color: '#8892a0', dashArray: '4', fill: false }} />
-        )}
+            {polygon.length === 0 && parentPolygon && parentPolygon.length > 0 && (
+              <Polygon positions={toLatLngs(parentPolygon)} pathOptions={{ color: '#8892a0', dashArray: '4', fill: false }} />
+            )}
 
-        {hasPolygon && !pendingPolygon && (
-          <Polygon positions={toLatLngs(area.polygon)} pathOptions={{ color: '#38a169' }} />
-        )}
+            {hasPolygon && !pendingPolygon && (
+              <Polygon positions={toLatLngs(polygon)} pathOptions={{ color: '#38a169' }} />
+            )}
 
-        {drawing && <PolygonDrawer onCreated={(points) => { setPendingPolygon(points); setDrawing(false); }} />}
+            {drawing && <PolygonDrawer onCreated={(points) => { setPendingPolygon(points); setDrawing(false); }} />}
 
-        {pendingPolygon && <Polygon positions={toLatLngs(pendingPolygon)} pathOptions={{ color: '#e67e22', dashArray: '4' }} />}
-      </MapContainer>
+            {pendingPolygon && <Polygon positions={toLatLngs(pendingPolygon)} pathOptions={{ color: '#e67e22', dashArray: '4' }} />}
+          </MapContainer>
+        </>
+      )}
 
       {error && <p className="error-text">{error}</p>}
 

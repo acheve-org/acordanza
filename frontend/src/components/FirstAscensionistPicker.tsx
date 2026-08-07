@@ -18,8 +18,17 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
 
-  useEffect(() => {
+  function refresh() {
     firstAscensionistsApi.listFirstAscensionists().then(setFirstAscensionists);
+  }
+
+  // Same rule as AreaPicker: the dropdown refetches on open, so the up-front fetch only
+  // happens when there's already a selection whose chips need names (editing a route).
+  // On /routes/new nothing is fetched until the picker is opened.
+  useEffect(() => {
+    if (value.length === 0) return;
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const byId = useMemo(() => new Map(firstAscensionists.map((o) => [o.id, o])), [firstAscensionists]);
@@ -62,6 +71,7 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
       )}
       <Combobox
         placeholder="Buscar aperturista…"
+        onOpen={refresh}
         onQueryChange={setQuery}
         options={matches.map((o) => ({
           key: o.id,

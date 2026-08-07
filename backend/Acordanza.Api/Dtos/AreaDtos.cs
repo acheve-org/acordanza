@@ -20,7 +20,10 @@ public record UpdateAreaRequest(string Name, int? ParentAreaId);
 public record UpdateAreaCoordinatesRequest(List<GeoPointDto> Polygon);
 
 // Slim projection for the areas-management tree: no polygon/vertex data, per issue #52.
-public record AreaNodeDto(int Id, string Name, string Slug, bool HasChildren);
+// HasPolygon is just the "does a boundary exist" bit the tree needs to label its
+// draw/edit-polygon button — the vertices themselves are only fetched once the polygon
+// modal actually opens.
+public record AreaNodeDto(int Id, string Name, string Slug, bool HasChildren, bool HasPolygon);
 
 public record PagedAreaNodesResponse(List<AreaNodeDto> Items, int TotalCount, int Page, int PageSize);
 

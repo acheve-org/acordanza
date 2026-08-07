@@ -83,7 +83,8 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
     // Returns only the root areas (no ParentAreaId), alphabetically ordered and
     // paginated, for the areas-management tree — see GetAreaChildren for lazy-loading
     // a node's children. GetAreas above remains the unfiltered/unpaginated source of
-    // truth for callers (map, AreaPicker, polygon section) that need every area at once.
+    // truth for callers (map, AreaPicker, AreaPolygonModal) that need every area at
+    // once — all of which now only call it once their dropdown/modal actually opens.
     [HttpGet("roots")]
     public async Task<ActionResult<PagedAreaNodesResponse>> GetRootAreas([FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
@@ -97,7 +98,9 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
             .OrderBy(a => a.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => new AreaNodeDto(a.Id, a.Name, a.Slug, a.Children.Any()))
+            // CentroidLat is recomputed (or nulled) whenever the polygon is saved, so it
+            // doubles as a plain-column "has a polygon" flag without reading the JSON vertices.
+            .Select(a => new AreaNodeDto(a.Id, a.Name, a.Slug, a.Children.Any(), a.CentroidLat != null))
             .ToListAsync();
 
         return Ok(new PagedAreaNodesResponse(items, totalCount, page, pageSize));
@@ -114,7 +117,7 @@ public class AreasController(AppDbContext db, UserManager<ApplicationUser> userM
         var children = await db.Areas.AsNoTracking()
             .Where(a => a.ParentAreaId == id)
             .OrderBy(a => a.Name)
-            .Select(a => new AreaNodeDto(a.Id, a.Name, a.Slug, a.Children.Any()))
+            .Select(a => new AreaNodeDto(a.Id, a.Name, a.Slug, a.Children.Any(), a.CentroidLat != null))
             .ToListAsync();
 
         return Ok(children);

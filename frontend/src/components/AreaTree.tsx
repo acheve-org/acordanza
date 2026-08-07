@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, ConfirmModal, EmptyState, Pagination } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
-import type { AreaNode, AreaSummary, PagedAreaNodes } from '../api/types';
+import type { AreaNode, PagedAreaNodes } from '../api/types';
 import { ApiError } from '../api/client';
 import { AreaNameModal } from './AreaNameModal';
 import { AreaPolygonModal } from './AreaPolygonModal';
@@ -19,14 +19,12 @@ interface AreaTreeNodeProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
-  areasById: Map<number, AreaSummary>;
   onError: (message: string) => void;
   onRequestCreate: (parentAreaId: number, onCreated: () => void) => void;
   // Reloads the node list at this level (this node's siblings) — needed after a delete
-  // (the node disappears) or a rename (the node's own name needs to reflect the new value,
-  // since `node` here is sourced from that list, not from `areasById`).
+  // (the node disappears), a rename, or a polygon save, since `node` here is sourced from
+  // that list and carries the name/hasPolygon the row renders.
   onListChanged: () => void;
-  onChange: () => void;
 }
 
 function AreaTreeNode({
@@ -35,11 +33,9 @@ function AreaTreeNode({
   canCreate,
   canEdit,
   canDelete,
-  areasById,
   onError,
   onRequestCreate,
   onListChanged,
-  onChange,
 }: AreaTreeNodeProps) {
   const [expanded, setExpanded] = useState(false);
   const [children, setChildren] = useState<AreaNode[] | null>(null);
@@ -48,23 +44,6 @@ function AreaTreeNode({
   const [editModal, setEditModal] = useState(false);
   const [polygonModal, setPolygonModal] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-
-  const ownArea = areasById.get(node.id);
-  const parentArea = parentAreaId !== null ? areasById.get(parentAreaId) : undefined;
-  // Falls back to a polygon-less area when the bulk area list hasn't loaded (or failed to),
-  // so the polygon button/modal — the only entry point for drawing/editing a polygon — stays
-  // usable instead of silently disappearing.
-  const polygonAreaFallback: AreaSummary = {
-    id: node.id,
-    name: node.name,
-    slug: node.slug,
-    parentAreaId,
-    polygon: [],
-    centroidLat: null,
-    centroidLng: null,
-    validatedAt: null,
-    validatedBy: null,
-  };
 
   function loadChildren() {
     setLoadingChildren(true);
@@ -89,7 +68,6 @@ function AreaTreeNode({
     try {
       await areasApi.deleteArea(node.id);
       onListChanged();
-      onChange();
     } catch (err) {
       onError(err instanceof ApiError ? err.message : 'No se pudo eliminar el sector');
     }
@@ -119,7 +97,7 @@ function AreaTreeNode({
           )}
           {canEdit && (
             <Button variant="ghost" small type="button" onClick={() => setPolygonModal(true)}>
-              {(ownArea ?? polygonAreaFallback).polygon.length > 0 ? 'Editar polígono' : 'Dibujar polígono'}
+              {node.hasPolygon ? 'Editar polígono' : 'Dibujar polígono'}
             </Button>
           )}
           {canCreate && (
@@ -157,11 +135,9 @@ function AreaTreeNode({
                 canCreate={canCreate}
                 canEdit={canEdit}
                 canDelete={canDelete}
-                areasById={areasById}
                 onError={onError}
                 onRequestCreate={onRequestCreate}
                 onListChanged={loadChildren}
-                onChange={onChange}
               />
             ))}
         </ul>
@@ -175,19 +151,20 @@ function AreaTreeNode({
           onSaved={() => {
             setEditModal(false);
             onListChanged();
-            onChange();
           }}
         />
       )}
 
       {polygonModal && (
         <AreaPolygonModal
-          area={ownArea ?? polygonAreaFallback}
-          parentPolygon={parentArea?.polygon ?? null}
+          areaId={node.id}
+          areaName={node.name}
+          parentAreaId={parentAreaId}
           onClose={() => setPolygonModal(false)}
           onSaved={() => {
             setPolygonModal(false);
-            onChange();
+            // Refreshes this level's nodes so the row's draw/edit-polygon label follows the save.
+            onListChanged();
           }}
         />
       )}
@@ -209,22 +186,13 @@ interface Props {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
-  // Full area list (with polygon/parentAreaId), kept by the parent page and reused here so
-  // nodes can show whether they already have a polygon and zoom to their parent's polygon
-  // when drawing one, without the paginated tree endpoints having to carry that data.
-  areas: AreaSummary[];
-  // Notified after any create/delete/edit anywhere in the tree, so callers whose own state
-  // mirrors the area list (e.g. `areas` above) can stay in sync instead of silently going stale.
-  onChange: () => void;
 }
 
-export function AreaTree({ canCreate, canEdit, canDelete, areas, onChange }: Props) {
+export function AreaTree({ canCreate, canEdit, canDelete }: Props) {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<PagedAreaNodes>({ items: [], totalCount: 0, page: 1, pageSize: PAGE_SIZE });
   const [error, setError] = useState('');
   const [createModal, setCreateModal] = useState<CreateModalState | null>(null);
-
-  const areasById = useMemo(() => new Map(areas.map((a) => [a.id, a])), [areas]);
 
   function refreshRoots() {
     areasApi
@@ -255,7 +223,6 @@ export function AreaTree({ canCreate, canEdit, canDelete, areas, onChange }: Pro
   function handleCreated() {
     createModal?.onCreated();
     setCreateModal(null);
-    onChange();
   }
 
   const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
@@ -284,11 +251,9 @@ export function AreaTree({ canCreate, canEdit, canDelete, areas, onChange }: Pro
               canCreate={canCreate}
               canEdit={canEdit}
               canDelete={canDelete}
-              areasById={areasById}
               onError={setError}
               onRequestCreate={openCreateModal}
               onListChanged={refreshRoots}
-              onChange={onChange}
             />
           ))}
         </ul>

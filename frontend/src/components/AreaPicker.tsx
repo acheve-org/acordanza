@@ -29,7 +29,16 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
     areasApi.listAreas().then(setAreas);
   }
 
-  useEffect(refresh, [refreshToken]);
+  // The dropdown refetches on open (`onOpen` below), so the only reason to fetch up front is
+  // to resolve a *preselected* area into its "Padre › Hijo" label. With nothing selected
+  // (route filters, a new route) the list isn't fetched at all until the picker is opened.
+  // Not keyed on `value`: selecting from the dropdown resolves against the list already
+  // loaded, so it must not trigger a second fetch.
+  useEffect(() => {
+    if (value === null) return;
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshToken]);
 
   const byId = useMemo(() => new Map(areas.map((a) => [a.id, a])), [areas]);
   const selected = value !== null ? byId.get(value) : undefined;

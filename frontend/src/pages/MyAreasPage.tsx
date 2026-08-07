@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
-import * as areasApi from '../api/areas';
-import type { AreaExpert, AreaSummary } from '../api/types';
+import type { AreaExpert } from '../api/types';
 import { ApiError } from '../api/client';
 import { RequestAreaExpertModal } from '../components/RequestAreaExpertModal';
 
@@ -13,13 +12,11 @@ const statusLabels: Record<AreaExpert['status'], string> = {
 };
 
 export function MyAreasPage() {
-  const [areas, setAreas] = useState<AreaSummary[]>([]);
   const [mine, setMine] = useState<AreaExpert[]>([]);
   const [error, setError] = useState('');
   const [requesting, setRequesting] = useState(false);
 
   function refresh() {
-    areasApi.listAreas().then(setAreas);
     areaExpertsApi
       .listMyAreaExperts()
       .then(setMine)
@@ -28,8 +25,7 @@ export function MyAreasPage() {
 
   useEffect(refresh, []);
 
-  const activeRequestAreaIds = new Set(mine.filter((e) => e.status !== 'rejected').map((e) => e.areaId));
-  const availableAreas = areas.filter((a) => a.parentAreaId === null && !activeRequestAreaIds.has(a.id));
+  const activeRequestAreaIds = mine.filter((e) => e.status !== 'rejected').map((e) => e.areaId);
 
   async function handleWithdraw(id: number) {
     try {
@@ -92,18 +88,18 @@ export function MyAreasPage() {
 
       <section className="settings-section">
         <h2>Solicitar acceso a un sector</h2>
-        {availableAreas.length === 0 ? (
-          <p className="hint">No quedan sectores disponibles para solicitar.</p>
-        ) : (
-          <Button type="button" onClick={() => setRequesting(true)}>
-            Solicitar acceso
-          </Button>
-        )}
+        <Button type="button" onClick={() => setRequesting(true)}>
+          Solicitar acceso
+        </Button>
         {error && <p className="error-text">{error}</p>}
       </section>
 
       {requesting && (
-        <RequestAreaExpertModal areas={availableAreas} onClose={() => setRequesting(false)} onRequested={handleRequested} />
+        <RequestAreaExpertModal
+          excludedAreaIds={activeRequestAreaIds}
+          onClose={() => setRequesting(false)}
+          onRequested={handleRequested}
+        />
       )}
     </>
   );

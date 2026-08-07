@@ -27,6 +27,8 @@ export interface AreaNode {
   name: string;
   slug: string;
   hasChildren: boolean;
+  // Just the "a boundary exists" bit — the vertices are fetched lazily by AreaPolygonModal.
+  hasPolygon: boolean;
 }
 
 export interface PagedAreaNodes {
