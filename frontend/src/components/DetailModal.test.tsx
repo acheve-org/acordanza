@@ -1,0 +1,73 @@
+import { screen } from '@testing-library/react';
+import { renderWithProviders } from '../test/renderWithProviders';
+import { makeRouteDetail } from '../test/factories';
+import { Permissions } from '../api/permissions';
+import { DetailModal } from './DetailModal';
+
+const noop = () => {};
+const noopAsync = async () => {};
+
+function renderModal(permissions: string[], routeOverrides: Parameters<typeof makeRouteDetail>[0] = {}) {
+  return renderWithProviders(
+    <DetailModal
+      route={makeRouteDetail(routeOverrides)}
+      onClose={noop}
+      onEdit={noop}
+      onDelete={noop}
+      onValidate={noopAsync}
+      onAddTick={noopAsync}
+      onUploadTopo={noopAsync}
+      onDeleteTopo={noopAsync}
+    />,
+    { auth: { permissions } },
+  );
+}
+
+// Mirrors backend/Acordanza.Api.Tests's authorization matrix (plan 08), but for what the UI
+// *shows* rather than what the server *enforces* — the two are independent checks.
+describe('DetailModal permission gating', () => {
+  it('hides Editar/Eliminar/Registrar ascenso with no permissions', () => {
+    renderModal([]);
+    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Registrar ascenso/ })).not.toBeInTheDocument();
+  });
+
+  it('shows only Editar with route.edit', () => {
+    renderModal([Permissions.routeEdit]);
+    expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Registrar ascenso/ })).not.toBeInTheDocument();
+  });
+
+  it('shows only Eliminar with route.delete', () => {
+    renderModal([Permissions.routeDelete]);
+    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Registrar ascenso/ })).not.toBeInTheDocument();
+  });
+
+  it('shows only + Registrar ascenso with tick.create', () => {
+    renderModal([Permissions.tickCreate]);
+    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ Registrar ascenso' })).toBeInTheDocument();
+  });
+
+  it('shows all three actions with every permission granted', () => {
+    renderModal([Permissions.routeEdit, Permissions.routeDelete, Permissions.tickCreate]);
+    expect(screen.getByRole('button', { name: 'Editar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '+ Registrar ascenso' })).toBeInTheDocument();
+  });
+
+  it('shows Validar from route.canValidate regardless of permissions — it is server-computed, not a permission', () => {
+    renderModal([], { canValidate: true, validatedAt: null });
+    expect(screen.getByRole('button', { name: 'Validar' })).toBeInTheDocument();
+  });
+
+  it('hides Validar once the route is already validated, even when canValidate is true', () => {
+    renderModal([], { canValidate: true, validatedAt: '2026-01-01T00:00:00Z', validatedBy: 'Alex' });
+    expect(screen.queryByRole('button', { name: 'Validar' })).not.toBeInTheDocument();
+  });
+});

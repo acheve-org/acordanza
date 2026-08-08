@@ -18,7 +18,7 @@ bun run test         # vitest run
 bun run test:watch   # vitest, watch mode
 ```
 
-Needs `frontend/.env` (copy from `.env.example`) with `VITE_API_URL`, pointing at the backend (`http://localhost:5073/api` by default). Vitest (jsdom + `@testing-library/react`) is configured via the `test` block in `vite.config.ts`, with global `describe`/`it`/`expect` (see `tsconfig.app.json`'s `vitest/globals` type) and jest-dom matchers loaded in `src/test/setup.ts`. Today's suite only covers pure modules (`api/routes.ts`, `api/errorMessage.ts`, `api/queryKeys.ts`, `api/types.ts`'s label maps) — no rendering tests yet; component tests land in a later phase once `design-system/` gets its own test setup.
+Needs `frontend/.env` (copy from `.env.example`) with `VITE_API_URL`, pointing at the backend (`http://localhost:5073/api` by default). Vitest (jsdom + `@testing-library/react`) is configured via the `test` block in `vite.config.ts`, with global `describe`/`it`/`expect` (see `tsconfig.app.json`'s `vitest/globals` type) and jest-dom matchers loaded in `src/test/setup.ts`. `vite.config.ts`'s `test.execArgv: ['--no-experimental-webstorage']` is load-bearing, not decorative: Node 22+'s own global `localStorage`/`sessionStorage` (non-functional without `--localstorage-file`) otherwise shadows jsdom's real per-window implementation and breaks anything touching `localStorage` (`AuthContext`'s session persistence, most directly) with `Cannot read properties of undefined` — see the testing section below for the rest of the harness (MSW, `renderWithProviders`, contract-typed factories).
 
 ## Architecture
 
@@ -47,3 +47,25 @@ Tokens (colors, fonts, radii, spacing) and the shared component set — `Button`
 ## Linting & types
 
 `oxlint` (`.oxlintrc.json`) enforces `react/rules-of-hooks` as an error; TypeScript is strict (`noUnusedLocals`, `noUnusedParameters`, `verbatimModuleSyntax` — type-only imports must use `import type`).
+
+## Testing
+
+`src/test/` holds the harness shared by every page/component test, colocated as `X.test.tsx` next to `X.tsx`:
+
+- `server.ts`/`setup.ts` — an MSW `setupServer()` with **`onUnhandledRequest: 'error'`**. This is doing real work, not just hygiene: it's what mechanically enforces the "modal/dropdown data is fetched by the thing that needs it, when it opens" rule above — an accidental page-level prefetch shows up as a failing test (an unhandled request), not a review comment. There are no default handlers; every test registers exactly the routes it needs via `server.use(...)`.
+- `apiUrl.ts` — the `http://localhost:5073/api` base `api/client.ts` falls back to when `VITE_API_URL` isn't set (the case in the test environment, since no `.env` is loaded); handlers match requests against it.
+- `factories.ts` — one `make*` factory per DTO the suite constructs (`makeRoute`, `makeArea`, `makeMeResponse`, …), each a `Partial<T>`-overridable object typed off `api/generated.ts`'s `components['schemas']` rather than hand-rolled. This is deliberate: test files live under `src`, so the existing `tsc -b` in `bun run build` typechecks them too — a backend DTO change that regenerates `generated.ts` breaks the *mocks* at build time, not just the app. Combined with CI's `openapi-contract-check` job (which fails if `generated.ts` is stale), the loop closes: mocks can't silently drift from the real API contract the way hand-written fixtures would.
+- `renderWithProviders.tsx` — wraps a subject in the three things pages assume: a fresh `QueryClient` (`retry: false`, so a mocked-error test fails fast instead of retrying for seconds), a `MemoryRouter` (`initialEntries` configurable), and auth state. Auth state has two modes:
+  - **Default: a direct `AuthContext` value.** `auth: {...}` overrides merge over a logged-in-as-plain-user default (see `makeAuthValue`) — no network calls, so permission-matrix tests (`DetailModal.test.tsx`, `Filters.test.tsx`, `ManageLayout.test.tsx`) just vary `permissions`/`isAreaExpert`/etc. and assert what renders. `AuthContext` is exported from `context/AuthContext.tsx` (`const` → `export const`, no other change) for exactly this reason — it's a smaller, more honest change than restructuring the provider to take injected state.
+  - **`useRealAuthProvider: true` mounts the actual `AuthProvider`** (`localStorage` + `GET /auth/me`) — the only way to test the bootstrap/login/logout state machine itself: dropping an invalid stored token silently, the two-step passkey login (`AuthContext.test.tsx`, `LoginScreen.test.tsx`), `logout()` clearing the shared query cache. `auth` overrides are ignored in this mode since the provider computes its own state. Mock `@github/webauthn-json`'s `get()` for passkey flows — the real WebAuthn API doesn't exist in jsdom.
+
+Working agreement:
+
+- **Bug fix** → a failing test that reproduces it, first. This is where the suite pays for itself fastest, and it's the one thing a screenshot can never do: prove the bug is gone *and* stay behind to prove it stays gone.
+- **New endpoint** → a row in the backend's authorization-matrix tests (`backend/Acordanza.Api.Tests/`), plus a happy path and one edge case.
+- **New page or component** → at minimum, it renders with realistic contract-typed data, and any permission-gated action is covered both ways (rendered and hidden). Testing what the UI *shows* is not a substitute for the backend enforcing it, and vice versa — neither test layer covers what the other does.
+- Not a coverage target. Coverage percentages push tests toward trivial pages and away from the authorization matrix, which is where the value actually is.
+
+Leaflet map rendering (`AreaMap`, `AreaPolygonModal`) is out of scope for this layer — jsdom has no real layout, so testing it here means mocking so much the test ends up asserting the mocks. Cover the surrounding logic (viewport-bounded fetching, the polygon payload sent on save) and leave rendering to manual/`run-acordanza` checking. Full end-to-end journeys likewise live outside this suite, in the `run-acordanza` skill (Playwright, deliberately tiny) — this layer carries the regression load instead.
+
+`design-system/` carries its own, separate Vitest + Testing Library setup (own `vite.config.ts` `test` block, own `src/test/setup.ts`) — see `/DESIGN.md`'s Components section.

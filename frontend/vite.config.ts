@@ -8,5 +8,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    // Node 22+ ships a global `localStorage`/`sessionStorage` that's non-functional without
+    // `--localstorage-file` and shadows jsdom's own per-window storage — disable it so
+    // AuthContext's localStorage calls hit jsdom's real (in-memory, per-test) implementation.
+    execArgv: ['--no-experimental-webstorage'],
   },
 })

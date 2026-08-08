@@ -140,7 +140,12 @@ against whatever's behind it.
 Source of truth for implementation is `design-system/src/` (11 components: `Button`,
 `Chip`, `EmptyState`, `GradePill`, `Modal`/`ModalActions`, `Pagination`, `List`/`ListRow`,
 `Badge`, `RemoveButton`, `Combobox`) — read the component CSS there for exact rules.
-This section documents intent, not a duplicate spec.
+This section documents intent, not a duplicate spec. `design-system/` carries its own
+Vitest + Testing Library setup (`bun run test` from `design-system/`, wired into CI
+alongside `frontend/`'s), covering keyboard/focus behaviour that a screenshot can't
+(`Combobox`'s open/query/select lifecycle, `Modal`/`ConfirmModal`'s focus trap and
+Escape handling, `Pagination`'s boundary states) — see `frontend/CLAUDE.md`'s testing
+section for the equivalent frontend-app conventions.
 
 **`Button`** — `variant="primary"` (default) is the filled violet pill,
 `{colors.on-primary}` label, `{rounded.full}`, 46px tall. Use once per view — it's

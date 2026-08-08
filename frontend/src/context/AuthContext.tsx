@@ -22,7 +22,7 @@ export interface PasskeyChallenge {
   options: unknown;
 }
 
-interface AuthContextValue {
+export interface AuthContextValue {
   id: string | null;
   username: string | null;
   name: string | null;
@@ -39,7 +39,9 @@ interface AuthContextValue {
   updateName: (name: string) => void;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+// Exported so tests can supply a value directly (see src/test/renderWithProviders.tsx)
+// instead of going through the real provider's localStorage/GET-/auth/me bootstrap.
+export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [id, setId] = useState<string | null>(null);

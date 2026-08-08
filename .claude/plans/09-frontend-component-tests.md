@@ -1,6 +1,6 @@
 # Frontend component & page tests (Testing Library + MSW)
 
-Status: planned (not started)
+Status: done
 Depends on: [07](07-test-harness.md) (Vitest setup). Independent of [08](08-backend-integration-tests.md) — can land in either order.
 
 ## Problem

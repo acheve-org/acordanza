@@ -10,7 +10,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
+    "pretest": "bun run --cwd ../design-system build",
     "test": "vitest run",
+    "pretest:watch": "bun run --cwd ../design-system build",
     "test:watch": "vitest",
     "generate-api": "bunx openapi-typescript@7.13.0 ../backend/Acordanza.Api/openapi/Acordanza.Api.json -o src/api/generated.ts"
   },
@@ -36,6 +38,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "jsdom": "^30.0.1",
+    "msw": "2.15.0",
     "oxlint": "^1.71.0",
     "typescript": "^7.0.2",
     "vite": "^8.1.1",
