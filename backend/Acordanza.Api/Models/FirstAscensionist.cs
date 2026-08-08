@@ -4,6 +4,13 @@ public class FirstAscensionist : IValidatable
 {
     public int Id { get; set; }
     public required string Name { get; set; }
+
+    // ASCII, path-safe form of Name — the record's public URL identity (/fa/{slug}).
+    // Unlike Area.Slug this is regenerated whenever Name changes: nothing else is keyed
+    // on it (Area's doubles as the topo blob-storage prefix), so a corrected name should
+    // not leave a stale URL behind.
+    public string Slug { get; set; } = "";
+
     public string? UserId { get; set; }
     public ApplicationUser? User { get; set; }
 

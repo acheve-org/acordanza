@@ -2,10 +2,12 @@ using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Api.Models;
+using Acordanza.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Acordanza.Api.Controllers;
 
@@ -64,17 +66,19 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         return Ok(firstAscensionists.Select(o => ToProfileDto(o, openingsById)).ToList());
     }
 
-    [HttpGet("{id:int}")]
-    public async Task<ActionResult<FirstAscensionistProfileDto>> GetFirstAscensionist(int id)
+    // by-slug/ rather than a bare {slug} so it can't shadow the literal "profiles"/"pending"
+    // segments above — same shape as AreasController's by-slug-path.
+    [HttpGet("by-slug/{slug}")]
+    public async Task<ActionResult<FirstAscensionistProfileDto>> GetFirstAscensionistBySlug(string slug)
     {
         var firstAscensionist = await db.FirstAscensionists.AsNoTracking()
             .Include(o => o.User)
             .Include(o => o.DecidedBy)
-            .FirstOrDefaultAsync(o => o.Id == id);
+            .FirstOrDefaultAsync(o => o.Slug == slug);
 
-        if (firstAscensionist is null) return NotFound(new { error = "No encontrado" });
+        if (firstAscensionist is null) return NotFound(new { error = "el aperturista no existe" });
 
-        return Ok(ToProfileDto(firstAscensionist, await OpeningsByFirstAscensionistAsync(id)));
+        return Ok(ToProfileDto(firstAscensionist, await OpeningsByFirstAscensionistAsync(firstAscensionist.Id)));
     }
 
     // The review queue's view of not-yet-decided first ascensionists — the first
@@ -93,6 +97,24 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         return Ok(pending
             .Select(o => new FirstAscensionistPendingDto(o.Id, o.Name, o.CreatedAt, o.AddedBy?.Name))
             .ToList());
+    }
+
+    // First-ascensionist names aren't unique (unlike Area, which enforces per-parent
+    // uniqueness), so this "-2"/"-3" suffix loop is the primary disambiguator here, not
+    // just a diacritics edge case — two real climbers named "José García" get
+    // jose-garcia and jose-garcia-2. excludeId lets an unchanged name keep its slug on
+    // update instead of colliding with itself.
+    private async Task<string> GenerateUniqueSlugAsync(string name, int? excludeId = null)
+    {
+        var baseSlug = Slugify.ToSlug(name, "aperturista");
+        var slug = baseSlug;
+        var suffix = 2;
+        while (await db.FirstAscensionists.AnyAsync(o => o.Slug == slug && o.Id != excludeId))
+        {
+            slug = $"{baseSlug}-{suffix}";
+            suffix++;
+        }
+        return slug;
     }
 
     private async Task<Dictionary<int, List<string>>> OpeningsByFirstAscensionistAsync(int? firstAscensionistId = null)
@@ -119,6 +141,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         return new FirstAscensionistProfileDto(
             firstAscensionist.Id,
             firstAscensionist.Name,
+            firstAscensionist.Slug,
             firstAscensionist.UserId,
             firstAscensionist.User?.Name,
             areaNames.Count,
@@ -143,7 +166,9 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         }
 
         var userId = userManager.GetUserId(User)!;
-        var firstAscensionist = new FirstAscensionist { Name = request.Name.Trim(), AddedByUserId = userId };
+        var name = request.Name.Trim();
+        var slug = await GenerateUniqueSlugAsync(name);
+        var firstAscensionist = new FirstAscensionist { Name = name, Slug = slug, AddedByUserId = userId };
 
         // Same rule AreasController.CreateArea applies for areas: a creator who can also
         // validate first ascensionists (moderator/admin) has their new record
@@ -154,7 +179,16 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         }
 
         db.FirstAscensionists.Add(firstAscensionist);
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // The uniqueness loop above is only a friendly pre-check — this catches the rare
+            // case of two concurrent creates racing past it for the same slug.
+            return Conflict(new { error = "ya existe un aperturista con esa dirección" });
+        }
 
         return Ok(new FirstAscensionistDto(firstAscensionist.Id, firstAscensionist.Name, null, null));
     }
@@ -189,10 +223,21 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         var changed = newName != firstAscensionist.Name;
 
         firstAscensionist.Name = newName;
+        if (changed)
+        {
+            firstAscensionist.Slug = await GenerateUniqueSlugAsync(newName, firstAscensionist.Id);
+        }
 
         Validation.InvalidateIfChanged(firstAscensionist, changed);
 
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            return Conflict(new { error = "ya existe un aperturista con esa dirección" });
+        }
 
         return Ok(new FirstAscensionistDto(
             firstAscensionist.Id, firstAscensionist.Name, firstAscensionist.UserId, firstAscensionist.User?.Name));

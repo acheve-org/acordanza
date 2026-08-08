@@ -10,7 +10,7 @@ import type { CreateTickInput, FirstAscensionistProfile, RouteDetail, RouteSumma
 
 export function FirstAscensionistPage() {
   const navigate = useNavigate();
-  const id = Number(useParams().id);
+  const slug = useParams().slug!;
 
   const [firstAscensionist, setFirstAscensionist] = useState<FirstAscensionistProfile | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -23,30 +23,31 @@ export function FirstAscensionistPage() {
   // slow response for the one we just left can land after the new one's. Every setState off a
   // fetch is gated on this still naming the aperturista on screen — same stale-response guard
   // `AreaMap` uses for its bounds fetches.
-  const shownId = useRef(id);
+  const shownSlug = useRef(slug);
 
   function refreshRoutes(forId: number) {
     routesApi.listRoutesByFirstAscensionist(forId).then((result) => {
-      if (shownId.current === forId) setRoutes(result);
+      if (shownSlug.current === slug) setRoutes(result);
     });
   }
 
   useEffect(() => {
-    shownId.current = id;
+    shownSlug.current = slug;
     setFirstAscensionist(null);
     setNotFound(false);
     setRoutes([]);
     firstAscensionistsApi
-      .getFirstAscensionist(id)
+      .getFirstAscensionistBySlug(slug)
       .then((fa) => {
-        if (shownId.current === id) setFirstAscensionist(fa);
+        if (shownSlug.current !== slug) return;
+        setFirstAscensionist(fa);
+        refreshRoutes(fa.id);
       })
       .catch(() => {
-        if (shownId.current === id) setNotFound(true);
+        if (shownSlug.current === slug) setNotFound(true);
       });
-    refreshRoutes(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [slug]);
 
   useEffect(() => {
     if (detailRouteId === null) {
@@ -64,48 +65,48 @@ export function FirstAscensionistPage() {
     if (!detailRouteId) return;
     await routesApi.deleteRoute(detailRouteId);
     setDetailRouteId(null);
-    refreshRoutes(id);
+    refreshRoutes(firstAscensionist!.id);
   }
 
   async function handleAddTick(input: CreateTickInput) {
     if (!detailRouteId) return;
     await routesApi.createTick(detailRouteId, input);
     refreshDetail();
-    refreshRoutes(id);
+    refreshRoutes(firstAscensionist!.id);
   }
 
   async function handleUploadTopo(file: File) {
     if (!detailRouteId) return;
     await toposApi.uploadTopo(detailRouteId, file);
     refreshDetail();
-    refreshRoutes(id);
+    refreshRoutes(firstAscensionist!.id);
   }
 
   async function handleDeleteTopo(topoId: number) {
     await toposApi.deleteTopo(topoId);
     refreshDetail();
-    refreshRoutes(id);
+    refreshRoutes(firstAscensionist!.id);
   }
 
   async function handleValidateRoute() {
     if (!detailRouteId) return;
     await routesApi.validateRoute(detailRouteId);
     refreshDetail();
-    refreshRoutes(id);
+    refreshRoutes(firstAscensionist!.id);
   }
 
   async function handleRejectRoute(reason: string) {
     if (!detailRouteId) return;
     await routesApi.rejectRoute(detailRouteId, reason);
     refreshDetail();
-    refreshRoutes(id);
+    refreshRoutes(firstAscensionist!.id);
   }
 
   if (notFound) {
     return (
       <main className="fa-page">
         <EmptyState>Este aperturista no existe.</EmptyState>
-        <Button as={Link} variant="ghost" small to="/first-ascensionists">
+        <Button as={Link} variant="ghost" small to="/fa">
           Volver a aperturistas
         </Button>
       </main>
@@ -118,7 +119,7 @@ export function FirstAscensionistPage() {
     <>
       <main className="fa-page">
         <nav className="area-breadcrumb" aria-label="Ruta de navegación">
-          <Link to="/first-ascensionists">Aperturistas</Link>
+          <Link to="/fa">Aperturistas</Link>
           <span className="area-breadcrumb-sep">›</span>
           <span className="area-breadcrumb-current">{firstAscensionist.name}</span>
         </nav>

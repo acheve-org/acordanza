@@ -1640,20 +1640,18 @@
         }
       }
     },
-    "/api/first-ascensionists/{id}": {
+    "/api/first-ascensionists/by-slug/{slug}": {
       "get": {
         "tags": [
           "FirstAscensionists"
         ],
         "parameters": [
           {
-            "name": "id",
+            "name": "slug",
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
             }
           }
         ],
@@ -1679,7 +1677,47 @@
             }
           }
         }
-      },
+      }
+    },
+    "/api/first-ascensionists/pending": {
+      "get": {
+        "tags": [
+          "FirstAscensionists"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/first-ascensionists/{id}": {
       "put": {
         "tags": [
           "FirstAscensionists"
@@ -1756,44 +1794,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/first-ascensionists/pending": {
-      "get": {
-        "tags": [
-          "FirstAscensionists"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -3907,6 +3907,7 @@
         "required": [
           "id",
           "name",
+          "slug",
           "userId",
           "linkedUserName",
           "routeCount",
@@ -3923,6 +3924,9 @@
             "format": "int32"
           },
           "name": {
+            "type": "string"
+          },
+          "slug": {
             "type": "string"
           },
           "userId": {

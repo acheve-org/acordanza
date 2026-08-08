@@ -42,7 +42,7 @@ export function FirstAscensionistsDirectoryPage() {
       ) : (
         <div className="fa-grid">
           {firstAscensionists.map((fa) => (
-            <Link key={fa.id} className="fa-card" to={`/first-ascensionists/${fa.id}`}>
+            <Link key={fa.id} className="fa-card" to={`/fa/${fa.slug}`}>
               <span className="fa-card-name">{fa.name}</span>
               <span className="fa-card-count">
                 {fa.routeCount === 1 ? '1 vía abierta' : `${fa.routeCount} vías abiertas`}

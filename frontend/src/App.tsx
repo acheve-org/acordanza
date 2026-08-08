@@ -59,7 +59,7 @@ function AppLayout() {
           <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/explore">
             Explora
           </NavLink>
-          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/first-ascensionists">
+          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/fa">
             Sigue
           </NavLink>
           <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza">
@@ -157,8 +157,12 @@ function App() {
         <Route path="areas/*" element={<AreaPage />} />
         {/* "Sigue" — browsing aperturistas. The admin CRUD over the same records is a
             separate page under /manage/first-ascensionists. */}
-        <Route path="first-ascensionists" element={<FirstAscensionistsDirectoryPage />} />
-        <Route path="first-ascensionists/:id" element={<FirstAscensionistPage />} />
+        <Route path="fa" element={<FirstAscensionistsDirectoryPage />} />
+        <Route path="fa/:slug" element={<FirstAscensionistPage />} />
+        {/* Pre-slug: /first-ascensionists(/:id). An old numeric link can only land on the
+            directory, not the specific opener, since an id can't be mapped to a slug
+            without a fetch. */}
+        <Route path="first-ascensionists/*" element={<Navigate to="/fa" replace />} />
         {/* Pre-#108: the routes list was the index page and the map lived at /map. */}
         <Route path="map" element={<Navigate to="/explore" replace />} />
         {/* Pre-#77 top-level paths — kept as redirects so old bookmarks/links still land. */}

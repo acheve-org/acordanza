@@ -353,6 +353,13 @@ namespace Acordanza.Api.Migrations
                     b.Property<string>("RejectionReason")
                         .HasColumnType("text");
 
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)")
+                        .HasDefaultValue("");
+
                     b.Property<string>("UserId")
                         .HasColumnType("text");
 
@@ -368,6 +375,9 @@ namespace Acordanza.Api.Migrations
                     b.HasIndex("DecidedByUserId");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 

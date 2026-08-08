@@ -23,8 +23,9 @@ export function listFirstAscensionistProfiles(q?: string): Promise<FirstAscensio
   return api.get<FirstAscensionistProfile[]>(`/first-ascensionists/profiles${qs}`);
 }
 
-export function getFirstAscensionist(id: number): Promise<FirstAscensionistProfile> {
-  return api.get<FirstAscensionistProfile>(`/first-ascensionists/${id}`);
+// No encodeURIComponent — slugs are already URL-safe, same as api/areas.ts:48.
+export function getFirstAscensionistBySlug(slug: string): Promise<FirstAscensionistProfile> {
+  return api.get<FirstAscensionistProfile>(`/first-ascensionists/by-slug/${slug}`);
 }
 
 export function createFirstAscensionist(name: string): Promise<FirstAscensionistSummary> {

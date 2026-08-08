@@ -4,8 +4,8 @@ namespace Acordanza.Api.Models;
 
 /// <summary>
 /// The one visibility rule for browse/list endpoints outside "Mi acordanza": visible(x) ⟺
-/// x.ValidationStatus == Approved || x.AddedByUserId == callerId. Detail-by-id endpoints
-/// (GET /routes/{id}, /first-ascensionists/{id}, /areas/by-slug-path/*) are NOT gated by this —
+/// x.ValidationStatus == Approved || x.AddedByUserId == callerId. Detail-by-id/slug endpoints
+/// (GET /routes/{id}, /first-ascensionists/by-slug/{slug}, /areas/by-slug-path/*) are NOT gated by this —
 /// only lists are. See plan 11 (.claude/plans/11-show-only-validated-items.md) for the rationale.
 /// </summary>
 public static class ValidationVisibility

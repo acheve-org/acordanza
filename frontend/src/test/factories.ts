@@ -1,5 +1,5 @@
 import type { components } from '../api/generated';
-import type { AreaSummary, RouteDetail, RouteSummary } from '../api/types';
+import type { AreaSummary, FirstAscensionistProfile, RouteDetail, RouteSummary } from '../api/types';
 
 // Typed off the generated OpenAPI contract (see api/generated.ts) rather than hand-rolled:
 // a backend DTO change that regenerates generated.ts breaks these at `tsc -b` build time,
@@ -18,6 +18,7 @@ type AreaDto = AreaSummary;
 type AreaNodeDto = components['schemas']['AreaNodeDto'];
 type PagedAreaNodesResponse = components['schemas']['PagedAreaNodesResponse'];
 type FirstAscensionistDto = components['schemas']['FirstAscensionistDto'];
+type FirstAscensionistProfileDto = FirstAscensionistProfile;
 type RoutePendingDto = components['schemas']['RoutePendingDto'];
 type AreaPendingDto = components['schemas']['AreaPendingDto'];
 type AreaExpertDto = components['schemas']['AreaExpertDto'];
@@ -32,6 +33,23 @@ export const makeFirstAscensionist = (o: Partial<FirstAscensionistDto> = {}): Fi
   name: 'Alex Aperturista',
   userId: null,
   linkedUserName: null,
+  ...o,
+});
+
+export const makeFirstAscensionistProfile = (
+  o: Partial<FirstAscensionistProfileDto> = {},
+): FirstAscensionistProfileDto => ({
+  id: 1,
+  name: 'Alex Aperturista',
+  slug: 'alex-aperturista',
+  userId: null,
+  linkedUserName: null,
+  routeCount: 0,
+  areaNames: [],
+  validationStatus: 'approved',
+  decidedAt: null,
+  decidedByName: null,
+  rejectionReason: null,
   ...o,
 });
 

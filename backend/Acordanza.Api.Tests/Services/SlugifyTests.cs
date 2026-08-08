@@ -25,4 +25,10 @@ public class SlugifyTests
     {
         Slugify.ToSlug(input).ShouldBe("sector");
     }
+
+    [Fact]
+    public void ToSlug_honours_a_custom_fallback()
+    {
+        Slugify.ToSlug("!!!", "aperturista").ShouldBe("aperturista");
+    }
 }

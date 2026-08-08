@@ -9,7 +9,7 @@ namespace Acordanza.Api.Services;
 // segment. Never returns an empty string.
 public static partial class Slugify
 {
-    public static string ToSlug(string input)
+    public static string ToSlug(string input, string fallback = "sector")
     {
         var decomposed = input.Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder();
@@ -24,7 +24,7 @@ public static partial class Slugify
         var lowered = sb.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant();
         var slug = NonAlphanumericRun().Replace(lowered, "-").Trim('-');
 
-        return string.IsNullOrEmpty(slug) ? "sector" : slug;
+        return string.IsNullOrEmpty(slug) ? fallback : slug;
     }
 
     [GeneratedRegex("[^a-z0-9]+")]

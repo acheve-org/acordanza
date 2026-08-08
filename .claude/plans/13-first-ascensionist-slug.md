@@ -1,6 +1,6 @@
 # First ascensionists get a slug, and the "Sigue" section moves to `/fa`
 
-Status: not started
+Status: done
 Issue: [#137](https://github.com/acheve-org/acordanza/issues/137)
 Depends on: nothing. `Area.Slug` (`Services/Slugify.cs`, `AreasController.GenerateUniqueAreaSlugAsync`, migration `20260804110308_AddAreaSiblingSlugUniqueness`) is the working precedent this copies, and the test harness from [07](07-test-harness.md)/[08](08-backend-integration-tests.md)/[09](09-frontend-component-tests.md) is in `main`, so this gets tests on both sides.
 

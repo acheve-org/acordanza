@@ -39,7 +39,7 @@ const sections: Section[] = [
     ),
   },
   {
-    to: '/first-ascensionists',
+    to: '/fa',
     title: 'Sigue',
     description:
       '¿Te gusta cómo alguien elige y abre las vías? Descubre a los aperturistas, esas personas visionarias que dedican tiempo y esfuerzo en abrirnos nuevos caminos.',

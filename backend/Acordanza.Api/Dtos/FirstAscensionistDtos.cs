@@ -8,6 +8,7 @@ public record FirstAscensionistDto(int Id, string Name, string? UserId, string? 
 public record FirstAscensionistProfileDto(
     int Id,
     string Name,
+    string Slug,
     string? UserId,
     string? LinkedUserName,
     int RouteCount,

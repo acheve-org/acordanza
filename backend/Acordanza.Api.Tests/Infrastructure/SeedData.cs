@@ -33,7 +33,11 @@ public static class SeedData
     public static async Task<FirstAscensionist> CreateFirstAscensionistAsync(
         AppDbContext db, string name, bool validated = true, string? validatedByUserId = null)
     {
-        var firstAscensionist = new FirstAscensionist { Name = name };
+        var firstAscensionist = new FirstAscensionist
+        {
+            Name = name,
+            Slug = Acordanza.Api.Services.Slugify.ToSlug(name, "aperturista")
+        };
         if (validated)
         {
             firstAscensionist.ValidationStatus = ReviewStatus.Approved;

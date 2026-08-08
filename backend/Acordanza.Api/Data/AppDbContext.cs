@@ -87,6 +87,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
             entity.HasIndex(o => o.Name);
 
+            entity.Property(o => o.Slug).HasMaxLength(280).HasDefaultValue("");
+            entity.HasIndex(o => o.Slug).IsUnique();
+
             entity.Property(o => o.ValidationStatus).HasConversion<string>().HasMaxLength(20);
 
             entity.HasOne(o => o.User)
