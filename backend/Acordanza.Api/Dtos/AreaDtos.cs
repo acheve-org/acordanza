@@ -34,6 +34,11 @@ public record AreaAncestorDto(int Id, string Name, string Slug);
 
 public record AreaChildDto(int Id, string Name, string Slug, bool HasChildren);
 
+// The review queue's view of a not-yet-decided area — GET /areas/pending. NamePath is
+// resolved server-side (AreaHierarchyService.NamePath) so the frontend can drop its own
+// whole-area-table download just to render a pending area's breadcrumb.
+public record AreaPendingDto(int Id, string Name, string NamePath, int? ParentAreaId, DateTimeOffset CreatedAt, string? AddedByName);
+
 public record AreaDetailDto(
     int Id,
     string Name,

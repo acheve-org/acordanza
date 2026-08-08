@@ -15,9 +15,19 @@ namespace Acordanza.Api.Controllers;
 public class FirstAscensionistsController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<FirstAscensionistDto>>> GetFirstAscensionists([FromQuery] string? q)
+    public async Task<ActionResult<List<FirstAscensionistDto>>> GetFirstAscensionists(
+        [FromQuery] string? q, [FromQuery] bool includeUnvalidated = false)
     {
+        if (includeUnvalidated && !User.HasClaim("permission", Permissions.FirstAscensionistValidate))
+        {
+            return Forbid();
+        }
+
         var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).AsQueryable();
+        if (!includeUnvalidated)
+        {
+            query = query.Where(ValidationVisibility.FirstAscensionists(userManager.GetUserId(User)!));
+        }
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -39,7 +49,9 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
     public async Task<ActionResult<List<FirstAscensionistProfileDto>>> GetFirstAscensionistProfiles(
         [FromQuery] string? q)
     {
-        var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).Include(o => o.DecidedBy).AsQueryable();
+        var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).Include(o => o.DecidedBy)
+            .Where(ValidationVisibility.FirstAscensionists(userManager.GetUserId(User)!))
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
         {

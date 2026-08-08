@@ -367,6 +367,7 @@ export interface paths {
                     minLng?: number;
                     maxLat?: number;
                     maxLng?: number;
+                    includeUnvalidated?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -434,6 +435,7 @@ export interface paths {
                 query?: {
                     page?: number;
                     pageSize?: number;
+                    includeUnvalidated?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -471,7 +473,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    includeUnvalidated?: boolean;
+                };
                 header?: never;
                 path: {
                     id: number;
@@ -489,6 +493,43 @@ export interface paths {
                         "text/plain": components["schemas"]["AreaNodeDto"][];
                         "application/json": components["schemas"]["AreaNodeDto"][];
                         "text/json": components["schemas"]["AreaNodeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/areas/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["AreaPendingDto"][];
+                        "application/json": components["schemas"]["AreaPendingDto"][];
+                        "text/json": components["schemas"]["AreaPendingDto"][];
                     };
                 };
             };
@@ -1370,6 +1411,7 @@ export interface paths {
             parameters: {
                 query?: {
                     q?: string;
+                    includeUnvalidated?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -1841,6 +1883,7 @@ export interface paths {
                     hasTopo?: boolean;
                     firstAscensionistId?: number;
                     exactArea?: boolean;
+                    openedByMe?: boolean;
                 };
                 header?: never;
                 path?: never;
@@ -1917,6 +1960,43 @@ export interface paths {
                         "text/plain": string[];
                         "application/json": string[];
                         "text/json": string[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/routes/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["RoutePendingDto"][];
+                        "application/json": components["schemas"]["RoutePendingDto"][];
+                        "text/json": components["schemas"]["RoutePendingDto"][];
                     };
                 };
             };
@@ -2491,6 +2571,17 @@ export interface components {
             hasChildren: boolean;
             hasPolygon: boolean;
         };
+        AreaPendingDto: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            namePath: string;
+            /** Format: int32 */
+            parentAreaId: null | number;
+            /** Format: date-time */
+            createdAt: string;
+            addedByName: null | string;
+        };
         AssertionOptions: {
             /** Format: byte */
             challenge?: unknown;
@@ -2912,6 +3003,16 @@ export interface components {
             decidedByName: null | string;
             rejectionReason: null | string;
             canValidate: boolean;
+        };
+        RoutePendingDto: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            areaPath: string;
+            grade: string;
+            /** Format: date-time */
+            createdAt: string;
+            addedByName: string;
         };
         TopoDto: {
             /** Format: int32 */

@@ -171,4 +171,87 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         var route = await db.Routes.FindAsync([s.RouteId], TestContext.Current.CancellationToken);
         return route!.AreaId;
     }
+
+    // Plan 11 §4: routes now auto-validate on create for a creator who can validate
+    // them — the same rule AreasController.CreateArea/FirstAscensionistsController.
+    // CreateFirstAscensionist already applied, closing the gap where a moderator's own
+    // new route used to stay Pending (and so, once validation gates visibility,
+    // would vanish from "Busca" the instant they saved it).
+
+    [Fact]
+    public async Task Moderator_created_route_is_auto_validated()
+    {
+        using var moderator = await TestUsers.CreateAsync(Factory, Roles.Moderator);
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
+
+        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, null, []);
+        var response = await moderator.Client.PostAsJsonAsync("/api/routes", request, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await moderator.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.ValidationStatus.ShouldBe("approved");
+        detail.DecidedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Plain_user_created_route_stays_pending()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
+
+        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, null, []);
+        var response = await user.Client.PostAsJsonAsync("/api/routes", request, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.ValidationStatus.ShouldBe("pending");
+        detail.DecidedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Area_experts_route_within_their_own_area_is_auto_validated()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
+        using var expert = await TestUsers.CreateAreaExpertAsync(Factory, area.Id);
+
+        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, null, []);
+        var response = await expert.Client.PostAsJsonAsync("/api/routes", request, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await expert.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.ValidationStatus.ShouldBe("approved");
+    }
+
+    [Fact]
+    public async Task Area_experts_route_outside_their_area_stays_pending()
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var ownArea = await SeedData.CreateAreaAsync(db, $"Own Area {Guid.NewGuid():N}");
+        var otherArea = await SeedData.CreateAreaAsync(db, $"Other Area {Guid.NewGuid():N}");
+        using var expert = await TestUsers.CreateAreaExpertAsync(Factory, ownArea.Id);
+
+        var request = new UpsertRouteRequest("New Route", otherArea.Id, "6a", null, null, null, null, []);
+        var response = await expert.Client.PostAsJsonAsync("/api/routes", request, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await expert.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.ValidationStatus.ShouldBe("pending");
+    }
+
+    private sealed record CreatedRouteResponse(int Id);
 }

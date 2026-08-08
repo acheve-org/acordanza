@@ -48,7 +48,7 @@ function AreaTreeNode({
   function loadChildren() {
     setLoadingChildren(true);
     areasApi
-      .listAreaChildren(node.id)
+      .listAreaChildren(node.id, true)
       .then((items) => {
         setChildren(items);
         setHasChildren(items.length > 0);
@@ -196,7 +196,7 @@ export function AreaTree({ canCreate, canEdit, canDelete }: Props) {
 
   function refreshRoots() {
     areasApi
-      .listRootAreas(page, PAGE_SIZE)
+      .listRootAreas(page, PAGE_SIZE, true)
       .then((r) => {
         const totalPages = Math.max(1, Math.ceil(r.totalCount / r.pageSize));
         if (page > totalPages) {

@@ -3,6 +3,7 @@ import type {
   CreateTickInput,
   RouteDetail,
   RouteFilters,
+  RoutePending,
   RouteSummary,
   UpsertRouteInput,
 } from './types';
@@ -29,9 +30,23 @@ export function listRoutesByFirstAscensionist(firstAscensionistId: number): Prom
   return api.get<RouteSummary[]>(`/routes?firstAscensionistId=${firstAscensionistId}`);
 }
 
+// "Mis aperturas": routes the caller opened as a first ascensionist, regardless of
+// validation status — server-side filtered and never gated by visibility (see
+// RoutesController.GetRoutes' openedByMe branch), so no whole-table download + client
+// `.filter()` is needed here.
+export function listMyOpenings(): Promise<RouteSummary[]> {
+  return api.get<RouteSummary[]>('/routes?openedByMe=true');
+}
+
 // The grades actually in use, for the search filter's dropdown.
 export function listGrades(): Promise<string[]> {
   return api.get<string[]>('/routes/grades');
+}
+
+// The review queue's view of not-yet-decided routes — narrowed server-side to the ones
+// the caller can actually validate (role or area-expert), see RoutesController.GetPendingRoutes.
+export function listPendingRoutes(): Promise<RoutePending[]> {
+  return api.get<RoutePending[]>('/routes/pending');
 }
 
 export function getRoute(id: number): Promise<RouteDetail> {

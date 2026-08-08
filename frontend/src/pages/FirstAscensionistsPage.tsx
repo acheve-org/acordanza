@@ -26,7 +26,7 @@ export function FirstAscensionistsPage() {
 
   function refresh() {
     firstAscensionistsApi
-      .listFirstAscensionists(q || undefined)
+      .listFirstAscensionists(q || undefined, true)
       .then((result) => {
         setItems(result);
         setError('');
@@ -39,7 +39,7 @@ export function FirstAscensionistsPage() {
     let active = true;
     const handle = setTimeout(() => {
       firstAscensionistsApi
-        .listFirstAscensionists(q || undefined)
+        .listFirstAscensionists(q || undefined, true)
         .then((result) => {
           if (!active) return;
           setItems(result);

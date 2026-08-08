@@ -82,7 +82,7 @@ export function AreaPolygonModal({ areaId, areaName, parentAreaId, onClose, onSa
   useEffect(() => {
     let cancelled = false;
     areasApi
-      .listAreas()
+      .listAreas(undefined, true)
       .then((areas) => {
         if (cancelled) return;
         const byId = new Map<number, AreaSummary>(areas.map((a) => [a.id, a]));

@@ -1,24 +1,45 @@
 import { api } from './client';
-import type { AreaBounds, AreaDetail, AreaNode, AreaSummary, GeoPoint, PagedAreaNodes, TopoSummary } from './types';
+import type {
+  AreaBounds,
+  AreaDetail,
+  AreaNode,
+  AreaPending,
+  AreaSummary,
+  GeoPoint,
+  PagedAreaNodes,
+  TopoSummary,
+} from './types';
 
-export function listRootAreas(page: number, pageSize = 10): Promise<PagedAreaNodes> {
+// `includeUnvalidated` opts out of the default approved-or-mine filter — refused (403)
+// unless the caller holds area.validate. Only the management screens (AreaTree,
+// AreaPolygonModal) pass it; everyone else gets the safe, filtered list by default.
+export function listRootAreas(page: number, pageSize = 10, includeUnvalidated = false): Promise<PagedAreaNodes> {
   const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
+  if (includeUnvalidated) params.set('includeUnvalidated', 'true');
   return api.get<PagedAreaNodes>(`/areas/roots?${params}`);
 }
 
-export function listAreaChildren(id: number): Promise<AreaNode[]> {
-  return api.get<AreaNode[]>(`/areas/${id}/children`);
+export function listAreaChildren(id: number, includeUnvalidated = false): Promise<AreaNode[]> {
+  const qs = includeUnvalidated ? '?includeUnvalidated=true' : '';
+  return api.get<AreaNode[]>(`/areas/${id}/children${qs}`);
 }
 
-export function listAreas(bounds?: AreaBounds): Promise<AreaSummary[]> {
-  if (!bounds) return api.get<AreaSummary[]>('/areas');
-  const params = new URLSearchParams({
-    minLat: String(bounds.minLat),
-    minLng: String(bounds.minLng),
-    maxLat: String(bounds.maxLat),
-    maxLng: String(bounds.maxLng),
-  });
-  return api.get<AreaSummary[]>(`/areas?${params}`);
+export function listAreas(bounds?: AreaBounds, includeUnvalidated = false): Promise<AreaSummary[]> {
+  const params = new URLSearchParams();
+  if (bounds) {
+    params.set('minLat', String(bounds.minLat));
+    params.set('minLng', String(bounds.minLng));
+    params.set('maxLat', String(bounds.maxLat));
+    params.set('maxLng', String(bounds.maxLng));
+  }
+  if (includeUnvalidated) params.set('includeUnvalidated', 'true');
+  const qs = params.toString();
+  return api.get<AreaSummary[]>(`/areas${qs ? `?${qs}` : ''}`);
+}
+
+// The review queue's view of not-yet-decided areas — GET /areas/pending.
+export function listPendingAreas(): Promise<AreaPending[]> {
+  return api.get<AreaPending[]>('/areas/pending');
 }
 
 export function createArea(name: string, parentAreaId: number | null): Promise<AreaSummary> {

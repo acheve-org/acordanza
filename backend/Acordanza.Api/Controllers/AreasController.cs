@@ -27,9 +27,19 @@ public class AreasController(
 
     [HttpGet]
     public async Task<ActionResult<List<AreaDto>>> GetAreas(
-        [FromQuery] double? minLat, [FromQuery] double? minLng, [FromQuery] double? maxLat, [FromQuery] double? maxLng)
+        [FromQuery] double? minLat, [FromQuery] double? minLng, [FromQuery] double? maxLat, [FromQuery] double? maxLng,
+        [FromQuery] bool includeUnvalidated = false)
     {
+        if (includeUnvalidated && !User.HasClaim("permission", Permissions.AreaValidate))
+        {
+            return Forbid();
+        }
+
         var query = db.Areas.AsNoTracking();
+        if (!includeUnvalidated)
+        {
+            query = query.Where(ValidationVisibility.Areas(userManager.GetUserId(User)!));
+        }
 
         // A bounding box (as sent by the map view) restricts results to areas with
         // geographic info placed inside it; omitting it returns every area, which
@@ -74,12 +84,22 @@ public class AreasController(
     // truth for callers (map, AreaPicker, AreaPolygonModal) that need every area at
     // once — all of which now only call it once their dropdown/modal actually opens.
     [HttpGet("roots")]
-    public async Task<ActionResult<PagedAreaNodesResponse>> GetRootAreas([FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
+    public async Task<ActionResult<PagedAreaNodesResponse>> GetRootAreas(
+        [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize, [FromQuery] bool includeUnvalidated = false)
     {
+        if (includeUnvalidated && !User.HasClaim("permission", Permissions.AreaValidate))
+        {
+            return Forbid();
+        }
+
         if (page < 1) page = 1;
         if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
 
         var query = db.Areas.AsNoTracking().Where(a => a.ParentAreaId == null);
+        if (!includeUnvalidated)
+        {
+            query = query.Where(ValidationVisibility.Areas(userManager.GetUserId(User)!));
+        }
 
         var totalCount = await query.CountAsync();
         var items = await query
@@ -95,20 +115,49 @@ public class AreasController(
     }
 
     [HttpGet("{id}/children")]
-    public async Task<ActionResult<List<AreaNodeDto>>> GetAreaChildren(int id)
+    public async Task<ActionResult<List<AreaNodeDto>>> GetAreaChildren(int id, [FromQuery] bool includeUnvalidated = false)
     {
+        if (includeUnvalidated && !User.HasClaim("permission", Permissions.AreaValidate))
+        {
+            return Forbid();
+        }
+
         if (!await db.Areas.AnyAsync(a => a.Id == id))
         {
             return NotFound(new { error = "el sector no existe" });
         }
 
-        var children = await db.Areas.AsNoTracking()
-            .Where(a => a.ParentAreaId == id)
+        var query = db.Areas.AsNoTracking().Where(a => a.ParentAreaId == id);
+        if (!includeUnvalidated)
+        {
+            query = query.Where(ValidationVisibility.Areas(userManager.GetUserId(User)!));
+        }
+
+        var children = await query
             .OrderBy(a => a.Name)
             .Select(a => new AreaNodeDto(a.Id, a.Name, a.Slug, a.Children.Any(), a.CentroidLat != null))
             .ToListAsync();
 
         return Ok(children);
+    }
+
+    // The review queue's view of not-yet-decided areas. NamePath is resolved here
+    // (AreaHierarchyService.NamePath) rather than by the frontend downloading every
+    // area to compute breadcrumbs client-side — see PendingTasksContext.
+    [Authorize(Policy = Permissions.AreaValidate)]
+    [HttpGet("pending")]
+    public async Task<ActionResult<List<AreaPendingDto>>> GetPendingAreas()
+    {
+        var hierarchy = await areaHierarchy.GetAsync();
+        var pending = await db.Areas.AsNoTracking()
+            .Include(a => a.AddedBy)
+            .Where(a => a.ValidationStatus == ReviewStatus.Pending)
+            .OrderBy(a => a.CreatedAt)
+            .ToListAsync();
+
+        return Ok(pending
+            .Select(a => new AreaPendingDto(a.Id, a.Name, hierarchy.NamePath(a.Id), a.ParentAreaId, a.CreatedAt, a.AddedBy?.Name))
+            .ToList());
     }
 
     [Authorize(Policy = Permissions.AreaCreate)]
@@ -301,8 +350,10 @@ public class AreasController(
             .Select(a => new AreaAncestorDto(a.Id, a.Name, a.Slug))
             .ToList();
 
+        var callerId = userManager.GetUserId(User)!;
         var children = await db.Areas.AsNoTracking()
             .Where(a => a.ParentAreaId == area.Id)
+            .Where(ValidationVisibility.Areas(callerId))
             .OrderBy(a => a.Name)
             .Select(a => new AreaChildDto(a.Id, a.Name, a.Slug, a.Children.Any()))
             .ToListAsync();

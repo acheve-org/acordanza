@@ -30,7 +30,7 @@ describe('AreaPicker deferred fetching', () => {
     server.use(
       http.get(`${API_URL}/areas`, () => {
         calls++;
-        return HttpResponse.json([makeArea({ id: 1, name: 'Peña Rúa' })]);
+        return HttpResponse.json([makeArea({ id: 1, name: 'Peña Rúa', validationStatus: 'approved' })]);
       }),
     );
 
@@ -39,6 +39,19 @@ describe('AreaPicker deferred fetching', () => {
 
     await waitFor(() => expect(calls).toBe(1));
     expect(await screen.findByRole('button', { name: 'Peña Rúa' })).toBeInTheDocument();
+  });
+
+  it('flags a non-approved option with its validation status, since the list is approved-or-mine', async () => {
+    server.use(
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 1, name: 'Peña Rúa', validationStatus: 'pending' })]),
+      ),
+    );
+
+    renderWithProviders(<AreaPicker value={null} onChange={() => {}} />);
+    fireEvent.focus(screen.getByPlaceholderText('Buscar sector…'));
+
+    expect(await screen.findByRole('button', { name: 'Peña Rúa (Pendiente de validación)' })).toBeInTheDocument();
   });
 
   it('fetches /areas on mount when a value is already selected, to resolve its label', async () => {

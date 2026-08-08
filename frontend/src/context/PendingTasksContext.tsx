@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
 import * as areaExpertsApi from '../api/areaExperts';
@@ -6,22 +6,17 @@ import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type {
   AreaExpert,
-  AreaSummary,
+  AreaPending,
   FirstAscensionistLinkRequestSummary,
   FirstAscensionistPending,
-  RouteSummary,
+  RoutePending,
 } from '../api/types';
-import { emptyRouteFilters } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from './AuthContext';
 
 interface PendingTasksValue {
-  pendingRoutes: RouteSummary[];
-  pendingAreas: AreaSummary[];
-  // All areas (validated or not), keyed by id — lets callers resolve a pending area's
-  // ancestor chain even when some ancestors are already validated and so absent from
-  // `pendingAreas` itself.
-  areasById: Map<number, AreaSummary>;
+  pendingRoutes: RoutePending[];
+  pendingAreas: AreaPending[];
   pendingAreaExperts: AreaExpert[];
   pendingFirstAscensionistLinks: FirstAscensionistLinkRequestSummary[];
   pendingFirstAscensionists: FirstAscensionistPending[];
@@ -48,9 +43,8 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
   const showFirstAscensionists = hasPermission(Permissions.firstAscensionistValidate);
   const visible = showRoutes || showAreas || showAreaExperts || showFirstAscensionistLinks || showFirstAscensionists;
 
-  const [pendingRoutes, setPendingRoutes] = useState<RouteSummary[]>([]);
-  const [pendingAreas, setPendingAreas] = useState<AreaSummary[]>([]);
-  const [allAreas, setAllAreas] = useState<AreaSummary[]>([]);
+  const [pendingRoutes, setPendingRoutes] = useState<RoutePending[]>([]);
+  const [pendingAreas, setPendingAreas] = useState<AreaPending[]>([]);
   const [pendingAreaExperts, setPendingAreaExperts] = useState<AreaExpert[]>([]);
   const [pendingFirstAscensionistLinks, setPendingFirstAscensionistLinks] = useState<
     FirstAscensionistLinkRequestSummary[]
@@ -62,7 +56,6 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
     if (!username || !visible) {
       setPendingRoutes([]);
       setPendingAreas([]);
-      setAllAreas([]);
       setPendingAreaExperts([]);
       setPendingFirstAscensionistLinks([]);
       setPendingFirstAscensionists([]);
@@ -75,12 +68,8 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
     // and a rejection reaching Promise.all unhandled would otherwise surface as an
     // uncaught rejection instead of just leaving that category's count stale.
     Promise.allSettled([
-      showRoutes
-        ? routesApi
-            .listRoutes(emptyRouteFilters)
-            .then((routes) => routes.filter((r) => r.validationStatus === 'pending' && r.canValidate))
-        : Promise.resolve<RouteSummary[]>([]),
-      showAreas ? areasApi.listAreas() : Promise.resolve<AreaSummary[]>([]),
+      showRoutes ? routesApi.listPendingRoutes() : Promise.resolve<RoutePending[]>([]),
+      showAreas ? areasApi.listPendingAreas() : Promise.resolve<AreaPending[]>([]),
       showAreaExperts ? areaExpertsApi.listPendingAreaExperts() : Promise.resolve<AreaExpert[]>([]),
       showFirstAscensionistLinks
         ? firstAscensionistLinksApi.listPendingFirstAscensionistLinks()
@@ -92,10 +81,8 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       .then(([routes, areas, areaExperts, firstAscensionistLinks, firstAscensionists]) => {
         if (routes.status === 'fulfilled') setPendingRoutes(routes.value);
         else console.error('No se pudieron cargar las vías pendientes', routes.reason);
-        if (areas.status === 'fulfilled') {
-          setAllAreas(areas.value);
-          setPendingAreas(areas.value.filter((a) => a.validationStatus === 'pending'));
-        } else console.error('No se pudieron cargar los sectores pendientes', areas.reason);
+        if (areas.status === 'fulfilled') setPendingAreas(areas.value);
+        else console.error('No se pudieron cargar los sectores pendientes', areas.reason);
         if (areaExperts.status === 'fulfilled') setPendingAreaExperts(areaExperts.value);
         else console.error('No se pudieron cargar las solicitudes de expertos de sector', areaExperts.reason);
         if (firstAscensionistLinks.status === 'fulfilled') setPendingFirstAscensionistLinks(firstAscensionistLinks.value);
@@ -109,8 +96,6 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
 
   useEffect(refresh, [refresh]);
 
-  const areasById = useMemo(() => new Map(allAreas.map((a) => [a.id, a])), [allAreas]);
-
   const total =
     pendingRoutes.length +
     pendingAreas.length +
@@ -123,7 +108,6 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       value={{
         pendingRoutes,
         pendingAreas,
-        areasById,
         pendingAreaExperts,
         pendingFirstAscensionistLinks,
         pendingFirstAscensionists,

@@ -1,9 +1,15 @@
 import { api } from './client';
 import type { FirstAscensionistPending, FirstAscensionistProfile, FirstAscensionistSummary } from './types';
 
-export function listFirstAscensionists(q?: string): Promise<FirstAscensionistSummary[]> {
-  const qs = q ? `?q=${encodeURIComponent(q)}` : '';
-  return api.get<FirstAscensionistSummary[]>(`/first-ascensionists${qs}`);
+// `includeUnvalidated` opts out of the default approved-or-mine filter — refused (403)
+// unless the caller holds first-ascensionist.validate. Only FirstAscensionistsPage
+// (/manage/first-ascensionists) passes it.
+export function listFirstAscensionists(q?: string, includeUnvalidated = false): Promise<FirstAscensionistSummary[]> {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (includeUnvalidated) params.set('includeUnvalidated', 'true');
+  const qs = params.toString();
+  return api.get<FirstAscensionistSummary[]>(`/first-ascensionists${qs ? `?${qs}` : ''}`);
 }
 
 // The review queue's view of not-yet-decided first ascensionists.

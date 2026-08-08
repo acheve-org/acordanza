@@ -1,6 +1,6 @@
-import { GradePill } from 'acordanza-design-system';
+import { Chip, GradePill } from 'acordanza-design-system';
 import type { RouteSummary } from '../api/types';
-import { gearLabels } from '../api/types';
+import { gearLabels, validationStatusLabels } from '../api/types';
 
 interface Props {
   route: RouteSummary;
@@ -31,6 +31,9 @@ export function RouteCard({ route, onClick }: Props) {
         <div className="rc-name">{route.name}</div>
         <div className="rc-sub">{route.areaPath}</div>
       </div>
+      {route.validationStatus !== 'approved' && (
+        <Chip status={route.validationStatus}>{validationStatusLabels[route.validationStatus]}</Chip>
+      )}
       {route.gear && <span className="rc-type">{gearLabels[route.gear] ?? route.gear}</span>}
     </div>
   );

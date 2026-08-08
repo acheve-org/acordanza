@@ -32,6 +32,9 @@ export type AreaDetail = Omit<components['schemas']['AreaDetailDto'], 'validatio
   validationStatus: RequestStatus;
 };
 
+// The review queue's view of a not-yet-decided area — GET /areas/pending.
+export type AreaPending = components['schemas']['AreaPendingDto'];
+
 export type AreaExpert = Omit<components['schemas']['AreaExpertDto'], 'status'> & { status: RequestStatus };
 
 export type FirstAscensionistSummary = components['schemas']['FirstAscensionistDto'];
@@ -56,6 +59,9 @@ export type RouteSummary = Omit<components['schemas']['RouteDto'], 'validationSt
 export type RouteDetail = Omit<components['schemas']['RouteDetailDto'], 'validationStatus'> & {
   validationStatus: RequestStatus;
 };
+
+// The review queue's view of a not-yet-decided route — GET /routes/pending.
+export type RoutePending = components['schemas']['RoutePendingDto'];
 
 // "Mis contribuciones" (issue #125) — the areas/routes/first-ascensionists the current
 // user created, each with its validation status.

@@ -56,3 +56,6 @@ public record UpsertRouteRequest(
     string? Tags,
     List<int>? FirstAscensionistIds
 );
+
+// The review queue's view of a not-yet-decided route — GET /routes/pending.
+public record RoutePendingDto(int Id, string Name, string AreaPath, string Grade, DateTimeOffset CreatedAt, string AddedByName);

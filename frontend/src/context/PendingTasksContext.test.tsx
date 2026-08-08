@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeArea, makeAreaExpert, makeFirstAscensionistLinkRequest, makeRoute } from '../test/factories';
+import { makeAreaExpert, makeAreaPending, makeFirstAscensionistLinkRequest, makeRoutePending } from '../test/factories';
 import { Permissions } from '../api/permissions';
 import { PendingTasksProvider, usePendingTasks } from './PendingTasksContext';
 
@@ -56,14 +56,13 @@ function renderProbe(permissions: string[], username: string | null = 'alex') {
 
 describe('PendingTasksContext', () => {
   it('sums all five categories once every request resolves', async () => {
+    // GET /routes and GET /areas (the pre-plan-11 endpoints this context used to filter
+    // client-side) deliberately have no handler here — onUnhandledRequest: 'error' fails
+    // the test if the context regresses to fetching the whole table again instead of the
+    // narrowed /routes/pending and /areas/pending endpoints.
     server.use(
-      http.get(`${API_URL}/routes`, () =>
-        HttpResponse.json([
-          makeRoute({ id: 1, validationStatus: 'pending', canValidate: true }),
-          makeRoute({ id: 2, validationStatus: 'approved', canValidate: true }), // already validated
-        ]),
-      ),
-      http.get(`${API_URL}/areas`, () => HttpResponse.json([makeArea({ id: 1, validationStatus: 'pending' })])),
+      http.get(`${API_URL}/routes/pending`, () => HttpResponse.json([makeRoutePending({ id: 1 })])),
+      http.get(`${API_URL}/areas/pending`, () => HttpResponse.json([makeAreaPending({ id: 1 })])),
       http.get(`${API_URL}/area-experts/pending`, () => HttpResponse.json([makeAreaExpert({ id: 1 })])),
       http.get(`${API_URL}/first-ascensionist-links/pending`, () =>
         HttpResponse.json([makeFirstAscensionistLinkRequest({ id: 1 }), makeFirstAscensionistLinkRequest({ id: 2 })]),
@@ -83,8 +82,8 @@ describe('PendingTasksContext', () => {
   it("one category's failure leaves the other four counts intact, thanks to Promise.allSettled", async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     server.use(
-      http.get(`${API_URL}/routes`, () => HttpResponse.json([makeRoute({ id: 1, validationStatus: 'pending', canValidate: true })])),
-      http.get(`${API_URL}/areas`, () => HttpResponse.json([makeArea({ id: 1, validationStatus: 'pending' })])),
+      http.get(`${API_URL}/routes/pending`, () => HttpResponse.json([makeRoutePending({ id: 1 })])),
+      http.get(`${API_URL}/areas/pending`, () => HttpResponse.json([makeAreaPending({ id: 1 })])),
       http.get(`${API_URL}/area-experts/pending`, () => HttpResponse.json({ error: 'fallo' }, { status: 500 })),
       http.get(`${API_URL}/first-ascensionist-links/pending`, () =>
         HttpResponse.json([makeFirstAscensionistLinkRequest({ id: 1 })]),

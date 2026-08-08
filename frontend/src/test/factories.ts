@@ -18,6 +18,8 @@ type AreaDto = AreaSummary;
 type AreaNodeDto = components['schemas']['AreaNodeDto'];
 type PagedAreaNodesResponse = components['schemas']['PagedAreaNodesResponse'];
 type FirstAscensionistDto = components['schemas']['FirstAscensionistDto'];
+type RoutePendingDto = components['schemas']['RoutePendingDto'];
+type AreaPendingDto = components['schemas']['AreaPendingDto'];
 type AreaExpertDto = components['schemas']['AreaExpertDto'];
 type FirstAscensionistLinkRequestDto = components['schemas']['FirstAscensionistLinkRequestDto'];
 type TopoDto = components['schemas']['TopoDto'];
@@ -102,6 +104,26 @@ export const makeArea = (o: Partial<AreaDto> = {}): AreaDto => ({
   decidedAt: null,
   decidedByName: null,
   rejectionReason: null,
+  ...o,
+});
+
+export const makeRoutePending = (o: Partial<RoutePendingDto> = {}): RoutePendingDto => ({
+  id: 1,
+  name: 'Travesía del Gato',
+  areaPath: 'Peña Rúa',
+  grade: '6a',
+  createdAt: '2026-01-01T00:00:00Z',
+  addedByName: 'Alex',
+  ...o,
+});
+
+export const makeAreaPending = (o: Partial<AreaPendingDto> = {}): AreaPendingDto => ({
+  id: 1,
+  name: 'Peña Rúa',
+  namePath: 'Peña Rúa',
+  parentAreaId: null,
+  createdAt: '2026-01-01T00:00:00Z',
+  addedByName: 'Alex',
   ...o,
 });
 

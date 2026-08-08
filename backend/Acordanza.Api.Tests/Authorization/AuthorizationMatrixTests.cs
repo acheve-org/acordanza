@@ -46,6 +46,7 @@ public class AuthorizationMatrixTests(ApiFixture fixture) : IntegrationTestBase(
         new EndpointCase("Edit area coordinates", HttpMethod.Put, "/api/areas/999999/coordinates", Permissions.AreaEdit,
             () => Json("""{"polygon":[]}""")),
         new EndpointCase("Validate area", HttpMethod.Post, "/api/areas/999999/validate", Permissions.AreaValidate),
+        new EndpointCase("List pending areas", HttpMethod.Get, "/api/areas/pending", Permissions.AreaValidate),
 
         new EndpointCase("List pending area experts", HttpMethod.Get, "/api/area-experts/pending", Permissions.AreaExpertApprove),
         new EndpointCase("Request area expert", HttpMethod.Post, "/api/area-experts", Permissions.AreaExpertRequest,

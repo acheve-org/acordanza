@@ -5,11 +5,10 @@ import { DetailModal } from '../components/DetailModal';
 import * as routesApi from '../api/routes';
 import * as toposApi from '../api/topos';
 import type { CreateTickInput, RouteDetail, RouteSummary } from '../api/types';
-import { emptyRouteFilters } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 
 export function MyOpeningsPage() {
-  const { id, isFirstAscensionist } = useAuth();
+  const { isFirstAscensionist } = useAuth();
   const [routes, setRoutes] = useState<RouteSummary[]>([]);
 
   const [detailRouteId, setDetailRouteId] = useState<number | null>(null);
@@ -18,12 +17,10 @@ export function MyOpeningsPage() {
   const navigate = useNavigate();
 
   function refreshRoutes() {
-    routesApi.listRoutes(emptyRouteFilters).then((all) => {
-      setRoutes(all.filter((r) => r.firstAscensionists.some((fa) => fa.userId === id)));
-    });
+    routesApi.listMyOpenings().then(setRoutes);
   }
 
-  useEffect(refreshRoutes, [id]);
+  useEffect(refreshRoutes, []);
 
   useEffect(() => {
     if (detailRouteId === null) {

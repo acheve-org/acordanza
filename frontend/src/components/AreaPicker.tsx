@@ -3,6 +3,7 @@ import { Button, Combobox, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import { areaPath as pathFor } from '../api/areas';
 import type { AreaSummary } from '../api/types';
+import { validationStatusLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
 
@@ -49,6 +50,14 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
     return areas.filter((a) => pathFor(a, byId).toLowerCase().includes(q));
   }, [areas, byId, query]);
 
+  // A caller only ever sees their own pending/rejected areas here (the list is
+  // approved-or-mine, see AreasController), so this marks "why is this one flagged?"
+  // rather than a moderation cue.
+  function optionLabel(a: AreaSummary): string {
+    const path = pathFor(a, byId);
+    return a.validationStatus === 'approved' ? path : `${path} (${validationStatusLabels[a.validationStatus]})`;
+  }
+
   async function handleCreate() {
     const name = newName.trim();
     if (!name) return;
@@ -67,7 +76,7 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
         closedValue={selected ? pathFor(selected, byId) : ''}
         onOpen={refresh}
         onQueryChange={setQuery}
-        options={matches.map((a) => ({ key: a.id, label: pathFor(a, byId) }))}
+        options={matches.map((a) => ({ key: a.id, label: optionLabel(a) }))}
         onSelect={onChange}
         leadingOption={allowClear ? { label: 'Cualquier sector', onSelect: () => onChange(null) } : undefined}
       />

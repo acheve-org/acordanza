@@ -31,9 +31,10 @@ public class RoutesController(
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
         [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string? orientation,
         [FromQuery] string? gear, [FromQuery] string? tag, [FromQuery] bool? hasTopo,
-        [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false)
+        [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false, [FromQuery] bool openedByMe = false)
     {
         var areas = await areaHierarchy.GetAsync();
+        var userId = userManager.GetUserId(User)!;
 
         var query = db.Routes
             .Include(r => r.AddedBy)
@@ -42,6 +43,19 @@ public class RoutesController(
             .Include(r => r.Topos)
             .AsSplitQuery()
             .AsQueryable();
+
+        if (openedByMe)
+        {
+            // "Mis aperturas" (Mi acordanza): these are by definition the caller's own
+            // openings, possibly created by someone else and still pending — nothing to
+            // hide from them, so this bypasses the visibility filter below rather than
+            // combining with it.
+            query = query.Where(r => r.FirstAscensionists.Any(fa => fa.UserId == userId));
+        }
+        else
+        {
+            query = query.Where(ValidationVisibility.Routes(userId));
+        }
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -90,7 +104,6 @@ public class RoutesController(
 
         var canValidateArea = await areaExpertAuthorizer.BuildAreaCheckAsync(User, Permissions.RouteValidate);
 
-        var userId = userManager.GetUserId(User)!;
         var tickedRouteIds = (await db.Ticks
             .Where(t => t.ClimberUserId == userId)
             .Select(t => t.RouteId)
@@ -114,13 +127,37 @@ public class RoutesController(
     [HttpGet("grades")]
     public async Task<ActionResult<List<string>>> GetGrades()
     {
+        var userId = userManager.GetUserId(User)!;
         var grades = await db.Routes.AsNoTracking()
+            .Where(ValidationVisibility.Routes(userId))
             .Select(r => r.Grade)
             .Distinct()
             .OrderBy(g => g)
             .ToListAsync();
 
         return Ok(grades);
+    }
+
+    // The review queue's view of not-yet-decided routes. No policy attribute — narrowed
+    // per-caller by AreaExpertAuthorizer instead, same guard ValidateRoute/RejectRoute use:
+    // a caller with neither route.validate nor an approved area expertise gets [] (the
+    // check degrades to `_ => false`), same as the bell's current client-side empty state.
+    [HttpGet("pending")]
+    public async Task<ActionResult<List<RoutePendingDto>>> GetPendingRoutes()
+    {
+        var canValidateArea = await areaExpertAuthorizer.BuildAreaCheckAsync(User, Permissions.RouteValidate);
+
+        var areas = await areaHierarchy.GetAsync();
+        var pending = await db.Routes.AsNoTracking()
+            .Include(r => r.AddedBy)
+            .Where(r => r.ValidationStatus == ReviewStatus.Pending)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync();
+
+        return Ok(pending
+            .Where(r => canValidateArea(r.AreaId))
+            .Select(r => new RoutePendingDto(r.Id, r.Name, areas.NamePath(r.AreaId), r.Grade, r.CreatedAt, r.AddedBy.Name))
+            .ToList());
     }
 
     [HttpGet("{id:int}")]
@@ -204,6 +241,15 @@ public class RoutesController(
             AddedByUserId = userId,
             FirstAscensionists = firstAscensionists!
         };
+
+        // Same rule AreasController.CreateArea and FirstAscensionistsController.CreateFirstAscensionist
+        // apply — but via AreaExpertAuthorizer rather than a bare claim check, since route validation
+        // rights are area-scoped: an approved area expert creating a route inside their own area can
+        // validate it too, and shouldn't have to file a task for themselves.
+        if (await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
+        {
+            Validation.MarkValidated(route, userId);
+        }
 
         db.Routes.Add(route);
         await db.SaveChangesAsync();

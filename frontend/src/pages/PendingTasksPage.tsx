@@ -3,7 +3,6 @@ import { Navigate, useNavigate } from 'react-router';
 import { Badge, Button, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
-import { areaPath } from '../api/areas';
 import * as toposApi from '../api/topos';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import { usePendingTasks } from '../context/PendingTasksContext';
@@ -11,7 +10,7 @@ import { PendingAreaExpertRequests } from '../components/PendingAreaExpertReques
 import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
 import { DetailModal } from '../components/DetailModal';
 import { RejectReasonModal } from '../components/RejectReasonModal';
-import type { AreaSummary, CreateTickInput, FirstAscensionistPending, RouteDetail } from '../api/types';
+import type { AreaPending, CreateTickInput, FirstAscensionistPending, RouteDetail } from '../api/types';
 
 type Tab = 'routes' | 'areas' | 'areaExperts' | 'firstAscensionistLinks' | 'firstAscensionists';
 
@@ -20,7 +19,6 @@ export function PendingTasksPage() {
   const {
     pendingRoutes,
     pendingAreas,
-    areasById,
     pendingAreaExperts,
     pendingFirstAscensionistLinks,
     pendingFirstAscensionists,
@@ -35,7 +33,7 @@ export function PendingTasksPage() {
 
   const [detailRouteId, setDetailRouteId] = useState<number | null>(null);
   const [detailRoute, setDetailRoute] = useState<RouteDetail | null>(null);
-  const [rejectingArea, setRejectingArea] = useState<AreaSummary | null>(null);
+  const [rejectingArea, setRejectingArea] = useState<AreaPending | null>(null);
   const [rejectingFirstAscensionist, setRejectingFirstAscensionist] = useState<FirstAscensionistPending | null>(null);
 
   useEffect(() => {
@@ -209,7 +207,7 @@ export function PendingTasksPage() {
                         Sector principal
                       </span>
                     ) : (
-                      areaPath(a, areasById)
+                      a.namePath
                     )
                   }
                   trailing={

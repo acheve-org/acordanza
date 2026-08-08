@@ -30,9 +30,17 @@ public static class SeedData
         return area;
     }
 
-    public static async Task<FirstAscensionist> CreateFirstAscensionistAsync(AppDbContext db, string name)
+    public static async Task<FirstAscensionist> CreateFirstAscensionistAsync(
+        AppDbContext db, string name, bool validated = true, string? validatedByUserId = null)
     {
         var firstAscensionist = new FirstAscensionist { Name = name };
+        if (validated)
+        {
+            firstAscensionist.ValidationStatus = ReviewStatus.Approved;
+            firstAscensionist.DecidedAt = DateTimeOffset.UtcNow;
+            firstAscensionist.DecidedByUserId = validatedByUserId;
+        }
+
         db.FirstAscensionists.Add(firstAscensionist);
         await db.SaveChangesAsync();
         return firstAscensionist;
@@ -49,7 +57,9 @@ public static class SeedData
         string tags = "",
         string description = "",
         List<FirstAscensionist>? firstAscensionists = null,
-        bool hasTopo = false)
+        bool hasTopo = false,
+        bool validated = true,
+        string? validatedByUserId = null)
     {
         var route = new ClimbingRoute
         {
@@ -63,6 +73,13 @@ public static class SeedData
             AddedByUserId = addedByUserId,
             FirstAscensionists = firstAscensionists ?? []
         };
+        if (validated)
+        {
+            route.ValidationStatus = ReviewStatus.Approved;
+            route.DecidedAt = DateTimeOffset.UtcNow;
+            route.DecidedByUserId = validatedByUserId;
+        }
+
         db.Routes.Add(route);
         await db.SaveChangesAsync();
 
