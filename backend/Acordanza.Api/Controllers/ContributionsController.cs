@@ -33,7 +33,7 @@ public class ContributionsController(
             .ToListAsync();
         var routeDtos = routes
             .Select(r => new ContributionDto(
-                r.Id, r.Name, $"{areas.NamePath(r.AreaId)} · {r.Grade}", r.CreatedAt,
+                r.Id, r.Name, $"{areas.NamePath(r.AreaId)}", r.CreatedAt,
                 r.ValidationStatus.ToString().ToLowerInvariant(), r.DecidedAt, r.DecidedBy?.Name, r.RejectionReason))
             .ToList();
 

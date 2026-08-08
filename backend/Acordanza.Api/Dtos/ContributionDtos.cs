@@ -3,7 +3,7 @@ namespace Acordanza.Api.Dtos;
 public record ContributionDto(
     int Id,
     string Name,
-    // Routes: "Peña Rúa › Sector 1 · 6a"; areas: their own name path; openers: null.
+    // Routes: "Peña Rúa › Sector 1"; areas: their own name path; openers: null.
     string? Detail,
     DateTimeOffset CreatedAt,
     string ValidationStatus,

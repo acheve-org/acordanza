@@ -53,7 +53,11 @@ export function MyContributionsPage() {
             ) : (
               <List>
                 {items.map((c) => (
-                  <ListRow key={c.id} title={c.name} subtitle={<ContributionSubtitle contribution={c} />} trailing={
+                  <ListRow
+                    key={c.id}
+                    title={c.name}
+                    subtitle={<ContributionSubtitle contribution={c} />}
+                    trailing={
                     <Chip status={c.validationStatus}>{validationStatusLabels[c.validationStatus]}</Chip>
                   } />
                 ))}
@@ -67,14 +71,15 @@ export function MyContributionsPage() {
 }
 
 function ContributionSubtitle({ contribution }: { contribution: Contribution }) {
+  const detail = contribution.detail ? `${contribution.detail}` : '';
+  const created = `Creado el ${new Date(contribution.createdAt).toLocaleDateString()}`
+  const decided = contribution.decidedByName && contribution.decidedAt ? ` ·  Validado por ${contribution.decidedByName} el ${new Date(contribution.decidedAt).toLocaleDateString()}` : '';
+  const rejected = contribution.validationStatus === 'rejected' && contribution.rejectionReason ? ` · Motivo: ${contribution.rejectionReason}` : '';
+  const validation = `${created}${decided}${rejected}`
   return (
     <>
-      {contribution.detail && `${contribution.detail} · `}
-      Creado el {new Date(contribution.createdAt).toLocaleDateString()}
-      {contribution.decidedByName && ` · ${contribution.decidedByName}`}
-      {contribution.validationStatus === 'rejected' &&
-        contribution.rejectionReason &&
-        ` · Motivo: ${contribution.rejectionReason}`}
+      {detail || validation}
+      {detail && <span className="user-row-meta">{validation}</span>}
     </>
   );
 }
