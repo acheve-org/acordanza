@@ -178,5 +178,8 @@ export const makeUserAccount = (o: Partial<UserAccountDto> = {}): UserAccountDto
   email: 'alex@example.com',
   role: 'user',
   pending: false,
+  invitedByName: null,
+  invitedAt: null,
+  confirmedAt: null,
   ...o,
 });

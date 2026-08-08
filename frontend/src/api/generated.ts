@@ -2953,6 +2953,11 @@ export interface components {
             email: string;
             role: string;
             pending: boolean;
+            invitedByName: null | string;
+            /** Format: date-time */
+            invitedAt: null | string;
+            /** Format: date-time */
+            confirmedAt: null | string;
         };
         UserVerificationRequirement: unknown;
         ValidateTokenRequest: {

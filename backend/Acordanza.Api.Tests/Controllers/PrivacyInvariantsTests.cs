@@ -141,6 +141,27 @@ public partial class PrivacyInvariantsTests(ApiFixture fixture) : IntegrationTes
         }
     }
 
+    [Fact]
+    public async Task GetUsers_invitedByName_never_leaks_the_inviters_email()
+    {
+        using var admin = await TestUsers.CreateAsync(Factory, Roles.Admin, name: "Inviting Admin");
+
+        var email = $"{Guid.NewGuid():N}@example.test";
+        var inviteResponse = await admin.Client.PostAsJsonAsync(
+            "/api/users/invite", new InviteUserRequest(email, Roles.User), TestContext.Current.CancellationToken);
+        inviteResponse.EnsureSuccessStatusCode();
+
+        // Scoped to just the invited row (q=email) so the admin's own account, whose
+        // email would legitimately appear on its own row, is excluded from the page —
+        // this isolates whether InvitedByName smuggled a second email in.
+        var response = await admin.Client.GetAsync(
+            $"/api/users?q={Uri.EscapeDataString(email)}", TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        body.ShouldContain("Inviting Admin");
+        body.ShouldNotContain(admin.Email);
+    }
+
     private async Task<int> SeedRouteAndTickAsync(string climberUserId, string notes = "")
     {
         using var scope = Factory.Services.CreateScope();

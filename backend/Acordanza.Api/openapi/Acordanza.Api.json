@@ -4775,7 +4775,10 @@
           "name",
           "email",
           "role",
-          "pending"
+          "pending",
+          "invitedByName",
+          "invitedAt",
+          "confirmedAt"
         ],
         "type": "object",
         "properties": {
@@ -4793,6 +4796,26 @@
           },
           "pending": {
             "type": "boolean"
+          },
+          "invitedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "invitedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "confirmedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

@@ -256,6 +256,7 @@ public class AuthController(
             await userManager.UpdateSecurityStampAsync(user);
 
             user.Name = name;
+            user.ConfirmedAt = DateTimeOffset.UtcNow;
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
             {

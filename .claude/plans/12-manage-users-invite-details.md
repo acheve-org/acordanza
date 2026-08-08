@@ -1,6 +1,6 @@
 # Manage users: show who invited each account, and when it was confirmed
 
-Status: planned (not started)
+Status: implemented
 Issue: [#135](https://github.com/acheve-org/acordanza/issues/135)
 Depends on: nothing. `ApplicationUser.InvitedByUserId`/`InvitedAt` already exist (migration `20260806144549_AddUserInvitedBy`), so half the data this issue asks for is already stored — only the confirmation timestamp is missing. The test harness from [07](07-test-harness.md)/[08](08-backend-integration-tests.md)/[09](09-frontend-component-tests.md) is in `main`, so this gets automated tests on both sides.
 

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router';
 import { Button, Chip, EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
-import type { PagedUsers, UserFilters } from '../api/types';
+import type { PagedUsers, UserAccount, UserFilters } from '../api/types';
 import { roleLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { ApiError } from '../api/client';
@@ -18,6 +18,19 @@ const columns: { key: UserFilters['sortBy']; label: string }[] = [
   { key: 'email', label: 'Correo electrónico' },
   { key: 'role', label: 'Rol' },
 ];
+
+function inviteMeta(u: UserAccount): string | null {
+  const segments: string[] = [];
+  if (u.invitedByName && u.invitedAt) {
+    segments.push(`Invitado por ${u.invitedByName} el ${new Date(u.invitedAt).toLocaleDateString('es-ES')}`);
+  } else if (u.invitedAt) {
+    segments.push(`Invitado el ${new Date(u.invitedAt).toLocaleDateString('es-ES')}`);
+  }
+  if (u.confirmedAt) {
+    segments.push(`Confirmado el ${new Date(u.confirmedAt).toLocaleDateString('es-ES')}`);
+  }
+  return segments.length > 0 ? segments.join(' · ') : null;
+}
 
 export function UsersPage() {
   const { hasPermission } = useAuth();
@@ -129,14 +142,27 @@ export function UsersPage() {
           </div>
 
           <List>
-            {result.items.map((u) => (
-              <ListRow
-                key={u.id}
-                title={u.pending ? <Chip>Pendiente</Chip> : u.name}
-                subtitle={u.email}
-                trailing={roleLabels[u.role] ?? u.role}
-              />
-            ))}
+            {result.items.map((u) => {
+              const meta = inviteMeta(u);
+              return (
+                <ListRow
+                  key={u.id}
+                  title={
+                    <>
+                      {u.name || '—'}
+                      {u.pending && <Chip>Sin confirmar</Chip>}
+                    </>
+                  }
+                  subtitle={
+                    <>
+                      {u.email}
+                      {meta && <span className="user-row-meta">{meta}</span>}
+                    </>
+                  }
+                  trailing={roleLabels[u.role] ?? u.role}
+                />
+              );
+            })}
           </List>
         </>
       )}

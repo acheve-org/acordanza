@@ -281,7 +281,10 @@ if (args.Length > 0 && args[0] == "create-user")
     await db.Database.MigrateAsync();
     await RoleSeeder.EnsureSeededAsync(scope.ServiceProvider);
 
-    var user = new ApplicationUser { UserName = args[1], Email = args[1], Name = name };
+    var user = new ApplicationUser
+    {
+        UserName = args[1], Email = args[1], Name = name, ConfirmedAt = DateTimeOffset.UtcNow
+    };
     var result = await userManager.CreateAsync(user, args[2]);
     if (!result.Succeeded)
     {

@@ -1,6 +1,8 @@
 namespace Acordanza.Api.Dtos;
 
-public record UserAccountDto(string Id, string Name, string Email, string Role, bool Pending);
+public record UserAccountDto(
+    string Id, string Name, string Email, string Role, bool Pending,
+    string? InvitedByName, DateTimeOffset? InvitedAt, DateTimeOffset? ConfirmedAt);
 
 public record PagedUsersResponse(List<UserAccountDto> Items, int TotalCount, int Page, int PageSize);
 

@@ -620,6 +620,7 @@ input:focus, select:focus, textarea:focus {
   cursor: pointer;
   white-space: nowrap;
 }
+.user-row-meta { display: block; color: var(--text-dim); font-size: 13px; }
 
 /* Shared left-nav page shell — used by the Manage section (admin: sectores/usuarios/
    tareas pendientes) and the Mi acordanza section (mis sectores/vincular aperturista/

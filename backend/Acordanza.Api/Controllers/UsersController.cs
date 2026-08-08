@@ -64,6 +64,9 @@ public class UsersController(
                 // No password hash means the account was invited but the invitee hasn't
                 // completed registration yet (see InviteUser/AuthController.AcceptInvite).
                 Pending = user.PasswordHash == null,
+                InvitedByName = user.InvitedBy != null ? user.InvitedBy.Name : null,
+                user.InvitedAt,
+                user.ConfirmedAt,
                 Role = (from userRole in db.UserRoles
                         join r in db.Roles on userRole.RoleId equals r.Id
                         where userRole.UserId == user.Id
@@ -94,7 +97,8 @@ public class UsersController(
         };
 
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-        var dtos = items.Select(u => new UserAccountDto(u.Id, u.Name, u.Email, u.Role, u.Pending)).ToList();
+        var dtos = items.Select(u => new UserAccountDto(
+            u.Id, u.Name, u.Email, u.Role, u.Pending, u.InvitedByName, u.InvitedAt, u.ConfirmedAt)).ToList();
 
         return Ok(new PagedUsersResponse(dtos, totalCount, page, pageSize));
     }
