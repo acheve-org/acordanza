@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router';
-import { Button, ConfirmModal, EmptyState } from 'acordanza-design-system';
+import { Button, ConfirmModal, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import type { FirstAscensionistSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -87,37 +87,27 @@ export function FirstAscensionistsPage() {
       {items.length === 0 ? (
         <EmptyState>No se han encontrado aperturistas</EmptyState>
       ) : (
-        <div className="users-table-wrap">
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Usuario vinculado</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((fa) => (
-                <tr key={fa.id}>
-                  <td>{fa.name}</td>
-                  <td>{fa.linkedUserName ?? '—'}</td>
-                  <td>
-                    <div className="detail-actions">
-                      {canEdit && (
-                        <Button variant="ghost" small type="button" onClick={() => setEditing(fa)}>
-                          Editar
-                        </Button>
-                      )}
-                      <Button variant="ghost" small danger type="button" onClick={() => setDeleting(fa)}>
-                        Eliminar
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <List>
+          {items.map((fa) => (
+            <ListRow
+              key={fa.id}
+              title={fa.name}
+              subtitle={fa.linkedUserName ? `Usuario vinculado: ${fa.linkedUserName}` : undefined}
+              trailing={
+                <>
+                  {canEdit && (
+                    <Button variant="ghost" small type="button" onClick={() => setEditing(fa)}>
+                      Editar
+                    </Button>
+                  )}
+                  <Button variant="ghost" small danger type="button" onClick={() => setDeleting(fa)}>
+                    Eliminar
+                  </Button>
+                </>
+              }
+            />
+          ))}
+        </List>
       )}
 
       {createModal && (

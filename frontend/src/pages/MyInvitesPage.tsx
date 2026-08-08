@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Chip, EmptyState } from 'acordanza-design-system';
+import { Button, Chip, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
 import type { MyInvitesResponse } from '../api/types';
 import { ApiError } from '../api/client';
@@ -51,28 +51,20 @@ export function MyInvitesPage() {
       {result.invites.length === 0 ? (
         <EmptyState>Todavía no has invitado a nadie</EmptyState>
       ) : (
-        <div className="users-table-wrap">
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>Correo electrónico</th>
-                <th>Estado</th>
-                <th>Ha invitado a otros</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.invites.map((invite) => (
-                <tr key={invite.email}>
-                  <td>{invite.email}</td>
-                  <td>
-                    <Chip>{invite.pending ? 'Pendiente' : 'Registrado'}</Chip>
-                  </td>
-                  <td>{invite.hasInvitedOthers ? <Chip>Sí</Chip> : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <List>
+          {result.invites.map((invite) => (
+            <ListRow
+              key={invite.email}
+              title={invite.email}
+              trailing={
+                <>
+                  <Chip>{invite.pending ? 'Pendiente' : 'Registrado'}</Chip>
+                  {invite.hasInvitedOthers && <Chip>Ha invitado a otros</Chip>}
+                </>
+              }
+            />
+          ))}
+        </List>
       )}
 
       {inviteOpen && (

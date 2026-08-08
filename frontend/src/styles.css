@@ -607,26 +607,15 @@ input:focus, select:focus, textarea:focus {
 .users-toolbar input { flex: 1; }
 .users-toolbar select { width: 220px; }
 
-.users-table-wrap {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  overflow-x: auto;
-}
-.users-table { width: 100%; border-collapse: collapse; }
-.users-table th, .users-table td {
-  text-align: left;
-  padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
-}
-.users-table th { color: var(--text-dim); font-weight: 600; }
-.users-table tbody tr:last-child td { border-bottom: none; }
+/* UsersPage's column-sort controls, sitting above the List/ListRow in place of table headers. */
+.users-sort-bar { display: flex; align-items: center; gap: var(--space-md); }
+.users-sort-label { color: var(--text-dim); font-size: 13px; }
 .sort-btn {
   background: none;
   border: none;
   color: inherit;
   font: inherit;
+  font-weight: 600;
   padding: 0;
   cursor: pointer;
   white-space: nowrap;

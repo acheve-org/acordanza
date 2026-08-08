@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router';
-import { Button, Chip, EmptyState, Pagination } from 'acordanza-design-system';
+import { Button, Chip, EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
 import type { PagedUsers, UserFilters } from '../api/types';
 import { roleLabels } from '../api/types';
@@ -117,31 +117,28 @@ export function UsersPage() {
       {result.items.length === 0 ? (
         <EmptyState>No se han encontrado usuarios</EmptyState>
       ) : (
-        <div className="users-table-wrap">
-          <table className="users-table">
-            <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th key={col.key}>
-                    <button type="button" className="sort-btn" onClick={() => toggleSort(col.key)}>
-                      {col.label}
-                      {filters.sortBy === col.key && (filters.sortDir === 'asc' ? ' ▲' : ' ▼')}
-                    </button>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {result.items.map((u) => (
-                <tr key={u.id}>
-                  <td>{u.pending ? <Chip>Pendiente</Chip> : u.name}</td>
-                  <td>{u.email}</td>
-                  <td>{roleLabels[u.role] ?? u.role}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="users-sort-bar">
+            <span className="users-sort-label">Ordenar por</span>
+            {columns.map((col) => (
+              <button key={col.key} type="button" className="sort-btn" onClick={() => toggleSort(col.key)}>
+                {col.label}
+                {filters.sortBy === col.key && (filters.sortDir === 'asc' ? ' ▲' : ' ▼')}
+              </button>
+            ))}
+          </div>
+
+          <List>
+            {result.items.map((u) => (
+              <ListRow
+                key={u.id}
+                title={u.pending ? <Chip>Pendiente</Chip> : u.name}
+                subtitle={u.email}
+                trailing={roleLabels[u.role] ?? u.role}
+              />
+            ))}
+          </List>
+        </>
       )}
 
       <Pagination page={filters.page} pageCount={totalPages} onPageChange={(page) => set('page', page)} />
