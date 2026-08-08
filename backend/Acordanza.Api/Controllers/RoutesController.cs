@@ -37,7 +37,7 @@ public class RoutesController(
 
         var query = db.Routes
             .Include(r => r.AddedBy)
-            .Include(r => r.ValidatedBy)
+            .Include(r => r.DecidedBy)
             .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
             .Include(r => r.Topos)
             .AsSplitQuery()
@@ -103,7 +103,7 @@ public class RoutesController(
             r.AddedBy.Name, r.CreatedAt,
             tickedRouteIds.Contains(r.Id),
             r.Topos.Count > 0,
-            r.ValidatedAt, r.ValidatedBy?.Name,
+            r.ValidationStatus.ToString().ToLowerInvariant(), r.DecidedAt, r.DecidedBy?.Name, r.RejectionReason,
             canValidateArea(r.AreaId))).ToList();
 
         return Ok(dtos);
@@ -131,7 +131,7 @@ public class RoutesController(
         {
             route = await db.Routes
                 .Include(r => r.AddedBy)
-                .Include(r => r.ValidatedBy)
+                .Include(r => r.DecidedBy)
                 .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
                 .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
                 .AsSplitQuery()
@@ -162,7 +162,7 @@ public class RoutesController(
             route.AddedBy.Name, route.CreatedAt,
             hasTick,
             topoDtos,
-            route.ValidatedAt, route.ValidatedBy?.Name,
+            route.ValidationStatus.ToString().ToLowerInvariant(), route.DecidedAt, route.DecidedBy?.Name, route.RejectionReason,
             canValidateArea(route.AreaId));
 
         return Ok(dto);
@@ -277,6 +277,32 @@ public class RoutesController(
         }
 
         Validation.MarkValidated(route, userId);
+
+        await db.SaveChangesAsync();
+        return Ok(new { ok = true });
+    }
+
+    [Authorize]
+    [HttpPost("{id:int}/reject")]
+    public async Task<ActionResult> RejectRoute(int id, RejectValidationRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return BadRequest(new { error = "el motivo es obligatorio" });
+        }
+
+        var route = await db.Routes.FindAsync(id);
+        if (route is null) return NotFound(new { error = "No encontrado" });
+
+        var userId = userManager.GetUserId(User)!;
+
+        // Same guard as ValidateRoute — an area expert can reject within their area too.
+        if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
+        {
+            return Forbid();
+        }
+
+        Validation.MarkRejected(route, userId, request.Reason.Trim());
 
         await db.SaveChangesAsync();
         return Ok(new { ok = true });

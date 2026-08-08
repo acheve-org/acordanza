@@ -55,6 +55,11 @@ export function SearchPage() {
     onError: (err) => setActionError(errorMessage(err, 'No se pudo validar la vía')),
   });
 
+  const rejectRouteMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => routesApi.rejectRoute(id, reason),
+    onSuccess: invalidateRouteQueries,
+  });
+
   const addTickMutation = useMutation({
     mutationFn: ({ routeId, input }: { routeId: number; input: CreateTickInput }) =>
       routesApi.createTick(routeId, input),
@@ -101,6 +106,12 @@ export function SearchPage() {
     await validateRouteMutation.mutateAsync(detailRouteId);
   }
 
+  async function handleRejectRoute(reason: string) {
+    if (!detailRouteId) return;
+    // RejectReasonModal shows its own error locally, so let the rejection propagate.
+    await rejectRouteMutation.mutateAsync({ id: detailRouteId, reason });
+  }
+
   return (
     <>
       <main className="layout">
@@ -121,6 +132,7 @@ export function SearchPage() {
         }}
         onDelete={handleDeleteRoute}
         onValidate={handleValidateRoute}
+        onReject={handleRejectRoute}
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}

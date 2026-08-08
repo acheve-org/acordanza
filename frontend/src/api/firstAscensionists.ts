@@ -1,9 +1,14 @@
 import { api } from './client';
-import type { FirstAscensionistProfile, FirstAscensionistSummary } from './types';
+import type { FirstAscensionistPending, FirstAscensionistProfile, FirstAscensionistSummary } from './types';
 
 export function listFirstAscensionists(q?: string): Promise<FirstAscensionistSummary[]> {
   const qs = q ? `?q=${encodeURIComponent(q)}` : '';
   return api.get<FirstAscensionistSummary[]>(`/first-ascensionists${qs}`);
+}
+
+// The review queue's view of not-yet-decided first ascensionists.
+export function listPendingFirstAscensionists(): Promise<FirstAscensionistPending[]> {
+  return api.get<FirstAscensionistPending[]>('/first-ascensionists/pending');
 }
 
 // The same list enriched with each one's openings — only the "Sigue" section needs this.
@@ -26,4 +31,12 @@ export function updateFirstAscensionist(id: number, name: string): Promise<First
 
 export function deleteFirstAscensionist(id: number): Promise<void> {
   return api.delete<void>(`/first-ascensionists/${id}`);
+}
+
+export function validateFirstAscensionist(id: number): Promise<{ ok: true }> {
+  return api.post<{ ok: true }>(`/first-ascensionists/${id}/validate`);
+}
+
+export function rejectFirstAscensionist(id: number, reason: string): Promise<{ ok: true }> {
+  return api.post<{ ok: true }>(`/first-ascensionists/${id}/reject`, { reason });
 }

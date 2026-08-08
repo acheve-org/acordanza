@@ -729,6 +729,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/areas/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RejectValidationRequest"];
+                    "text/json": components["schemas"]["RejectValidationRequest"];
+                    "application/*+json": components["schemas"]["RejectValidationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -1039,6 +1080,43 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contributions/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["MyContributionsResponse"];
+                        "application/json": components["schemas"]["MyContributionsResponse"];
+                        "text/json": components["schemas"]["MyContributionsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1473,6 +1551,119 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/first-ascensionists/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["FirstAscensionistPendingDto"][];
+                        "application/json": components["schemas"]["FirstAscensionistPendingDto"][];
+                        "text/json": components["schemas"]["FirstAscensionistPendingDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/first-ascensionists/{id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/first-ascensionists/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RejectValidationRequest"];
+                    "text/json": components["schemas"]["RejectValidationRequest"];
+                    "application/*+json": components["schemas"]["RejectValidationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/passkeys": {
         parameters: {
             query?: never;
@@ -1856,6 +2047,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/routes/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RejectValidationRequest"];
+                    "text/json": components["schemas"]["RejectValidationRequest"];
+                    "application/*+json": components["schemas"]["RejectValidationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/routes/{id}/topos": {
         parameters: {
             query?: never;
@@ -2209,9 +2441,11 @@ export interface components {
             parentAreaId: null | number;
             ancestors: components["schemas"]["AreaAncestorDto"][];
             children: components["schemas"]["AreaChildDto"][];
+            validationStatus: string;
             /** Format: date-time */
-            validatedAt: null | string;
-            validatedBy: null | string;
+            decidedAt: null | string;
+            decidedByName: null | string;
+            rejectionReason: null | string;
             canManageMedia: boolean;
             media: components["schemas"]["TopoDto"][];
         };
@@ -2227,9 +2461,11 @@ export interface components {
             centroidLat: null | number;
             /** Format: double */
             centroidLng: null | number;
+            validationStatus: string;
             /** Format: date-time */
-            validatedAt: null | string;
-            validatedBy: null | string;
+            decidedAt: null | string;
+            decidedByName: null | string;
+            rejectionReason: null | string;
         };
         AreaExpertDto: {
             /** Format: int32 */
@@ -2359,6 +2595,19 @@ export interface components {
             currentPassword: string;
             newPassword: string;
         };
+        ContributionDto: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            detail: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            validationStatus: string;
+            /** Format: date-time */
+            decidedAt: null | string;
+            decidedByName: null | string;
+            rejectionReason: null | string;
+        };
         CreateAreaExpertRequest: {
             /** Format: int32 */
             areaId: number;
@@ -2430,6 +2679,14 @@ export interface components {
             decidedByName: null | string;
             rejectionReason: null | string;
         };
+        FirstAscensionistPendingDto: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: date-time */
+            createdAt: string;
+            addedByName: null | string;
+        };
         FirstAscensionistProfileDto: {
             /** Format: int32 */
             id: number;
@@ -2439,6 +2696,11 @@ export interface components {
             /** Format: int32 */
             routeCount: number;
             areaNames: string[];
+            validationStatus: string;
+            /** Format: date-time */
+            decidedAt: null | string;
+            decidedByName: null | string;
+            rejectionReason: null | string;
         };
         ForgotPasswordRequest: {
             email: string;
@@ -2479,6 +2741,11 @@ export interface components {
             permissions: string[];
             isFirstAscensionist: boolean;
             isAreaExpert: boolean;
+        };
+        MyContributionsResponse: {
+            routes: components["schemas"]["ContributionDto"][];
+            areas: components["schemas"]["ContributionDto"][];
+            firstAscensionists: components["schemas"]["ContributionDto"][];
         };
         MyInviteDto: {
             email: string;
@@ -2585,6 +2852,9 @@ export interface components {
         RejectFirstAscensionistLinkRequest: {
             reason: string;
         };
+        RejectValidationRequest: {
+            reason: string;
+        };
         ResetPasswordRequest: {
             email: string;
             token: string;
@@ -2610,9 +2880,11 @@ export interface components {
             createdAt: string;
             hasTick: boolean;
             topos: components["schemas"]["TopoDto"][];
+            validationStatus: string;
             /** Format: date-time */
-            validatedAt: null | string;
-            validatedBy: null | string;
+            decidedAt: null | string;
+            decidedByName: null | string;
+            rejectionReason: null | string;
             canValidate: boolean;
         };
         RouteDto: {
@@ -2634,9 +2906,11 @@ export interface components {
             createdAt: string;
             hasTick: boolean;
             hasTopos: boolean;
+            validationStatus: string;
             /** Format: date-time */
-            validatedAt: null | string;
-            validatedBy: null | string;
+            decidedAt: null | string;
+            decidedByName: null | string;
+            rejectionReason: null | string;
             canValidate: boolean;
         };
         TopoDto: {

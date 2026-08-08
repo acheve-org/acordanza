@@ -5,13 +5,15 @@ import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
 import { areaPath } from '../api/areas';
 import * as toposApi from '../api/topos';
+import * as firstAscensionistsApi from '../api/firstAscensionists';
 import { usePendingTasks } from '../context/PendingTasksContext';
 import { PendingAreaExpertRequests } from '../components/PendingAreaExpertRequests';
 import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
 import { DetailModal } from '../components/DetailModal';
-import type { CreateTickInput, RouteDetail } from '../api/types';
+import { RejectReasonModal } from '../components/RejectReasonModal';
+import type { AreaSummary, CreateTickInput, FirstAscensionistPending, RouteDetail } from '../api/types';
 
-type Tab = 'routes' | 'areas' | 'areaExperts' | 'firstAscensionistLinks';
+type Tab = 'routes' | 'areas' | 'areaExperts' | 'firstAscensionistLinks' | 'firstAscensionists';
 
 export function PendingTasksPage() {
   const navigate = useNavigate();
@@ -21,16 +23,20 @@ export function PendingTasksPage() {
     areasById,
     pendingAreaExperts,
     pendingFirstAscensionistLinks,
+    pendingFirstAscensionists,
     visible,
     showRoutes,
     showAreas,
     showAreaExperts,
     showFirstAscensionistLinks,
+    showFirstAscensionists,
     refresh,
   } = usePendingTasks();
 
   const [detailRouteId, setDetailRouteId] = useState<number | null>(null);
   const [detailRoute, setDetailRoute] = useState<RouteDetail | null>(null);
+  const [rejectingArea, setRejectingArea] = useState<AreaSummary | null>(null);
+  const [rejectingFirstAscensionist, setRejectingFirstAscensionist] = useState<FirstAscensionistPending | null>(null);
 
   useEffect(() => {
     if (detailRouteId === null) {
@@ -65,6 +71,9 @@ export function PendingTasksPage() {
           },
         ]
       : []),
+    ...(showFirstAscensionists
+      ? [{ key: 'firstAscensionists' as const, label: 'Aperturistas', count: pendingFirstAscensionists.length }]
+      : []),
   ];
 
   // Permissions (and so tab availability) are stable for the life of this page, so a plain
@@ -76,6 +85,13 @@ export function PendingTasksPage() {
   async function handleValidateRoute() {
     if (detailRouteId === null) return;
     await routesApi.validateRoute(detailRouteId);
+    refreshDetail();
+    refresh();
+  }
+
+  async function handleRejectRoute(reason: string) {
+    if (detailRouteId === null) return;
+    await routesApi.rejectRoute(detailRouteId, reason);
     refreshDetail();
     refresh();
   }
@@ -107,6 +123,25 @@ export function PendingTasksPage() {
 
   async function handleValidateArea(id: number) {
     await areasApi.validateArea(id);
+    refresh();
+  }
+
+  async function handleRejectArea(reason: string) {
+    if (!rejectingArea) return;
+    await areasApi.rejectArea(rejectingArea.id, reason);
+    setRejectingArea(null);
+    refresh();
+  }
+
+  async function handleValidateFirstAscensionist(id: number) {
+    await firstAscensionistsApi.validateFirstAscensionist(id);
+    refresh();
+  }
+
+  async function handleRejectFirstAscensionist(reason: string) {
+    if (!rejectingFirstAscensionist) return;
+    await firstAscensionistsApi.rejectFirstAscensionist(rejectingFirstAscensionist.id, reason);
+    setRejectingFirstAscensionist(null);
     refresh();
   }
 
@@ -178,9 +213,14 @@ export function PendingTasksPage() {
                     )
                   }
                   trailing={
-                    <Button variant="ghost" small type="button" onClick={() => handleValidateArea(a.id)}>
-                      Validar
-                    </Button>
+                    <>
+                      <Button variant="ghost" small type="button" onClick={() => handleValidateArea(a.id)}>
+                        Validar
+                      </Button>
+                      <Button variant="ghost" small danger type="button" onClick={() => setRejectingArea(a)}>
+                        Rechazar
+                      </Button>
+                    </>
                   }
                 />
               ))}
@@ -201,6 +241,38 @@ export function PendingTasksPage() {
         </section>
       )}
 
+      {activeTab === 'firstAscensionists' && (
+        <section className="settings-section">
+          {pendingFirstAscensionists.length === 0 ? (
+            <EmptyState>No hay aperturistas pendientes de validación</EmptyState>
+          ) : (
+            <List>
+              {pendingFirstAscensionists.map((o) => (
+                <ListRow
+                  key={o.id}
+                  title={o.name}
+                  subtitle={
+                    o.addedByName
+                      ? `Creado por ${o.addedByName} el ${new Date(o.createdAt).toLocaleDateString()}`
+                      : new Date(o.createdAt).toLocaleDateString()
+                  }
+                  trailing={
+                    <>
+                      <Button variant="ghost" small type="button" onClick={() => handleValidateFirstAscensionist(o.id)}>
+                        Validar
+                      </Button>
+                      <Button variant="ghost" small danger type="button" onClick={() => setRejectingFirstAscensionist(o)}>
+                        Rechazar
+                      </Button>
+                    </>
+                  }
+                />
+              ))}
+            </List>
+          )}
+        </section>
+      )}
+
       <DetailModal
         route={detailRoute}
         onClose={() => setDetailRouteId(null)}
@@ -209,10 +281,27 @@ export function PendingTasksPage() {
         }}
         onDelete={handleDeleteRoute}
         onValidate={handleValidateRoute}
+        onReject={handleRejectRoute}
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}
       />
+
+      {rejectingArea && (
+        <RejectReasonModal
+          title={`Rechazar "${rejectingArea.name}"`}
+          onClose={() => setRejectingArea(null)}
+          onReject={handleRejectArea}
+        />
+      )}
+
+      {rejectingFirstAscensionist && (
+        <RejectReasonModal
+          title={`Rechazar "${rejectingFirstAscensionist.name}"`}
+          onClose={() => setRejectingFirstAscensionist(null)}
+          onReject={handleRejectFirstAscensionist}
+        />
+      )}
     </>
   );
 }

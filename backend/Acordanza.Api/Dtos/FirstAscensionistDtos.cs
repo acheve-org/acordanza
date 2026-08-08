@@ -11,7 +11,18 @@ public record FirstAscensionistProfileDto(
     string? UserId,
     string? LinkedUserName,
     int RouteCount,
-    List<string> AreaNames);
+    List<string> AreaNames,
+    string ValidationStatus,
+    DateTimeOffset? DecidedAt,
+    string? DecidedByName,
+    string? RejectionReason);
+
+// The review queue's view of a not-yet-decided first ascensionist — GET /first-ascensionists/pending.
+public record FirstAscensionistPendingDto(
+    int Id,
+    string Name,
+    DateTimeOffset CreatedAt,
+    string? AddedByName);
 
 public record CreateFirstAscensionistRequest(string Name);
 

@@ -2,14 +2,9 @@ import { useEffect, useState } from 'react';
 import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type { FirstAscensionistLinkRequestSummary } from '../api/types';
+import { reviewStatusLabels } from '../api/types';
 import { ApiError } from '../api/client';
 import { RequestFirstAscensionistLinkModal } from '../components/RequestFirstAscensionistLinkModal';
-
-const statusLabels: Record<FirstAscensionistLinkRequestSummary['status'], string> = {
-  pending: 'Pendiente de aprobación',
-  approved: 'Aprobado',
-  rejected: 'Rechazado',
-};
 
 export function ClaimFirstAscensionistPage() {
   const [mine, setMine] = useState<FirstAscensionistLinkRequestSummary[]>([]);
@@ -56,7 +51,7 @@ export function ClaimFirstAscensionistPage() {
                 title={r.firstAscensionistName}
                 subtitle={
                   <>
-                    {statusLabels[r.status]}
+                    {reviewStatusLabels[r.status]}
                     {r.status !== 'pending' && r.decidedByName && ` · ${r.decidedByName}`}
                     {r.status === 'rejected' && r.rejectionReason && ` · Motivo: ${r.rejectionReason}`}
                   </>

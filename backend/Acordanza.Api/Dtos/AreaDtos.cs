@@ -10,8 +10,10 @@ public record AreaDto(
     List<GeoPointDto> Polygon,
     double? CentroidLat,
     double? CentroidLng,
-    DateTimeOffset? ValidatedAt,
-    string? ValidatedBy);
+    string ValidationStatus,
+    DateTimeOffset? DecidedAt,
+    string? DecidedByName,
+    string? RejectionReason);
 
 public record CreateAreaRequest(string Name, int? ParentAreaId);
 
@@ -39,7 +41,9 @@ public record AreaDetailDto(
     int? ParentAreaId,
     List<AreaAncestorDto> Ancestors,
     List<AreaChildDto> Children,
-    DateTimeOffset? ValidatedAt,
-    string? ValidatedBy,
+    string ValidationStatus,
+    DateTimeOffset? DecidedAt,
+    string? DecidedByName,
+    string? RejectionReason,
     bool CanManageMedia,
     List<TopoDto> Media);

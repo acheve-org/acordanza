@@ -66,9 +66,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(a => a.ParentAreaId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(a => a.ValidatedBy)
+            entity.Property(a => a.ValidationStatus).HasConversion<string>().HasMaxLength(20);
+
+            entity.HasOne(a => a.AddedBy)
                 .WithMany()
-                .HasForeignKey(a => a.ValidatedByUserId)
+                .HasForeignKey(a => a.AddedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(a => a.DecidedBy)
+                .WithMany()
+                .HasForeignKey(a => a.DecidedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.OwnsMany(a => a.Polygon, p => p.ToJson());
@@ -80,10 +87,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
             entity.HasIndex(o => o.Name);
 
+            entity.Property(o => o.ValidationStatus).HasConversion<string>().HasMaxLength(20);
+
             entity.HasOne(o => o.User)
                 .WithMany()
                 .HasForeignKey(o => o.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(o => o.AddedBy)
+                .WithMany()
+                .HasForeignKey(o => o.AddedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(o => o.DecidedBy)
+                .WithMany()
+                .HasForeignKey(o => o.DecidedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<ClimbingRoute>(entity =>
@@ -92,6 +111,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
             entity.HasIndex(r => r.Grade);
             entity.HasIndex(r => r.AreaId);
+
+            entity.Property(r => r.ValidationStatus).HasConversion<string>().HasMaxLength(20);
 
             entity.HasOne(r => r.AddedBy)
                 .WithMany()
@@ -103,9 +124,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(r => r.AreaId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(r => r.ValidatedBy)
+            entity.HasOne(r => r.DecidedBy)
                 .WithMany()
-                .HasForeignKey(r => r.ValidatedByUserId)
+                .HasForeignKey(r => r.DecidedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(r => r.FirstAscensionists)

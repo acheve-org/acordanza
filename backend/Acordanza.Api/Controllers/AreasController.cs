@@ -60,21 +60,12 @@ public class AreasController(
             query = query.Where(a => idsToInclude.Contains(a.Id));
         }
 
-        var areas = await query
+        var areaEntities = await query
             .OrderBy(a => a.Name)
-            .Select(a => new AreaDto(
-                a.Id,
-                a.Name,
-                a.Slug,
-                a.ParentAreaId,
-                a.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
-                a.CentroidLat,
-                a.CentroidLng,
-                a.ValidatedAt,
-                a.ValidatedBy != null ? a.ValidatedBy.Name : null))
+            .Include(a => a.DecidedBy)
             .ToListAsync();
 
-        return Ok(areas);
+        return Ok(areaEntities.Select(ToAreaDto).ToList());
     }
 
     // Returns only the root areas (no ParentAreaId), alphabetically ordered and
@@ -143,14 +134,15 @@ public class AreasController(
         }
 
         var slug = await GenerateUniqueAreaSlugAsync(request.ParentAreaId, name);
-        var area = new Area { Name = name, Slug = slug, ParentAreaId = request.ParentAreaId };
+        var userId = userManager.GetUserId(User)!;
+        var area = new Area { Name = name, Slug = slug, ParentAreaId = request.ParentAreaId, AddedByUserId = userId };
 
         // A creator who can also validate areas (moderator/admin) has their new
         // area auto-validated; everyone else's (users, first-ascensionists) is
         // left pending for a moderator/admin to review via POST /{id}/validate.
         if (User.HasClaim("permission", Permissions.AreaValidate))
         {
-            Validation.MarkValidated(area, userManager.GetUserId(User)!);
+            Validation.MarkValidated(area, userId);
         }
 
         db.Areas.Add(area);
@@ -173,8 +165,10 @@ public class AreasController(
             [],
             null,
             null,
-            area.ValidatedAt,
-            await GetValidatedByNameAsync(area.ValidatedByUserId)));
+            area.ValidationStatus.ToString().ToLowerInvariant(),
+            area.DecidedAt,
+            await GetDecidedByNameAsync(area.DecidedByUserId),
+            area.RejectionReason));
     }
 
     [Authorize(Policy = Permissions.AreaEdit)]
@@ -236,8 +230,10 @@ public class AreasController(
             area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
             area.CentroidLat,
             area.CentroidLng,
-            area.ValidatedAt,
-            await GetValidatedByNameAsync(area.ValidatedByUserId)));
+            area.ValidationStatus.ToString().ToLowerInvariant(),
+            area.DecidedAt,
+            await GetDecidedByNameAsync(area.DecidedByUserId),
+            area.RejectionReason));
     }
 
     [Authorize(Policy = Permissions.AreaDelete)]
@@ -295,7 +291,7 @@ public class AreasController(
             return NotFound(new { error = "el sector no existe" });
         }
 
-        var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == resolved.Id);
+        var area = await db.Areas.Include(a => a.DecidedBy).FirstOrDefaultAsync(a => a.Id == resolved.Id);
         if (area is null)
         {
             return NotFound(new { error = "el sector no existe" });
@@ -332,8 +328,10 @@ public class AreasController(
             area.ParentAreaId,
             ancestors,
             children,
-            area.ValidatedAt,
-            await GetValidatedByNameAsync(area.ValidatedByUserId),
+            area.ValidationStatus.ToString().ToLowerInvariant(),
+            area.DecidedAt,
+            area.DecidedBy?.Name,
+            area.RejectionReason,
             canManageMedia,
             mediaDtos));
     }
@@ -409,10 +407,23 @@ public class AreasController(
         return slug;
     }
 
-    private async Task<string?> GetValidatedByNameAsync(string? validatedByUserId) =>
-        validatedByUserId is null
+    private async Task<string?> GetDecidedByNameAsync(string? decidedByUserId) =>
+        decidedByUserId is null
             ? null
-            : await db.Users.Where(u => u.Id == validatedByUserId).Select(u => u.Name).FirstOrDefaultAsync();
+            : await db.Users.Where(u => u.Id == decidedByUserId).Select(u => u.Name).FirstOrDefaultAsync();
+
+    private static AreaDto ToAreaDto(Area a) => new(
+        a.Id,
+        a.Name,
+        a.Slug,
+        a.ParentAreaId,
+        a.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
+        a.CentroidLat,
+        a.CentroidLng,
+        a.ValidationStatus.ToString().ToLowerInvariant(),
+        a.DecidedAt,
+        a.DecidedBy?.Name,
+        a.RejectionReason);
 
     [Authorize(Policy = Permissions.AreaEdit)]
     [HttpPut("{id}/coordinates")]
@@ -458,8 +469,10 @@ public class AreasController(
             area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
             area.CentroidLat,
             area.CentroidLng,
-            area.ValidatedAt,
-            await GetValidatedByNameAsync(area.ValidatedByUserId)));
+            area.ValidationStatus.ToString().ToLowerInvariant(),
+            area.DecidedAt,
+            await GetDecidedByNameAsync(area.DecidedByUserId),
+            area.RejectionReason));
     }
 
     [Authorize(Policy = Permissions.AreaValidate)]
@@ -470,6 +483,24 @@ public class AreasController(
         if (area is null) return NotFound(new { error = "el sector no existe" });
 
         Validation.MarkValidated(area, userManager.GetUserId(User)!);
+
+        await db.SaveChangesAsync();
+        return Ok(new { ok = true });
+    }
+
+    [Authorize(Policy = Permissions.AreaValidate)]
+    [HttpPost("{id:int}/reject")]
+    public async Task<ActionResult> RejectArea(int id, RejectValidationRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return BadRequest(new { error = "el motivo es obligatorio" });
+        }
+
+        var area = await db.Areas.FindAsync(id);
+        if (area is null) return NotFound(new { error = "el sector no existe" });
+
+        Validation.MarkRejected(area, userManager.GetUserId(User)!, request.Reason.Trim());
 
         await db.SaveChangesAsync();
         return Ok(new { ok = true });

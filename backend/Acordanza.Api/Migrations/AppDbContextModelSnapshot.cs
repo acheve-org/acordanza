@@ -111,11 +111,23 @@ namespace Acordanza.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AddedByUserId")
+                        .HasColumnType("text");
+
                     b.Property<double?>("CentroidLat")
                         .HasColumnType("double precision");
 
                     b.Property<double?>("CentroidLng")
                         .HasColumnType("double precision");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecidedByUserId")
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -124,6 +136,9 @@ namespace Acordanza.Api.Migrations
                     b.Property<int?>("ParentAreaId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -131,17 +146,18 @@ namespace Acordanza.Api.Migrations
                         .HasColumnType("character varying(280)")
                         .HasDefaultValue("");
 
-                    b.Property<DateTimeOffset?>("ValidatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ValidatedByUserId")
-                        .HasColumnType("text");
+                    b.Property<string>("ValidationStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name");
+                    b.HasIndex("AddedByUserId");
 
-                    b.HasIndex("ValidatedByUserId");
+                    b.HasIndex("DecidedByUserId");
+
+                    b.HasIndex("Name");
 
                     b.HasIndex("ParentAreaId", "Name")
                         .IsUnique();
@@ -258,6 +274,12 @@ namespace Acordanza.Api.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecidedByUserId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
@@ -276,15 +298,17 @@ namespace Acordanza.Api.Migrations
                     b.Property<string>("Orientation")
                         .HasColumnType("text");
 
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("text");
+
                     b.Property<string>("Tags")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTimeOffset?>("ValidatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ValidatedByUserId")
-                        .HasColumnType("text");
+                    b.Property<string>("ValidationStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.HasKey("Id");
 
@@ -292,9 +316,9 @@ namespace Acordanza.Api.Migrations
 
                     b.HasIndex("AreaId");
 
-                    b.HasIndex("Grade");
+                    b.HasIndex("DecidedByUserId");
 
-                    b.HasIndex("ValidatedByUserId");
+                    b.HasIndex("Grade");
 
                     b.ToTable("Routes", "core");
                 });
@@ -307,14 +331,38 @@ namespace Acordanza.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AddedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DecidedByUserId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RejectionReason")
                         .HasColumnType("text");
 
                     b.Property<string>("UserId")
                         .HasColumnType("text");
 
+                    b.Property<string>("ValidationStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AddedByUserId");
+
+                    b.HasIndex("DecidedByUserId");
 
                     b.HasIndex("Name");
 
@@ -647,14 +695,19 @@ namespace Acordanza.Api.Migrations
 
             modelBuilder.Entity("Acordanza.Api.Models.Area", b =>
                 {
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "AddedBy")
+                        .WithMany()
+                        .HasForeignKey("AddedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "DecidedBy")
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Acordanza.Api.Models.Area", "ParentArea")
                         .WithMany("Children")
                         .HasForeignKey("ParentAreaId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "ValidatedBy")
-                        .WithMany()
-                        .HasForeignKey("ValidatedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.OwnsMany("Acordanza.Api.Models.GeoPoint", "Polygon", b1 =>
@@ -680,11 +733,13 @@ namespace Acordanza.Api.Migrations
                                 .HasForeignKey("AreaId");
                         });
 
+                    b.Navigation("AddedBy");
+
+                    b.Navigation("DecidedBy");
+
                     b.Navigation("ParentArea");
 
                     b.Navigation("Polygon");
-
-                    b.Navigation("ValidatedBy");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.AreaExpert", b =>
@@ -746,24 +801,38 @@ namespace Acordanza.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "ValidatedBy")
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "DecidedBy")
                         .WithMany()
-                        .HasForeignKey("ValidatedByUserId")
+                        .HasForeignKey("DecidedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("AddedBy");
 
                     b.Navigation("Area");
 
-                    b.Navigation("ValidatedBy");
+                    b.Navigation("DecidedBy");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.FirstAscensionist", b =>
                 {
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "AddedBy")
+                        .WithMany()
+                        .HasForeignKey("AddedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Acordanza.Api.Models.ApplicationUser", "DecidedBy")
+                        .WithMany()
+                        .HasForeignKey("DecidedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("AddedBy");
+
+                    b.Navigation("DecidedBy");
 
                     b.Navigation("User");
                 });

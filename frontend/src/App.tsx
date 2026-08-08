@@ -21,6 +21,7 @@ import { AreasPage } from './pages/AreasPage';
 import { FirstAscensionistsPage } from './pages/FirstAscensionistsPage';
 import { MyAreasPage } from './pages/MyAreasPage';
 import { ClaimFirstAscensionistPage } from './pages/ClaimFirstAscensionistPage';
+import { MyContributionsPage } from './pages/MyContributionsPage';
 import { MyOpeningsPage } from './pages/MyOpeningsPage';
 import { MyTicksPage } from './pages/MyTicksPage';
 import { MyInvitesPage } from './pages/MyInvitesPage';
@@ -172,6 +173,7 @@ function App() {
           <Route index element={<MyAcordanzaIndexRedirect />} />
           <Route path="my-areas" element={<MyAreasPage />} />
           <Route path="claim-first-ascensionist" element={<ClaimFirstAscensionistPage />} />
+          <Route path="contributions" element={<MyContributionsPage />} />
           <Route path="my-routes" element={<MyTicksPage />} />
           <Route path="my-invites" element={<MyInvitesPage />} />
           <Route path="my-openings" element={<MyOpeningsPage />} />

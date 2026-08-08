@@ -131,6 +131,12 @@ export function MyTicksPage() {
     refreshDetail();
   }
 
+  async function handleRejectRoute(reason: string) {
+    if (!detailRouteId) return;
+    await routesApi.rejectRoute(detailRouteId, reason);
+    refreshDetail();
+  }
+
   async function handleDeleteRoute() {
     if (!detailRouteId) return;
     await routesApi.deleteRoute(detailRouteId);
@@ -210,6 +216,7 @@ export function MyTicksPage() {
         }}
         onDelete={handleDeleteRoute}
         onValidate={handleValidateRoute}
+        onReject={handleRejectRoute}
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}

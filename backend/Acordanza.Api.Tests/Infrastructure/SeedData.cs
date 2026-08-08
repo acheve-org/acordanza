@@ -20,8 +20,9 @@ public static class SeedData
         };
         if (validated)
         {
-            area.ValidatedAt = DateTimeOffset.UtcNow;
-            area.ValidatedByUserId = validatedByUserId;
+            area.ValidationStatus = ReviewStatus.Approved;
+            area.DecidedAt = DateTimeOffset.UtcNow;
+            area.DecidedByUserId = validatedByUserId;
         }
 
         db.Areas.Add(area);

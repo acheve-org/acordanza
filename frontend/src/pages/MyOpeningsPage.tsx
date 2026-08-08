@@ -73,6 +73,13 @@ export function MyOpeningsPage() {
     refreshRoutes();
   }
 
+  async function handleRejectRoute(reason: string) {
+    if (!detailRouteId) return;
+    await routesApi.rejectRoute(detailRouteId, reason);
+    refreshDetail();
+    refreshRoutes();
+  }
+
   return (
     <>
       <main className="layout">
@@ -87,6 +94,7 @@ export function MyOpeningsPage() {
         }}
         onDelete={handleDeleteRoute}
         onValidate={handleValidateRoute}
+        onReject={handleRejectRoute}
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}

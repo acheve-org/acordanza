@@ -99,6 +99,13 @@ export function AreaPage() {
     refreshRoutes(area.id);
   }
 
+  async function handleRejectRoute(reason: string) {
+    if (!detailRouteId || !area) return;
+    await routesApi.rejectRoute(detailRouteId, reason);
+    refreshDetail();
+    refreshRoutes(area.id);
+  }
+
   async function handleMediaFilesSelected(e: ChangeEvent<HTMLInputElement>) {
     if (!area) return;
     const files = Array.from(e.target.files ?? []);
@@ -159,9 +166,15 @@ export function AreaPage() {
         </nav>
 
         <h1>{area.name}</h1>
-        {area.validatedAt && (
+        {area.validationStatus === 'approved' && (
           <p className="detail-fa">
-            ✓ Validado por {area.validatedBy} el {new Date(area.validatedAt).toLocaleDateString()}
+            ✓ Validado por {area.decidedByName} el {new Date(area.decidedAt!).toLocaleDateString()}
+          </p>
+        )}
+        {area.validationStatus === 'rejected' && (
+          <p className="detail-fa">
+            ✗ Rechazado por {area.decidedByName} el {new Date(area.decidedAt!).toLocaleDateString()}
+            {area.rejectionReason && ` · Motivo: ${area.rejectionReason}`}
           </p>
         )}
 
@@ -226,6 +239,7 @@ export function AreaPage() {
         }}
         onDelete={handleDeleteRoute}
         onValidate={handleValidateRoute}
+        onReject={handleRejectRoute}
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}

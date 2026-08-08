@@ -15,9 +15,11 @@ public class ClimbingRoute : IValidatable
     public ApplicationUser AddedBy { get; set; } = null!;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
-    public DateTimeOffset? ValidatedAt { get; set; }
-    public string? ValidatedByUserId { get; set; }
-    public ApplicationUser? ValidatedBy { get; set; }
+    public ReviewStatus ValidationStatus { get; set; }
+    public DateTimeOffset? DecidedAt { get; set; }
+    public string? DecidedByUserId { get; set; }
+    public ApplicationUser? DecidedBy { get; set; }
+    public string? RejectionReason { get; set; }
 
     public List<FirstAscensionist> FirstAscensionists { get; set; } = [];
     public List<Tick> Ticks { get; set; } = [];

@@ -41,6 +41,10 @@ export function validateArea(id: number): Promise<{ ok: true }> {
   return api.post<{ ok: true }>(`/areas/${id}/validate`);
 }
 
+export function rejectArea(id: number, reason: string): Promise<{ ok: true }> {
+  return api.post<{ ok: true }>(`/areas/${id}/reject`, { reason });
+}
+
 // `path` is the area's full slug path (e.g. "pena-rua/sector-1") — see
 // AreasController.GetAreaBySlugPath. Slugs are already URL-safe, no encoding needed.
 export function getAreaBySlugPath(path: string): Promise<AreaDetail> {

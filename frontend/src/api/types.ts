@@ -2,7 +2,15 @@ import type { components } from './generated';
 
 export type GeoPoint = components['schemas']['GeoPointDto'];
 
-export type AreaSummary = components['schemas']['AreaDto'];
+// Backend/Acordanza.Api/Models/ReviewStatus.cs is a free-text string column (both the
+// request-review flows' Status and the validation lifecycle's ValidationStatus), but its
+// runtime values are the closed set below — openapi-typescript can't know that from the
+// schema alone, so narrow it by hand.
+type RequestStatus = 'pending' | 'approved' | 'rejected';
+
+export type AreaSummary = Omit<components['schemas']['AreaDto'], 'validationStatus'> & {
+  validationStatus: RequestStatus;
+};
 
 // Not a backend DTO — a client-constructed viewport query, not a response shape.
 export interface AreaBounds {
@@ -20,28 +28,46 @@ export type AreaAncestor = components['schemas']['AreaAncestorDto'];
 
 export type AreaChild = components['schemas']['AreaChildDto'];
 
-export type AreaDetail = components['schemas']['AreaDetailDto'];
-
-// Backend/Acordanza.Api/Models/AreaExpert.cs's Status is a free-text string column, but its
-// runtime values are the closed set below (see AreaExpertsController) — openapi-typescript
-// can't know that from the schema alone, so narrow it by hand.
-type RequestStatus = 'pending' | 'approved' | 'rejected';
+export type AreaDetail = Omit<components['schemas']['AreaDetailDto'], 'validationStatus'> & {
+  validationStatus: RequestStatus;
+};
 
 export type AreaExpert = Omit<components['schemas']['AreaExpertDto'], 'status'> & { status: RequestStatus };
 
 export type FirstAscensionistSummary = components['schemas']['FirstAscensionistDto'];
 
 // The "Sigue" section's view of a first ascensionist: the plain DTO plus what they opened.
-export type FirstAscensionistProfile = components['schemas']['FirstAscensionistProfileDto'];
+export type FirstAscensionistProfile = Omit<components['schemas']['FirstAscensionistProfileDto'], 'validationStatus'> & {
+  validationStatus: RequestStatus;
+};
+
+// The review queue's view of a not-yet-decided first ascensionist — GET /first-ascensionists/pending.
+export type FirstAscensionistPending = components['schemas']['FirstAscensionistPendingDto'];
 
 export type FirstAscensionistLinkRequestSummary =
   Omit<components['schemas']['FirstAscensionistLinkRequestDto'], 'status'> & { status: RequestStatus };
 
 export type TopoSummary = components['schemas']['TopoDto'];
 
-export type RouteSummary = components['schemas']['RouteDto'];
+export type RouteSummary = Omit<components['schemas']['RouteDto'], 'validationStatus'> & {
+  validationStatus: RequestStatus;
+};
 
-export type RouteDetail = components['schemas']['RouteDetailDto'];
+export type RouteDetail = Omit<components['schemas']['RouteDetailDto'], 'validationStatus'> & {
+  validationStatus: RequestStatus;
+};
+
+// "Mis contribuciones" (issue #125) — the areas/routes/first-ascensionists the current
+// user created, each with its validation status.
+export type Contribution = Omit<components['schemas']['ContributionDto'], 'validationStatus'> & {
+  validationStatus: RequestStatus;
+};
+
+export interface MyContributions {
+  routes: Contribution[];
+  areas: Contribution[];
+  firstAscensionists: Contribution[];
+}
 
 export interface RouteFilters {
   q: string;
@@ -127,4 +153,20 @@ export const roleLabels: Record<string, string> = {
   admin: 'Administrador',
   moderator: 'Moderador',
   user: 'Usuario',
+};
+
+// Shared by MyAreasPage/ClaimFirstAscensionistPage's self-service request flows
+// (AreaExpert, FirstAscensionistLinkRequest) — someone waiting on an answer.
+export const reviewStatusLabels: Record<RequestStatus, string> = {
+  pending: 'Pendiente de aprobación',
+  approved: 'Aprobado',
+  rejected: 'Rechazado',
+};
+
+// Shared by every IValidatable's editorial lifecycle (routes, areas, first
+// ascensionists) — MyContributionsPage, DetailModal, AreaPage, PendingTasksPage.
+export const validationStatusLabels: Record<RequestStatus, string> = {
+  pending: 'Pendiente de validación',
+  approved: 'Validado',
+  rejected: 'Rechazado',
 };

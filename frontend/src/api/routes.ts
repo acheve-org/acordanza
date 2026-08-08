@@ -54,6 +54,10 @@ export function validateRoute(id: number): Promise<{ ok: true }> {
   return api.post<{ ok: true }>(`/routes/${id}/validate`);
 }
 
+export function rejectRoute(id: number, reason: string): Promise<{ ok: true }> {
+  return api.post<{ ok: true }>(`/routes/${id}/reject`, { reason });
+}
+
 export function createTick(routeId: number, input: CreateTickInput): Promise<{ id: number }> {
   return api.post<{ id: number }>(`/routes/${routeId}/ticks`, input);
 }

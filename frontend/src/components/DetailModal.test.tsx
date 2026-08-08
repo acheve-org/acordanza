@@ -6,6 +6,7 @@ import { DetailModal } from './DetailModal';
 
 const noop = () => {};
 const noopAsync = async () => {};
+const noopRejectAsync = async (_reason: string) => {};
 
 function renderModal(permissions: string[], routeOverrides: Parameters<typeof makeRouteDetail>[0] = {}) {
   return renderWithProviders(
@@ -15,6 +16,7 @@ function renderModal(permissions: string[], routeOverrides: Parameters<typeof ma
       onEdit={noop}
       onDelete={noop}
       onValidate={noopAsync}
+      onReject={noopRejectAsync}
       onAddTick={noopAsync}
       onUploadTopo={noopAsync}
       onDeleteTopo={noopAsync}
@@ -62,12 +64,17 @@ describe('DetailModal permission gating', () => {
   });
 
   it('shows Validar from route.canValidate regardless of permissions — it is server-computed, not a permission', () => {
-    renderModal([], { canValidate: true, validatedAt: null });
+    renderModal([], { canValidate: true, validationStatus: 'pending' });
     expect(screen.getByRole('button', { name: 'Validar' })).toBeInTheDocument();
   });
 
   it('hides Validar once the route is already validated, even when canValidate is true', () => {
-    renderModal([], { canValidate: true, validatedAt: '2026-01-01T00:00:00Z', validatedBy: 'Alex' });
+    renderModal([], {
+      canValidate: true,
+      validationStatus: 'approved',
+      decidedAt: '2026-01-01T00:00:00Z',
+      decidedByName: 'Alex',
+    });
     expect(screen.queryByRole('button', { name: 'Validar' })).not.toBeInTheDocument();
   });
 });

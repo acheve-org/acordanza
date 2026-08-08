@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Acordanza.Api.Tests.Controllers;
 
-// A PUT that changes nothing must keep ValidatedAt/ValidatedByUserId; a change to any
+// A PUT that changes nothing must keep DecidedAt/DecidedByUserId; a change to any
 // individual field must clear them — Models/Validation.cs's shared lifecycle, applied
 // by RoutesController.UpdateRoute via Validation.InvalidateIfChanged. The
 // FirstAscensionistIds set is compared order-insensitively (SetEquals, see
@@ -42,8 +42,9 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
             description: "base desc", tags: "tag1,tag2",
             firstAscensionists: [fa1, fa2]);
 
-        route.ValidatedAt = DateTimeOffset.UtcNow;
-        route.ValidatedByUserId = moderator.UserId;
+        route.ValidationStatus = ReviewStatus.Approved;
+        route.DecidedAt = DateTimeOffset.UtcNow;
+        route.DecidedByUserId = moderator.UserId;
         await db.SaveChangesAsync();
 
         return new Scenario(moderator, route.Id, otherArea.Id, fa1.Id, fa2.Id, fa3.Id);
@@ -60,7 +61,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
 
         var detail = await s.Moderator.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{s.RouteId}", TestContext.Current.CancellationToken);
-        return detail!.ValidatedAt;
+        return detail!.DecidedAt;
     }
 
     [Fact]

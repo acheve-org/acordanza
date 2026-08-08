@@ -21,9 +21,17 @@ public class Area : IValidatable
     public double? CentroidLat { get; set; }
     public double? CentroidLng { get; set; }
 
-    public DateTimeOffset? ValidatedAt { get; set; }
-    public string? ValidatedByUserId { get; set; }
-    public ApplicationUser? ValidatedBy { get; set; }
+    // Nullable, unlike ClimbingRoute.AddedByUserId — areas predating this column have no
+    // recoverable creator, and simply never appear in anyone's contributions list.
+    public string? AddedByUserId { get; set; }
+    public ApplicationUser? AddedBy { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public ReviewStatus ValidationStatus { get; set; }
+    public DateTimeOffset? DecidedAt { get; set; }
+    public string? DecidedByUserId { get; set; }
+    public ApplicationUser? DecidedBy { get; set; }
+    public string? RejectionReason { get; set; }
 }
 
 public class GeoPoint

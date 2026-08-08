@@ -39,7 +39,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
     public async Task<ActionResult<List<FirstAscensionistProfileDto>>> GetFirstAscensionistProfiles(
         [FromQuery] string? q)
     {
-        var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).AsQueryable();
+        var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).Include(o => o.DecidedBy).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -57,11 +57,30 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
     {
         var firstAscensionist = await db.FirstAscensionists.AsNoTracking()
             .Include(o => o.User)
+            .Include(o => o.DecidedBy)
             .FirstOrDefaultAsync(o => o.Id == id);
 
         if (firstAscensionist is null) return NotFound(new { error = "No encontrado" });
 
         return Ok(ToProfileDto(firstAscensionist, await OpeningsByFirstAscensionistAsync(id)));
+    }
+
+    // The review queue's view of not-yet-decided first ascensionists — the first
+    // real use of first-ascensionist.validate outside the two permission-declaration
+    // lists (RolePermissions/Permissions), see plan 10.
+    [Authorize(Policy = Permissions.FirstAscensionistValidate)]
+    [HttpGet("pending")]
+    public async Task<ActionResult<List<FirstAscensionistPendingDto>>> GetPendingFirstAscensionists()
+    {
+        var pending = await db.FirstAscensionists.AsNoTracking()
+            .Include(o => o.AddedBy)
+            .Where(o => o.ValidationStatus == ReviewStatus.Pending)
+            .OrderBy(o => o.CreatedAt)
+            .ToListAsync();
+
+        return Ok(pending
+            .Select(o => new FirstAscensionistPendingDto(o.Id, o.Name, o.CreatedAt, o.AddedBy?.Name))
+            .ToList());
     }
 
     private async Task<Dictionary<int, List<string>>> OpeningsByFirstAscensionistAsync(int? firstAscensionistId = null)
@@ -91,7 +110,11 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             firstAscensionist.UserId,
             firstAscensionist.User?.Name,
             areaNames.Count,
-            areaNames.Distinct().OrderBy(name => name).ToList());
+            areaNames.Distinct().OrderBy(name => name).ToList(),
+            firstAscensionist.ValidationStatus.ToString().ToLowerInvariant(),
+            firstAscensionist.DecidedAt,
+            firstAscensionist.DecidedBy?.Name,
+            firstAscensionist.RejectionReason);
     }
 
     // Creates an unlinked FirstAscensionist record (e.g. a historic route opener
@@ -107,7 +130,17 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             return BadRequest(new { error = "el nombre es obligatorio" });
         }
 
-        var firstAscensionist = new FirstAscensionist { Name = request.Name.Trim() };
+        var userId = userManager.GetUserId(User)!;
+        var firstAscensionist = new FirstAscensionist { Name = request.Name.Trim(), AddedByUserId = userId };
+
+        // Same rule AreasController.CreateArea applies for areas: a creator who can also
+        // validate first ascensionists (moderator/admin) has their new record
+        // auto-validated, so they don't file a review task for themselves.
+        if (User.HasClaim("permission", Permissions.FirstAscensionistValidate))
+        {
+            Validation.MarkValidated(firstAscensionist, userId);
+        }
+
         db.FirstAscensionists.Add(firstAscensionist);
         await db.SaveChangesAsync();
 
@@ -140,11 +173,48 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             return BadRequest(new { error = "el nombre es obligatorio" });
         }
 
-        firstAscensionist.Name = request.Name.Trim();
+        var newName = request.Name.Trim();
+        var changed = newName != firstAscensionist.Name;
+
+        firstAscensionist.Name = newName;
+
+        Validation.InvalidateIfChanged(firstAscensionist, changed);
+
         await db.SaveChangesAsync();
 
         return Ok(new FirstAscensionistDto(
             firstAscensionist.Id, firstAscensionist.Name, firstAscensionist.UserId, firstAscensionist.User?.Name));
+    }
+
+    [Authorize(Policy = Permissions.FirstAscensionistValidate)]
+    [HttpPost("{id:int}/validate")]
+    public async Task<ActionResult> ValidateFirstAscensionist(int id)
+    {
+        var firstAscensionist = await db.FirstAscensionists.FindAsync(id);
+        if (firstAscensionist is null) return NotFound(new { error = "el aperturista no existe" });
+
+        Validation.MarkValidated(firstAscensionist, userManager.GetUserId(User)!);
+
+        await db.SaveChangesAsync();
+        return Ok(new { ok = true });
+    }
+
+    [Authorize(Policy = Permissions.FirstAscensionistValidate)]
+    [HttpPost("{id:int}/reject")]
+    public async Task<ActionResult> RejectFirstAscensionist(int id, RejectValidationRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            return BadRequest(new { error = "el motivo es obligatorio" });
+        }
+
+        var firstAscensionist = await db.FirstAscensionists.FindAsync(id);
+        if (firstAscensionist is null) return NotFound(new { error = "el aperturista no existe" });
+
+        Validation.MarkRejected(firstAscensionist, userManager.GetUserId(User)!, request.Reason.Trim());
+
+        await db.SaveChangesAsync();
+        return Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.FirstAscensionistDelete)]

@@ -16,8 +16,10 @@ public record RouteDto(
     DateTimeOffset CreatedAt,
     bool HasTick,
     bool HasTopos,
-    DateTimeOffset? ValidatedAt,
-    string? ValidatedBy,
+    string ValidationStatus,
+    DateTimeOffset? DecidedAt,
+    string? DecidedByName,
+    string? RejectionReason,
     bool CanValidate
 );
 
@@ -37,8 +39,10 @@ public record RouteDetailDto(
     DateTimeOffset CreatedAt,
     bool HasTick,
     List<TopoDto> Topos,
-    DateTimeOffset? ValidatedAt,
-    string? ValidatedBy,
+    string ValidationStatus,
+    DateTimeOffset? DecidedAt,
+    string? DecidedByName,
+    string? RejectionReason,
     bool CanValidate
 );
 

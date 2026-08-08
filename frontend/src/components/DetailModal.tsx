@@ -5,15 +5,17 @@ import { gearLabels, orientationLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
 import { AddTickModal } from './AddTickModal';
+import { RejectReasonModal } from './RejectReasonModal';
 
 interface Props {
   route: RouteDetail | null;
-  /** Error from a delete/validate action, surfaced by the caller (e.g. a mutation's onError). */
+  /** Error from a delete/validate/reject action, surfaced by the caller (e.g. a mutation's onError). */
   error?: string;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onValidate: () => Promise<void>;
+  onReject: (reason: string) => Promise<unknown>;
   onAddTick: (input: CreateTickInput) => Promise<void>;
   onUploadTopo: (file: File) => Promise<void>;
   onDeleteTopo: (topoId: number) => Promise<void>;
@@ -21,12 +23,24 @@ interface Props {
 
 const ACCEPTED_TOPO_TYPES = 'image/jpeg,image/png,image/webp';
 
-export function DetailModal({ route, error, onClose, onEdit, onDelete, onValidate, onAddTick, onUploadTopo, onDeleteTopo }: Props) {
+export function DetailModal({
+  route,
+  error,
+  onClose,
+  onEdit,
+  onDelete,
+  onValidate,
+  onReject,
+  onAddTick,
+  onUploadTopo,
+  onDeleteTopo,
+}: Props) {
   const { hasPermission } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [addingTick, setAddingTick] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
 
   if (!route) return null;
 
@@ -67,17 +81,28 @@ export function DetailModal({ route, error, onClose, onEdit, onDelete, onValidat
                 .filter(Boolean)
                 .join(' · ')}
             </p>
-            {route.validatedAt && (
+            {route.validationStatus === 'approved' && (
               <p className="detail-fa">
-                ✓ Validada por {route.validatedBy} el {new Date(route.validatedAt).toLocaleDateString()}
+                ✓ Validada por {route.decidedByName} el {new Date(route.decidedAt!).toLocaleDateString()}
+              </p>
+            )}
+            {route.validationStatus === 'rejected' && (
+              <p className="detail-fa">
+                ✗ Rechazada por {route.decidedByName} el {new Date(route.decidedAt!).toLocaleDateString()}
+                {route.rejectionReason && ` · Motivo: ${route.rejectionReason}`}
               </p>
             )}
             {error && <p className="error-text">{error}</p>}
           </div>
           <div className="detail-actions">
-            {!route.validatedAt && route.canValidate && (
+            {route.validationStatus !== 'approved' && route.canValidate && (
               <Button variant="ghost" small onClick={onValidate}>
                 Validar
+              </Button>
+            )}
+            {route.validationStatus !== 'rejected' && route.canValidate && (
+              <Button variant="ghost" small danger onClick={() => setRejecting(true)}>
+                Rechazar
               </Button>
             )}
             {hasPermission(Permissions.routeEdit) && (
@@ -155,6 +180,17 @@ export function DetailModal({ route, error, onClose, onEdit, onDelete, onValidat
           danger
           onConfirm={onDelete}
           onClose={() => setConfirmingDelete(false)}
+        />
+      )}
+
+      {rejecting && (
+        <RejectReasonModal
+          title={`Rechazar "${route.name}"`}
+          onClose={() => setRejecting(false)}
+          onReject={async (reason) => {
+            await onReject(reason);
+            setRejecting(false);
+          }}
         />
       )}
     </Fragment>

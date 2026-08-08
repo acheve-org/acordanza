@@ -2,6 +2,8 @@ namespace Acordanza.Api.Models;
 
 public interface IValidatable
 {
-    DateTimeOffset? ValidatedAt { get; set; }
-    string? ValidatedByUserId { get; set; }
+    ReviewStatus ValidationStatus { get; set; }
+    DateTimeOffset? DecidedAt { get; set; }
+    string? DecidedByUserId { get; set; }
+    string? RejectionReason { get; set; }
 }

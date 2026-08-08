@@ -1,13 +1,20 @@
 import type { components } from '../api/generated';
+import type { AreaSummary, RouteDetail, RouteSummary } from '../api/types';
 
 // Typed off the generated OpenAPI contract (see api/generated.ts) rather than hand-rolled:
 // a backend DTO change that regenerates generated.ts breaks these at `tsc -b` build time,
 // not just the app, so mocks can't silently drift from the real API shape.
 // One factory per DTO the test suite constructs, each overridable via `Partial<...>`.
+//
+// RouteDto/RouteDetailDto/AreaDto's validationStatus is narrowed by api/types.ts (a plain
+// string in the generated contract, but a closed 'pending'|'approved'|'rejected' set at
+// runtime) — makeRoute/makeRouteDetail/makeArea build off those narrowed app types instead
+// of the raw generated ones so a factory result can be passed directly as a typed prop
+// (e.g. DetailModal's `route`), not just used inside an untyped HttpResponse.json(...) mock.
 
-type RouteDto = components['schemas']['RouteDto'];
-type RouteDetailDto = components['schemas']['RouteDetailDto'];
-type AreaDto = components['schemas']['AreaDto'];
+type RouteDto = RouteSummary;
+type RouteDetailDto = RouteDetail;
+type AreaDto = AreaSummary;
 type AreaNodeDto = components['schemas']['AreaNodeDto'];
 type PagedAreaNodesResponse = components['schemas']['PagedAreaNodesResponse'];
 type FirstAscensionistDto = components['schemas']['FirstAscensionistDto'];
@@ -51,8 +58,10 @@ export const makeRoute = (o: Partial<RouteDto> = {}): RouteDto => ({
   createdAt: '2026-01-01T00:00:00Z',
   hasTick: false,
   hasTopos: false,
-  validatedAt: null,
-  validatedBy: null,
+  validationStatus: 'pending',
+  decidedAt: null,
+  decidedByName: null,
+  rejectionReason: null,
   canValidate: false,
   ...o,
 });
@@ -73,8 +82,10 @@ export const makeRouteDetail = (o: Partial<RouteDetailDto> = {}): RouteDetailDto
   createdAt: '2026-01-01T00:00:00Z',
   hasTick: false,
   topos: [],
-  validatedAt: null,
-  validatedBy: null,
+  validationStatus: 'pending',
+  decidedAt: null,
+  decidedByName: null,
+  rejectionReason: null,
   canValidate: false,
   ...o,
 });
@@ -87,8 +98,10 @@ export const makeArea = (o: Partial<AreaDto> = {}): AreaDto => ({
   polygon: [],
   centroidLat: null,
   centroidLng: null,
-  validatedAt: null,
-  validatedBy: null,
+  validationStatus: 'pending',
+  decidedAt: null,
+  decidedByName: null,
+  rejectionReason: null,
   ...o,
 });
 

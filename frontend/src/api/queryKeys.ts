@@ -6,4 +6,5 @@ import type { RouteFilters } from './types';
 export const queryKeys = {
   routes: (filters: RouteFilters) => ['routes', filters] as const,
   route: (id: number) => ['route', id] as const,
+  myContributions: () => ['myContributions'] as const,
 };

@@ -821,6 +821,50 @@
         }
       }
     },
+    "/api/areas/{id}/reject": {
+      "post": {
+        "tags": [
+          "Areas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -1101,6 +1145,35 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/contributions/mine": {
+      "get": {
+        "tags": [
+          "Contributions"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyContributionsResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyContributionsResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyContributionsResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1617,6 +1690,112 @@
         }
       }
     },
+    "/api/first-ascensionists/pending": {
+      "get": {
+        "tags": [
+          "FirstAscensionists"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FirstAscensionistPendingDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/first-ascensionists/{id}/validate": {
+      "post": {
+        "tags": [
+          "FirstAscensionists"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/first-ascensionists/{id}/reject": {
+      "post": {
+        "tags": [
+          "FirstAscensionists"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/passkeys": {
       "get": {
         "tags": [
@@ -2080,6 +2259,50 @@
         }
       }
     },
+    "/api/routes/{id}/reject": {
+      "post": {
+        "tags": [
+          "Routes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RejectValidationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/routes/{id}/topos": {
       "post": {
         "tags": [
@@ -2527,8 +2750,10 @@
           "parentAreaId",
           "ancestors",
           "children",
-          "validatedAt",
-          "validatedBy",
+          "validationStatus",
+          "decidedAt",
+          "decidedByName",
+          "rejectionReason",
           "canManageMedia",
           "media"
         ],
@@ -2563,14 +2788,23 @@
               "$ref": "#/components/schemas/AreaChildDto"
             }
           },
-          "validatedAt": {
+          "validationStatus": {
+            "type": "string"
+          },
+          "decidedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date-time"
           },
-          "validatedBy": {
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rejectionReason": {
             "type": [
               "null",
               "string"
@@ -2596,8 +2830,10 @@
           "polygon",
           "centroidLat",
           "centroidLng",
-          "validatedAt",
-          "validatedBy"
+          "validationStatus",
+          "decidedAt",
+          "decidedByName",
+          "rejectionReason"
         ],
         "type": "object",
         "properties": {
@@ -2638,14 +2874,23 @@
             ],
             "format": "double"
           },
-          "validatedAt": {
+          "validationStatus": {
+            "type": "string"
+          },
+          "decidedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date-time"
           },
-          "validatedBy": {
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rejectionReason": {
             "type": [
               "null",
               "string"
@@ -3157,6 +3402,60 @@
           }
         }
       },
+      "ContributionDto": {
+        "required": [
+          "id",
+          "name",
+          "detail",
+          "createdAt",
+          "validationStatus",
+          "decidedAt",
+          "decidedByName",
+          "rejectionReason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validationStatus": {
+            "type": "string"
+          },
+          "decidedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rejectionReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "CreateAreaExpertRequest": {
         "required": [
           "areaId"
@@ -3420,6 +3719,34 @@
           }
         }
       },
+      "FirstAscensionistPendingDto": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "addedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "addedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "FirstAscensionistProfileDto": {
         "required": [
           "id",
@@ -3427,7 +3754,11 @@
           "userId",
           "linkedUserName",
           "routeCount",
-          "areaNames"
+          "areaNames",
+          "validationStatus",
+          "decidedAt",
+          "decidedByName",
+          "rejectionReason"
         ],
         "type": "object",
         "properties": {
@@ -3459,6 +3790,28 @@
             "items": {
               "type": "string"
             }
+          },
+          "validationStatus": {
+            "type": "string"
+          },
+          "decidedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rejectionReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3621,6 +3974,34 @@
           },
           "isAreaExpert": {
             "type": "boolean"
+          }
+        }
+      },
+      "MyContributionsResponse": {
+        "required": [
+          "routes",
+          "areas",
+          "firstAscensionists"
+        ],
+        "type": "object",
+        "properties": {
+          "routes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContributionDto"
+            }
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContributionDto"
+            }
+          },
+          "firstAscensionists": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContributionDto"
+            }
           }
         }
       },
@@ -3993,6 +4374,17 @@
           }
         }
       },
+      "RejectValidationRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "ResetPasswordRequest": {
         "required": [
           "email",
@@ -4030,8 +4422,10 @@
           "createdAt",
           "hasTick",
           "topos",
-          "validatedAt",
-          "validatedBy",
+          "validationStatus",
+          "decidedAt",
+          "decidedByName",
+          "rejectionReason",
           "canValidate"
         ],
         "type": "object",
@@ -4096,14 +4490,23 @@
               "$ref": "#/components/schemas/TopoDto"
             }
           },
-          "validatedAt": {
+          "validationStatus": {
+            "type": "string"
+          },
+          "decidedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date-time"
           },
-          "validatedBy": {
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rejectionReason": {
             "type": [
               "null",
               "string"
@@ -4131,8 +4534,10 @@
           "createdAt",
           "hasTick",
           "hasTopos",
-          "validatedAt",
-          "validatedBy",
+          "validationStatus",
+          "decidedAt",
+          "decidedByName",
+          "rejectionReason",
           "canValidate"
         ],
         "type": "object",
@@ -4194,14 +4599,23 @@
           "hasTopos": {
             "type": "boolean"
           },
-          "validatedAt": {
+          "validationStatus": {
+            "type": "string"
+          },
+          "decidedAt": {
             "type": [
               "null",
               "string"
             ],
             "format": "date-time"
           },
-          "validatedBy": {
+          "decidedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rejectionReason": {
             "type": [
               "null",
               "string"
@@ -4415,6 +4829,9 @@
     },
     {
       "name": "Auth"
+    },
+    {
+      "name": "Contributions"
     },
     {
       "name": "FirstAscensionistLinks"
