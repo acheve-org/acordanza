@@ -90,16 +90,6 @@ function AreaTreeNode({
         )}
         <span className="area-tree-name">{node.name}</span>
         <div className="detail-actions">
-          {canEdit && (
-            <Button variant="ghost" small type="button" onClick={() => setEditModal(true)}>
-              Editar
-            </Button>
-          )}
-          {canEdit && (
-            <Button variant="ghost" small type="button" onClick={() => setPolygonModal(true)}>
-              {node.hasPolygon ? 'Editar polígono' : 'Dibujar polígono'}
-            </Button>
-          )}
           {canCreate && (
             <Button
               variant="ghost"
@@ -113,6 +103,16 @@ function AreaTreeNode({
               }
             >
               + Subsector
+            </Button>
+          )}
+          {canEdit && (
+            <Button variant="ghost" small type="button" onClick={() => setPolygonModal(true)}>
+              {node.hasPolygon ? 'Editar polígono' : 'Dibujar polígono'}
+            </Button>
+          )}
+          {canEdit && (
+            <Button variant="ghost" small type="button" onClick={() => setEditModal(true)}>
+              Editar
             </Button>
           )}
           {canDelete && (

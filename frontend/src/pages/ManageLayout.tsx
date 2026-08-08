@@ -59,8 +59,8 @@ export function ManageIndexRedirect() {
   const { hasPermission } = useAuth();
   const { visible: pendingTasksVisible } = usePendingTasks();
 
-  if (hasPermission(Permissions.areaEdit)) return <Navigate to="/manage/areas" replace />;
   if (hasPermission(Permissions.userManage)) return <Navigate to="/manage/users" replace />;
+  if (hasPermission(Permissions.areaEdit)) return <Navigate to="/manage/areas" replace />;
   if (hasPermission(Permissions.firstAscensionistDelete)) return <Navigate to="/manage/first-ascensionists" replace />;
   if (pendingTasksVisible) return <Navigate to="/manage/pending-tasks" replace />;
   return <Navigate to="/" replace />;

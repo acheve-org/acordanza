@@ -12,7 +12,7 @@ import { DetailModal } from '../components/DetailModal';
 import { RejectReasonModal } from '../components/RejectReasonModal';
 import type { AreaPending, CreateTickInput, FirstAscensionistPending, RouteDetail } from '../api/types';
 
-type Tab = 'routes' | 'areas' | 'areaExperts' | 'firstAscensionistLinks' | 'firstAscensionists';
+type Tab = 'routes' | 'areas' | 'firstAscensionists' | 'areaExperts' | 'firstAscensionistLinks';
 
 export function PendingTasksPage() {
   const navigate = useNavigate();
@@ -57,6 +57,9 @@ export function PendingTasksPage() {
   const tabs: { key: Tab; label: string; count: number }[] = [
     ...(showRoutes ? [{ key: 'routes' as const, label: 'Vías', count: pendingRoutes.length }] : []),
     ...(showAreas ? [{ key: 'areas' as const, label: 'Sectores', count: pendingAreas.length }] : []),
+    ...(showFirstAscensionists
+      ? [{ key: 'firstAscensionists' as const, label: 'Aperturistas', count: pendingFirstAscensionists.length }]
+      : []),
     ...(showAreaExperts
       ? [{ key: 'areaExperts' as const, label: 'Expertos de sector', count: pendingAreaExperts.length }]
       : []),
@@ -68,9 +71,6 @@ export function PendingTasksPage() {
             count: pendingFirstAscensionistLinks.length,
           },
         ]
-      : []),
-    ...(showFirstAscensionists
-      ? [{ key: 'firstAscensionists' as const, label: 'Aperturistas', count: pendingFirstAscensionists.length }]
       : []),
   ];
 
