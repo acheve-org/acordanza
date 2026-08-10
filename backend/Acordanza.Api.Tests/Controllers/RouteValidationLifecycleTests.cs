@@ -104,6 +104,19 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
     }
 
+    // Issue #152: grades are normalized on write (Models/GradeValidator), so a PUT that
+    // re-sends the same grade in different case is a no-op, not a change — it must not
+    // re-flag an approved route as pending. Fails against route.Grade != request.Grade.
+    [Fact]
+    public async Task Resubmitting_the_same_grade_in_different_case_keeps_validation()
+    {
+        using var s = await SeedValidatedRouteAsync();
+        var areaId = await AreaIdAsync(s);
+        var request = BaseRequest(s, areaId) with { Grade = "6A" };
+
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
+    }
+
     [Fact]
     public async Task Changing_the_orientation_clears_validation()
     {

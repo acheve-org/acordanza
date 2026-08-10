@@ -419,7 +419,7 @@ input:focus, select:focus, textarea:focus {
 
 .detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md); }
 .detail-actions { display: flex; gap: var(--space-sm); flex-shrink: 0; }
-.detail-meta { font-family: var(--font-mono); color: var(--accent-2); font-size: 13px; margin: 4px 0 0; }
+.detail-meta { display: flex; align-items: center; gap: var(--space-sm); color: var(--text-dim); font-size: 13px; margin: 4px 0 0; }
 .detail-desc { color: var(--text); line-height: 1.5; font-size: 16px; letter-spacing: 0.24px; }
 .detail-fa { color: var(--text-dim); font-size: 13px; }
 .divider { border: none; border-top: 1px solid var(--border); margin: var(--space-xl) 0; }

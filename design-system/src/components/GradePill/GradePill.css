@@ -9,3 +9,7 @@
   padding: 4px 10px;
   white-space: nowrap;
 }
+
+.grade-band-6   { color: var(--grade-6);   background: var(--grade-6-bg);   border-color: var(--grade-6-border); }
+.grade-band-7   { color: var(--grade-7);   background: var(--grade-7-bg);   border-color: var(--grade-7-border); }
+.grade-band-8-9 { color: var(--grade-8-9); background: var(--grade-8-9-bg); border-color: var(--grade-8-9-border); }

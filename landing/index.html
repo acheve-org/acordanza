@@ -26,6 +26,19 @@
     --accent-2: #007a63;
     --accent-2-bg: rgba(0, 122, 99, 0.08);
     --accent-2-border: rgba(0, 122, 99, 0.24);
+    --danger: #d13a4a;
+    --danger-bg: rgba(209, 58, 74, 0.08);
+    --danger-border: rgba(209, 58, 74, 0.24);
+    /* Grade bands (issue #152) — mirrors design-system/src/tokens.css. */
+    --grade-6: #b45309;
+    --grade-6-bg: rgba(180, 83, 9, 0.08);
+    --grade-6-border: rgba(180, 83, 9, 0.24);
+    --grade-7: var(--danger);
+    --grade-7-bg: var(--danger-bg);
+    --grade-7-border: var(--danger-border);
+    --grade-8-9: #6b21a8;
+    --grade-8-9-bg: rgba(107, 33, 168, 0.08);
+    --grade-8-9-border: rgba(107, 33, 168, 0.24);
     --hairline: rgba(0, 0, 0, 0.07);
     --hairline-strong: rgba(0, 0, 0, 0.15);
     --font-display: 'Archivo', sans-serif;
@@ -317,6 +330,9 @@
     border-radius: var(--radius-sm);
     padding: 3px 8px;
   }
+  .grade-chip.grade-band-6   { color: var(--grade-6);   background: var(--grade-6-bg);   border-color: var(--grade-6-border); }
+  .grade-chip.grade-band-7   { color: var(--grade-7);   background: var(--grade-7-bg);   border-color: var(--grade-7-border); }
+  .grade-chip.grade-band-8-9 { color: var(--grade-8-9); background: var(--grade-8-9-bg); border-color: var(--grade-8-9-border); }
 
   /* ---------- access ---------- */
   .access {
@@ -438,9 +454,9 @@
           <h3>Vías y sectores</h3>
           <p>Nombre, sector, grado, aperturistas. Encuentra lo que quieres escalar.</p>
           <div class="grade-row">
-            <span class="grade-chip">7a+</span>
-            <span class="grade-chip">6c</span>
-            <span class="grade-chip">V+</span>
+            <span class="grade-chip grade-band-7">7a+</span>
+            <span class="grade-chip grade-band-6">6c</span>
+            <span class="grade-chip grade-band-8-9">8a</span>
           </div>
         </article>
         <article class="feature-card">

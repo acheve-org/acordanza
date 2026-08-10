@@ -1,10 +1,15 @@
-import type { ReactNode } from 'react'
+import { gradeBand } from './gradeBand'
 import './GradePill.css'
 
 export interface GradePillProps {
-  children: ReactNode
+  children: string
 }
 
 export function GradePill({ children }: GradePillProps) {
-  return <span className="grade-pill">{children}</span>
+  const band = gradeBand(children)
+  const className = ['grade-pill', band && band !== '1-5' ? `grade-band-${band}` : undefined]
+    .filter(Boolean)
+    .join(' ')
+
+  return <span className={className}>{children}</span>
 }
