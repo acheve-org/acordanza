@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { Badge } from 'acordanza-design-system';
 import { useAuth } from './context/AuthContext';
 import { usePendingTasks } from './context/PendingTasksContext';
+import { useDisclosure } from './hooks/useDisclosure';
 import { Permissions } from './api/permissions';
 import { LoginScreen } from './components/LoginScreen';
 import { Brand } from './components/Brand';
+import { MainNav } from './components/MainNav';
 import { HomePage } from './pages/HomePage';
 import { SearchPage } from './pages/SearchPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -32,19 +33,13 @@ import { MyAcordanzaLayout, MyAcordanzaIndexRedirect } from './pages/MyAcordanza
 function AppLayout() {
   const { name, hasPermission, logout } = useAuth();
   const { visible: pendingTasksVisible, total: pendingTasksTotal } = usePendingTasks();
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!userMenuOpen) return;
-    function handleClickOutside(e: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setUserMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userMenuOpen]);
+  const {
+    open: userMenuOpen,
+    toggle: toggleUserMenu,
+    close: closeUserMenu,
+    containerRef: userMenuRef,
+    triggerRef: userMenuTriggerRef,
+  } = useDisclosure<HTMLDivElement>();
 
   return (
     <div className="app">
@@ -52,20 +47,7 @@ function AppLayout() {
         <Link to="/" className="brand">
           <Brand />
         </Link>
-        <nav className="main-nav">
-          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/routes">
-            Busca
-          </NavLink>
-          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/explore">
-            Explora
-          </NavLink>
-          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/fa">
-            Sigue
-          </NavLink>
-          <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza">
-            Mi acordanza
-          </NavLink>
-        </nav>
+        <MainNav />
         <div className="topbar-right">
           {(hasPermission(Permissions.areaEdit) || hasPermission(Permissions.userManage)) && (
             <NavLink className={({ isActive }) => `main-nav-item${isActive ? ' active' : ''}`} to="/manage">
@@ -92,7 +74,8 @@ function AppLayout() {
               title={name ?? ''}
               aria-haspopup="true"
               aria-expanded={userMenuOpen}
-              onClick={() => setUserMenuOpen((open) => !open)}
+              ref={userMenuTriggerRef}
+              onClick={toggleUserMenu}
             >
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                 <circle cx="12" cy="8" r="4" />
@@ -103,7 +86,7 @@ function AppLayout() {
               <div className="user-menu-popup">
                 <span className="user-menu-name">{name}</span>
                 <div className="user-menu-divider" />
-                <Link className="user-menu-item" to="/settings" onClick={() => setUserMenuOpen(false)}>
+                <Link className="user-menu-item" to="/settings" onClick={closeUserMenu}>
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.5.5 0 0 0-.59-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.41h-3.84a.5.5 0 0 0-.5.41l-.36 2.54a7.03 7.03 0 0 0-1.62.94l-2.39-.96a.5.5 0 0 0-.59.22L2.74 8.87a.5.5 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54a.5.5 0 0 0 .5.41h3.84a.5.5 0 0 0 .5-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.5.5 0 0 0-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z" />
                   </svg>
@@ -114,7 +97,7 @@ function AppLayout() {
                   type="button"
                   className="user-menu-item"
                   onClick={() => {
-                    setUserMenuOpen(false);
+                    closeUserMenu();
                     logout();
                   }}
                 >
