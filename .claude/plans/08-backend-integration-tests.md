@@ -1,6 +1,6 @@
 # Backend integration tests (real Postgres + Azurite, real HTTP)
 
-Status: slices 1-4 landed (steps 1-6, 8 of "Steps" below); slices 5-8 remain as follow-ups (step 7)
+Status: slices 1-8 landed (all "Steps" below complete)
 Depends on: [07](07-test-harness.md) (the test project and CI wiring)
 
 ## Problem
