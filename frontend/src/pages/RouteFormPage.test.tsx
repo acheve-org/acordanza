@@ -95,7 +95,7 @@ describe('RouteFormPage', () => {
     renderCreateForm();
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado'), '6a');
+    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await selectArea(user, 'Peña Rúa');
