@@ -1,6 +1,6 @@
 # Mobile view: hamburger navigation, and the small-screen fixes around it
 
-Status: planned (not started)
+Status: done (§7, the optional "Busca" filters collapse, not implemented — deferred by request)
 Issue: [#115](https://github.com/acheve-org/acordanza/issues/115)
 Depends on: nothing. Frontend-only — no backend, no DTO, no migration, no OpenAPI regeneration. The test harness from [09](09-frontend-component-tests.md) is in `main`, so the navigation parts get real tests; the CSS parts do not (see Testing).
 

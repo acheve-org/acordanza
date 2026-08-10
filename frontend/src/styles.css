@@ -12,6 +12,9 @@
 
 * { box-sizing: border-box; }
 
+/* Stops iOS Safari inflating body text when the phone rotates to landscape. */
+html { -webkit-text-size-adjust: 100%; }
+
 body {
   margin: 0;
   background: var(--bg);
@@ -22,6 +25,9 @@ body {
   line-height: 1.5;
   letter-spacing: 0.24px;
   min-height: 100vh;
+  /* 100dvh accounts for the mobile URL bar; 100vh above is the fallback for
+     browsers predating dvh support (none targeted by this app, kept anyway). */
+  min-height: 100dvh;
 }
 
 .hidden { display: none !important; }
@@ -40,6 +46,7 @@ body {
 /* Login */
 .login-screen {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,6 +162,13 @@ input:focus, select:focus, textarea:focus {
   gap: var(--space-lg);
   overflow-x: auto;
 }
+/* On desktop, .main-nav-items is invisible to layout: `display: contents` drops the
+   wrapper from the box tree, so the links stay direct flex children of .main-nav and
+   inherit its `gap` exactly as if the wrapper didn't exist. Do not "simplify" this to
+   `display: flex` — that reintroduces a nested flex container and breaks the gap/spacing
+   inherited from .main-nav. The mobile block turns the wrapper into a real popup instead. */
+.main-nav-items { display: contents; }
+.nav-toggle { display: none; }
 .main-nav-item {
   flex-shrink: 0;
   color: var(--text-dim);
@@ -344,7 +358,10 @@ input:focus, select:focus, textarea:focus {
 
 .routes-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* min(280px, 100%) instead of a bare 280px: at any width where 280px fits, the two
+     are identical, so desktop is unaffected — but it stops the track from forcing
+     horizontal scroll on viewports narrower than 280px plus .layout's padding. */
+  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   gap: var(--space-md);
 }
 
@@ -429,7 +446,7 @@ input:focus, select:focus, textarea:focus {
 
 .topo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(96px, 100%), 1fr));
   gap: var(--space-sm);
 }
 .topo-thumb {
@@ -583,7 +600,7 @@ input:focus, select:focus, textarea:focus {
 
 .fa-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr));
   gap: var(--space-md);
 }
 .fa-card {
@@ -643,6 +660,11 @@ input:focus, select:focus, textarea:focus {
   top: var(--space-xxl);
   align-self: start;
 }
+/* Same `display: contents` trick as .main-nav-items — see that comment. On desktop the
+   header and items stay direct flex children of .side-nav, so its gap/position:sticky
+   apply exactly as before the SideNav extraction. */
+.side-nav-header { display: contents; }
+.side-nav-items { display: contents; }
 .side-nav h2 {
   font-family: var(--font-display);
   font-weight: 600;
@@ -786,14 +808,59 @@ input:focus, select:focus, textarea:focus {
    above this point in the file. */
 @media (max-width: 720px) {
   .topbar { padding: var(--space-md) var(--space-lg); gap: var(--space-md); }
-  .topbar-right { order: 2; }
-  .main-nav { order: 3; flex-basis: 100%; }
+  .brand-name { display: none; }
+
+  /* Top nav collapses into a hamburger popup. .main-nav-items/.side-nav-items/
+     .side-nav-header go from `display: contents` (base rules) to real boxes here —
+     see the comment on .main-nav-items above for why that's safe: this block only
+     ever wins because it's last in the file, per the note below. */
+  /* overflow-x: auto (base rules) implicitly computes overflow-y to auto too, which
+     would clip the absolutely-positioned popup below — override to visible. */
+  .main-nav { position: relative; overflow: visible; }
+  .nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 0;
+    border-radius: var(--radius-full);
+  }
+  .nav-toggle svg { width: 20px; height: 20px; }
+  .nav-toggle:hover { border-color: var(--text); color: var(--text); }
+  .main-nav-items, .side-nav-items { display: none; }
+  .main-nav-items.is-open, .side-nav-items.is-open { display: flex; flex-direction: column; align-items: stretch; }
+  .nav-popup .main-nav-item { padding: var(--space-sm) var(--space-md); }
+
+  /* Side nav (Gestionar/Mi acordanza) collapses the same way, with the trigger to the
+     right of the section name instead of the brand. */
+  .side-nav { position: relative; }
+  .side-nav-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+  .side-nav-header h2 { margin: 0; }
+
+  /* Shared popup chrome for both menus above — same recipe as .user-menu-popup so all
+     three read as one family. */
+  .nav-popup {
+    position: absolute;
+    top: calc(100% + var(--space-xs));
+    left: 0;
+    min-width: 200px;
+    z-index: 20;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: var(--space-xs) 0;
+  }
+
   .layout { grid-template-columns: 1fr; padding: var(--space-xl); }
   .filters { position: static; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .settings-page { padding: var(--space-xl); }
   .side-nav-layout { grid-template-columns: 1fr; padding: var(--space-xl); }
-  .side-nav { position: static; flex-direction: row; flex-wrap: wrap; }
   .users-page-header { flex-direction: column; align-items: stretch; }
   .users-toolbar { flex-direction: column; }
   .users-toolbar select { width: 100%; }
@@ -801,4 +868,28 @@ input:focus, select:focus, textarea:focus {
   .home-page { padding: var(--space-xl); }
   .home-grid { grid-template-columns: 1fr; }
   .fa-page { padding: var(--space-xl); }
+
+  /* .area-page never got the mobile padding the other boxed pages have. */
+  .area-page { padding: var(--space-xl); }
+
+  /* Tab switcher (PendingTasksPage/MyContributionsPage) overflows below ~360px —
+     scroll, not wrap, so the active-tab underline stays on one border. */
+  .tab-bar { overflow-x: auto; scrollbar-width: none; }
+  .tab-bar::-webkit-scrollbar { display: none; }
+
+  /* Route title and its action buttons no longer fit on one row. */
+  .detail-head { flex-direction: column; align-items: stretch; }
+  .detail-actions { flex-wrap: wrap; }
+
+  /* Map height: min-height alone would push page content below the fold on short phones. */
+  .area-map { height: 50vh; min-height: 240px; }
+  .modal-wide .area-map { height: 50vh; min-height: 220px; }
+
+  /* 44x44 tap targets (iOS/Android guidance); icons stay 20px. */
+  .notif-bell, .user-menu-trigger { width: 44px; height: 44px; }
+
+  .users-sort-bar { flex-wrap: wrap; }
+
+  /* 24px per nesting level is too much on a narrow row. */
+  .area-tree-children { padding-left: var(--space-md); }
 }

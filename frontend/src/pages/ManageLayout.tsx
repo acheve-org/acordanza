@@ -3,6 +3,7 @@ import { Badge } from 'acordanza-design-system';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
 import { usePendingTasks } from '../context/PendingTasksContext';
+import { SideNav } from '../components/SideNav';
 
 export function ManageLayout() {
   const { hasPermission } = useAuth();
@@ -18,8 +19,7 @@ export function ManageLayout() {
 
   return (
     <main className="side-nav-layout">
-      <aside className="side-nav">
-        <h2>Gestionar</h2>
+      <SideNav title="Gestionar">
         {canUsers && (
           <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/manage/users">
             Usuarios
@@ -47,7 +47,7 @@ export function ManageLayout() {
             <Badge count={pendingTasksTotal} />
           </NavLink>
         )}
-      </aside>
+      </SideNav>
       <section className="side-nav-content">
         <Outlet />
       </section>

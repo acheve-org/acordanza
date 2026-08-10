@@ -1,13 +1,13 @@
 import { Navigate, NavLink, Outlet } from 'react-router';
 import { useAuth } from '../context/AuthContext';
+import { SideNav } from '../components/SideNav';
 
 export function MyAcordanzaLayout() {
   const { isFirstAscensionist } = useAuth();
 
   return (
     <main className="side-nav-layout">
-      <aside className="side-nav">
-        <h2>Mi acordanza</h2>
+      <SideNav title="Mi acordanza">
         <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-invites">
           Mis invitaciones
         </NavLink>
@@ -34,7 +34,7 @@ export function MyAcordanzaLayout() {
             Mis aperturas
           </NavLink>
         )}
-      </aside>
+      </SideNav>
       <section className="side-nav-content">
         <Outlet />
       </section>

@@ -127,6 +127,10 @@ reserved for `GradePill` and success/positive states.
 - **Radius scale**: `{rounded.sm}` 8px (inputs, grade pills) · `{rounded.md}` 12px (cards, dropdowns) · `{rounded.lg}` 20px (modals, empty states) · `{rounded.full}` (buttons, chips).
 - **Content width**: mostly fluid, not a fixed centered column. List/grid views (routes list) reflow into more columns as the viewport widens (`repeat(auto-fill, minmax(280px, 1fr))`) and the explore page has no cap at all, since both benefit from extra width (its map canvas most of all). The remaining "boxed" pages — the home page, the aperturistas pages, settings, and the admin manage section (sectores/usuarios/tareas pendientes, under a shared left-nav layout) — are centered content that doesn't scale usefully past a point (a card grid, a form, a table, a tree), so they share one common cap, `--page-max-width` (1100px), rather than each picking its own number. All boxed and fluid pages alike use `{spacing.xxl}` page padding.
 
+### Responsive
+
+One breakpoint, `720px`, defined once at the bottom of `frontend/src/styles.css` (see its Styling section in `frontend/CLAUDE.md` for the mechanics). Below it: the top nav and the `/manage`/`/my-acordanza` left-nav both collapse their links into a hamburger-triggered popup, the wordmark hides (the mark alone stays), page padding steps down a size, and grid/map/tab layouts reflow to fit a phone-width viewport without introducing horizontal scroll. `Modal` steps its own padding down at the same breakpoint (`Modal.css`, the design system's first media query) so its content column doesn't shrink to nothing on a narrow screen.
+
 ## Elevation
 
 No traditional card-shadow language for static surfaces — cards register depth via a

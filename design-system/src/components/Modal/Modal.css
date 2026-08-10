@@ -39,3 +39,12 @@
 .modal form { display: flex; flex-direction: column; gap: var(--space-md); }
 .modal-actions { display: flex; justify-content: flex-end; gap: var(--space-sm); margin-top: var(--space-sm); }
 .modal-wide { max-width: min(960px, 92vw); }
+
+/* The package's first media query — 720px must match frontend/src/styles.css's single
+   breakpoint. Kept as a literal, not a custom property: CSS custom properties can't be
+   used in a media condition, and a shared @custom-media plugin isn't worth wiring into
+   two build pipelines for one number. */
+@media (max-width: 720px) {
+  .modal-overlay { padding: var(--space-md); align-items: flex-start; }
+  .modal { padding: var(--space-xl); }
+}

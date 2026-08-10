@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../test/renderWithProviders';
 import { Permissions } from '../api/permissions';
 import { ManageLayout } from './ManageLayout';
@@ -59,5 +60,30 @@ describe('ManageLayout permission gating', () => {
     expect(screen.getByRole('link', { name: 'Sectores' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Aperturistas' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Tareas pendientes/ })).toBeInTheDocument();
+  });
+});
+
+describe('ManageLayout section-name trigger', () => {
+  it('toggles on click, closes on Escape returning focus to the trigger, and closes on navigate', async () => {
+    const user = userEvent.setup();
+    mockPendingTasks(true, 1);
+    renderWithProviders(<ManageLayout />, {
+      auth: { permissions: [Permissions.userManage, Permissions.areaEdit] },
+      initialEntries: ['/manage'],
+    });
+    const trigger = screen.getByRole('button', { name: 'Secciones de Gestionar' });
+
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
+    expect(trigger).toHaveFocus();
+
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await user.click(screen.getByRole('link', { name: 'Sectores' }));
+    expect(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 });
