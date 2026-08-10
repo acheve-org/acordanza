@@ -7,6 +7,7 @@ import * as passkeysApi from '../api/passkeys';
 import type { PasskeySummary } from '../api/types';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { ChangeEmailModal } from '../components/ChangeEmailModal';
 
 export function SettingsPage() {
   return (
@@ -23,10 +24,11 @@ export function SettingsPage() {
 }
 
 function ProfileSection() {
-  const { name, updateName } = useAuth();
+  const { name, username, updateName } = useAuth();
   const [value, setValue] = useState(name ?? '');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [changingEmail, setChangingEmail] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -46,6 +48,15 @@ function ProfileSection() {
   return (
     <section className="settings-section">
       <h2>Perfil</h2>
+      {/* No separate "email" field on MeResponse — username already is the account's email. */}
+      <div className="field-static">
+        <span className="field-static-label">Correo electrónico</span>
+        <span>{username}</span>
+      </div>
+      <Button variant="ghost" small onClick={() => setChangingEmail(true)}>
+        Cambiar correo electrónico
+      </Button>
+      {changingEmail && <ChangeEmailModal onClose={() => setChangingEmail(false)} />}
       <form onSubmit={handleSubmit}>
         <label>
           Nombre

@@ -82,6 +82,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/email/change-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ChangeEmailRequest"];
+                    "text/json": components["schemas"]["ChangeEmailRequest"];
+                    "application/*+json": components["schemas"]["ChangeEmailRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/area-experts/mine": {
         parameters: {
             query?: never;
@@ -1109,6 +1148,45 @@ export interface paths {
                     "application/json": components["schemas"]["AcceptInviteRequest"];
                     "text/json": components["schemas"]["AcceptInviteRequest"];
                     "application/*+json": components["schemas"]["AcceptInviteRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/confirm-email-change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ConfirmEmailChangeRequest"];
+                    "text/json": components["schemas"]["ConfirmEmailChangeRequest"];
+                    "application/*+json": components["schemas"]["ConfirmEmailChangeRequest"];
                 };
             };
             responses: {
@@ -2698,9 +2776,18 @@ export interface components {
             requireResidentKey?: boolean;
             userVerification?: components["schemas"]["UserVerificationRequirement"];
         };
+        ChangeEmailRequest: {
+            newEmail: string;
+            currentPassword: string;
+        };
         ChangePasswordRequest: {
             currentPassword: string;
             newPassword: string;
+        };
+        ConfirmEmailChangeRequest: {
+            userId: string;
+            newEmail: string;
+            token: string;
         };
         ContributionDto: {
             /** Format: int32 */

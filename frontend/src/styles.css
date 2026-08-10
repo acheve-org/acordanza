@@ -525,6 +525,17 @@ input:focus, select:focus, textarea:focus {
 .settings-section form { display: flex; flex-direction: column; gap: var(--space-md); }
 .success-text { color: var(--accent-2); font-size: 13px; }
 
+/* A static label+value row for read-only fields (e.g. account email in
+   "Perfil") — deliberately not a disabled <input>, which reads as "editable,
+   but not right now" rather than "not editable here". */
+.field-static {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-size: 14px;
+}
+.field-static-label { color: var(--text-dim); }
+
 .passkey-form { border-top: 1px solid var(--border); padding-top: var(--space-md); }
 
 /* Area detail page (issue #105) — same boxed width as settings/users, plus a

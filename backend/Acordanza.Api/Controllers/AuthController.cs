@@ -290,6 +290,50 @@ public class AuthController(
         return Ok(new { ok = true });
     }
     
+    // Anonymous for the same reason reset-password/accept-invite are: the link
+    // is opened in whatever browser reads the new inbox, which is usually not
+    // a logged-in one. No validate-token pre-check here — this screen has no
+    // form to protect from a dead link, it just submits on mount (see
+    // ConfirmEmailChangeScreen) — and it wouldn't fit anyway: validate-token
+    // looks accounts up by email and checks two fixed purposes, while this
+    // token is found by user id and its purpose embeds the new address.
+    [HttpPost("confirm-email-change")]
+    public async Task<ActionResult> ConfirmEmailChange(ConfirmEmailChangeRequest request)
+    {
+        var user = await userManager.FindByIdAsync(request.UserId);
+        if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+
+        if (!TryDecodeToken(request.Token, out var token))
+        {
+            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        }
+
+        // Transaction: ChangeEmailAsync sets Email/EmailConfirmed and rotates the
+        // stamp, but SetUserNameAsync is what keeps UserName == Email — the
+        // invariant the rest of the app (MeResponse.Username, the JWT's
+        // unique_name, login) relies on. Both must land together, or a failure
+        // partway through leaves a half-changed identity with a spent, unretryable
+        // token.
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        var changeResult = await userManager.ChangeEmailAsync(user, request.NewEmail, token);
+        if (!changeResult.Succeeded)
+        {
+            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        }
+
+        var setUserNameResult = await userManager.SetUserNameAsync(user, request.NewEmail);
+        if (!setUserNameResult.Succeeded)
+        {
+            var error = setUserNameResult.Errors.FirstOrDefault()?.Description ?? "El enlace no es válido o ha caducado";
+            return BadRequest(new { error });
+        }
+
+        await transaction.CommitAsync();
+
+        return Ok(new { ok = true });
+    }
+
     // Matches UserManager's own internal purpose string for password-reset
     // tokens (it's not exposed publicly) — GeneratePasswordResetTokenAsync and
     // ResetPasswordAsync both use it under the hood, so VerifyUserTokenAsync

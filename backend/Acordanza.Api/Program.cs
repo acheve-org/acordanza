@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Acordanza.Api.Authorization;
@@ -233,6 +234,26 @@ builder.Services.AddRateLimiter(options =>
         {
             PermitLimit = 3,
             Window = TimeSpan.FromMinutes(15),
+            QueueLimit = 0
+        }));
+});
+
+// Caps how many email-change requests an authenticated caller can trigger —
+// without this, an authenticated JWT is an easy way to flood an arbitrary
+// inbox (the new address, attacker-chosen) and burn Resend's quota. Runs
+// after UseAuthentication (see below), so the user id claim is populated by
+// the time this partitions; falls back to IP only for the (never expected in
+// practice, since the endpoint is [Authorize]-wide) case it isn't.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("change-email", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 3,
+            Window = TimeSpan.FromHours(1),
             QueueLimit = 0
         }));
 });

@@ -80,6 +80,21 @@ public static class EmailTemplates
             <p style="{ParagraphStyle}"><strong>Motivo:</strong> {WebUtility.HtmlEncode(reason)}</p>
             """, frontendBaseUrl));
 
+    public static (string Subject, string Html) ConfirmEmailChange(string confirmLink, string frontendBaseUrl) => (
+        "Confirma tu nuevo correo de Acordanza",
+        Layout($"""
+            <p style="{ParagraphStyle}">Has pedido usar esta dirección para tu cuenta de Acordanza.</p>
+            {Button("Confirmar correo electrónico", confirmLink)}
+            <p style="{MutedStyle}">Si tú no has pedido esto, puedes ignorar este correo.</p>
+            """, frontendBaseUrl));
+
+    public static (string Subject, string Html) EmailChangeRequested(string newEmail, string frontendBaseUrl) => (
+        "Se ha solicitado cambiar el correo de tu cuenta",
+        Layout($"""
+            <p style="{ParagraphStyle}">Se ha solicitado cambiar el correo de tu cuenta de Acordanza a <strong>{WebUtility.HtmlEncode(newEmail)}</strong>. El cambio no se aplicará hasta que se confirme desde esa dirección.</p>
+            <p style="{MutedStyle}">Si no has sido tú, cambia tu contraseña ahora mismo.</p>
+            """, frontendBaseUrl));
+
     private static string Button(string label, string url)
     {
         var safeUrl = WebUtility.HtmlEncode(url);

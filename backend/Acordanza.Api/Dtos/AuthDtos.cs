@@ -17,3 +17,5 @@ public record ResetPasswordRequest(string Email, string Token, string NewPasswor
 public record AcceptInviteRequest(string Email, string Token, string Name, string Password);
 
 public record ValidateTokenRequest(string Email, string Token);
+
+public record ConfirmEmailChangeRequest(string UserId, string NewEmail, string Token);
