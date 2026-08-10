@@ -4,8 +4,8 @@ A small private web app for logging and searching climbing routes with a few fri
 ASP.NET Core (.NET 10) Web API + PostgreSQL backend, React + Vite frontend.
 
 ## Features
-- Add routes: name, area, grade (any grading system), type (sport/trad/boulder/etc.), description, tags, first ascent
-- Search & filter by name/description, area, type, and tag
+- Add routes: name, area, grade (any grading system), type (sport/trad/boulder/etc.), description, length, gear notes, links, first ascent
+- Search & filter by name/description, area, and type
 - Log ascents ("ticks") per route: who, when, rating, notes
 - Real user accounts (JWT auth, email as username) — everyone who has an account can see and edit everything
 - Accounts are admin-provisioned; there is no public sign-up

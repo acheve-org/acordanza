@@ -24,7 +24,6 @@ public record MyTickDto(
     string Grade,
     string? Orientation,
     string? Gear,
-    string Tags,
     string Date,
     int? Rating,
     string Notes,

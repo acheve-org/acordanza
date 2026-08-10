@@ -58,7 +58,7 @@ public static class SeedData
         string grade = "6a",
         string? orientation = null,
         string? gear = null,
-        string tags = "",
+        int length = 100,
         string description = "",
         List<FirstAscensionist>? firstAscensionists = null,
         bool hasTopo = false,
@@ -72,7 +72,7 @@ public static class SeedData
             Grade = grade,
             Orientation = orientation,
             Gear = gear,
-            Tags = tags,
+            Length = length,
             Description = description,
             AddedByUserId = addedByUserId,
             FirstAscensionists = firstAscensionists ?? []

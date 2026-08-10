@@ -24,7 +24,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
     // unlike GET /routes/{id} which used to (see RoutesController).
     [HttpGet("mine")]
     public async Task<ActionResult<PagedMyTicksResponse>> GetMyTicks(
-        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? gear, [FromQuery] string? tag,
+        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? gear,
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
         if (page < 1) page = 1;
@@ -51,10 +51,6 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
         {
             query = query.Where(t => t.Route.Gear == gear);
         }
-        if (!string.IsNullOrWhiteSpace(tag))
-        {
-            query = query.Where(t => t.Route.Tags.Contains(tag));
-        }
 
         var totalCount = await query.CountAsync();
         var ticks = await query
@@ -65,7 +61,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
 
         var items = ticks.Select(t => new MyTickDto(
             t.Id, t.RouteId, t.Route.Name, t.Route.AreaId, areas[t.Route.AreaId].Name, areas.NamePath(t.Route.AreaId),
-            t.Route.Grade, t.Route.Orientation, t.Route.Gear, t.Route.Tags,
+            t.Route.Grade, t.Route.Orientation, t.Route.Gear,
             t.Date, t.Rating, t.Notes, t.CreatedAt)).ToList();
 
         return Ok(new PagedMyTicksResponse(items, totalCount, page, pageSize));

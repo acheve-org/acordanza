@@ -10,7 +10,10 @@ public class ClimbingRoute : IValidatable
     public string? Orientation { get; set; }
     public string? Gear { get; set; }
     public string Description { get; set; } = "";
-    public string Tags { get; set; } = "";
+    public int Length { get; set; }
+    public string? ObligatoryGrade { get; set; }
+    public string? RecommendedGear { get; set; }
+    public string? OptionalGear { get; set; }
     public string AddedByUserId { get; set; } = null!;
     public ApplicationUser AddedBy { get; set; } = null!;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
@@ -24,4 +27,5 @@ public class ClimbingRoute : IValidatable
     public List<FirstAscensionist> FirstAscensionists { get; set; } = [];
     public List<Tick> Ticks { get; set; } = [];
     public List<Topo> Topos { get; set; } = [];
+    public List<Link> Links { get; set; } = [];
 }

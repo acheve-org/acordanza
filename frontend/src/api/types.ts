@@ -81,7 +81,6 @@ export interface RouteFilters {
   grade: string;
   orientation: string;
   gear: string;
-  tag: string;
   hasTopo: string;
 }
 
@@ -91,7 +90,6 @@ export const emptyRouteFilters: RouteFilters = {
   grade: '',
   orientation: '',
   gear: '',
-  tag: '',
   hasTopo: '',
 };
 
@@ -99,7 +97,6 @@ export interface TickFilters {
   q: string;
   areaId: string;
   gear: string;
-  tag: string;
 }
 
 export type TickedRoute = components['schemas']['MyTickDto'];

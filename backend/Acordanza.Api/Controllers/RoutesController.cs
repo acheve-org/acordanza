@@ -30,7 +30,7 @@ public class RoutesController(
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
         [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string? orientation,
-        [FromQuery] string? gear, [FromQuery] string? tag, [FromQuery] bool? hasTopo,
+        [FromQuery] string? gear, [FromQuery] bool? hasTopo,
         [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false, [FromQuery] bool openedByMe = false)
     {
         var areas = await areaHierarchy.GetAsync();
@@ -41,6 +41,7 @@ public class RoutesController(
             .Include(r => r.DecidedBy)
             .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
             .Include(r => r.Topos)
+            .Include(r => r.Links)
             .AsSplitQuery()
             .AsQueryable();
 
@@ -81,10 +82,6 @@ public class RoutesController(
         {
             query = query.Where(r => r.Gear == gear);
         }
-        if (!string.IsNullOrWhiteSpace(tag))
-        {
-            query = query.Where(r => r.Tags.Contains(tag));
-        }
         if (hasTopo == true)
         {
             query = query.Where(r => r.Topos.Any());
@@ -111,7 +108,9 @@ public class RoutesController(
 
         var dtos = routes.Select(r => new RouteDto(
             r.Id, r.Name, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId),
-            r.Grade, r.Orientation, r.Gear, r.Description, r.Tags,
+            r.Grade, r.Orientation, r.Gear, r.Description,
+            r.Length, r.ObligatoryGrade, r.RecommendedGear, r.OptionalGear,
+            r.Links.Select(l => l.Url).ToList(),
             r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             r.AddedBy.Name, r.CreatedAt,
             tickedRouteIds.Contains(r.Id),
@@ -171,6 +170,7 @@ public class RoutesController(
                 .Include(r => r.DecidedBy)
                 .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
                 .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
+                .Include(r => r.Links)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(r => r.Id == id);
             await transaction.CommitAsync();
@@ -194,7 +194,9 @@ public class RoutesController(
 
         var dto = new RouteDetailDto(
             route.Id, route.Name, route.AreaId, areas[route.AreaId].Name, areas.NamePath(route.AreaId),
-            route.Grade, route.Orientation, route.Gear, route.Description, route.Tags,
+            route.Grade, route.Orientation, route.Gear, route.Description,
+            route.Length, route.ObligatoryGrade, route.RecommendedGear, route.OptionalGear,
+            route.Links.Select(l => l.Url).ToList(),
             route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             route.AddedBy.Name, route.CreatedAt,
             hasTick,
@@ -225,6 +227,18 @@ public class RoutesController(
         var gearError = ValidateGear(request.Gear);
         if (gearError is not null) return BadRequest(new { error = gearError });
 
+        var lengthError = ValidateLength(request.Length);
+        if (lengthError is not null) return BadRequest(new { error = lengthError });
+
+        var obligatoryGrade = NormalizeOptionalText(request.ObligatoryGrade);
+        var recommendedGear = NormalizeOptionalText(request.RecommendedGear);
+        var optionalGear = NormalizeOptionalText(request.OptionalGear);
+        var textLengthError = ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
+        if (textLengthError is not null) return BadRequest(new { error = textLengthError });
+
+        var (links, linksError) = ResolveLinks(request.Links);
+        if (linksError is not null) return BadRequest(new { error = linksError });
+
         var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
         if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
@@ -237,7 +251,11 @@ public class RoutesController(
             Orientation = request.Orientation,
             Gear = request.Gear,
             Description = request.Description ?? "",
-            Tags = request.Tags ?? "",
+            Length = request.Length,
+            ObligatoryGrade = obligatoryGrade,
+            RecommendedGear = recommendedGear,
+            OptionalGear = optionalGear,
+            Links = links!.Select(u => new Link { Url = u }).ToList(),
             AddedByUserId = userId,
             FirstAscensionists = firstAscensionists!
         };
@@ -261,7 +279,10 @@ public class RoutesController(
     [HttpPut("{id:int}")]
     public async Task<ActionResult> UpdateRoute(int id, UpsertRouteRequest request)
     {
-        var route = await db.Routes.Include(r => r.FirstAscensionists).FirstOrDefaultAsync(r => r.Id == id);
+        var route = await db.Routes
+            .Include(r => r.FirstAscensionists)
+            .Include(r => r.Links)
+            .FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
         if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
@@ -275,17 +296,34 @@ public class RoutesController(
         var gearError = ValidateGear(request.Gear);
         if (gearError is not null) return BadRequest(new { error = gearError });
 
+        var lengthError = ValidateLength(request.Length);
+        if (lengthError is not null) return BadRequest(new { error = lengthError });
+
+        var obligatoryGrade = NormalizeOptionalText(request.ObligatoryGrade);
+        var recommendedGear = NormalizeOptionalText(request.RecommendedGear);
+        var optionalGear = NormalizeOptionalText(request.OptionalGear);
+        var textLengthError = ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
+        if (textLengthError is not null) return BadRequest(new { error = textLengthError });
+
+        var (links, linksError) = ResolveLinks(request.Links);
+        if (linksError is not null) return BadRequest(new { error = linksError });
+
         var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
         if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
         var newFirstAscensionistIds = firstAscensionists!.Select(fa => fa.Id).ToHashSet();
+        var newLinkUrls = links!.ToHashSet();
         var changed = route.Name != request.Name ||
             route.AreaId != request.AreaId ||
             route.Grade != request.Grade ||
             (route.Orientation ?? "") != (request.Orientation ?? "") ||
             (route.Gear ?? "") != (request.Gear ?? "") ||
             route.Description != (request.Description ?? "") ||
-            route.Tags != (request.Tags ?? "") ||
+            route.Length != request.Length ||
+            (route.ObligatoryGrade ?? "") != (obligatoryGrade ?? "") ||
+            (route.RecommendedGear ?? "") != (recommendedGear ?? "") ||
+            (route.OptionalGear ?? "") != (optionalGear ?? "") ||
+            !route.Links.Select(l => l.Url).ToHashSet().SetEquals(newLinkUrls) ||
             !route.FirstAscensionists.Select(fa => fa.Id).ToHashSet().SetEquals(newFirstAscensionistIds);
 
         route.Name = request.Name;
@@ -294,7 +332,13 @@ public class RoutesController(
         route.Orientation = request.Orientation;
         route.Gear = request.Gear;
         route.Description = request.Description ?? "";
-        route.Tags = request.Tags ?? "";
+        route.Length = request.Length;
+        route.ObligatoryGrade = obligatoryGrade;
+        route.RecommendedGear = recommendedGear;
+        route.OptionalGear = optionalGear;
+
+        route.Links.Clear();
+        route.Links.AddRange(links!.Select(u => new Link { Url = u }));
 
         route.FirstAscensionists.Clear();
         route.FirstAscensionists.AddRange(firstAscensionists!);
@@ -458,6 +502,46 @@ public class RoutesController(
         gear is not null && !AllowedGear.Contains(gear)
             ? "el tipo de equipamiento no es válido"
             : null;
+
+    private static string? ValidateLength(int length) =>
+        length is > 5 and < 3000 ? null : "la longitud debe ser mayor que 5 y menor que 3000";
+
+    private const int ObligatoryGradeMaxLength = 20;
+    private const int GearNoteMaxLength = 500;
+
+    private static string? ValidateTextLength(string? value, int maxLength) =>
+        value is not null && value.Length > maxLength ? "el texto es demasiado largo" : null;
+
+    private static string? NormalizeOptionalText(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private const int MaxLinks = 10;
+    private const int MaxLinkLength = 2048;
+
+    private static (List<string>? Urls, string? Error) ResolveLinks(List<string>? links)
+    {
+        var trimmed = (links ?? []).Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
+
+        if (trimmed.Count > MaxLinks)
+        {
+            return (null, "no puedes añadir más de 10 enlaces");
+        }
+
+        if (trimmed.Any(l => l.Length > MaxLinkLength))
+        {
+            return (null, "algún enlace es demasiado largo");
+        }
+
+        var invalid = trimmed.Any(l =>
+            !Uri.TryCreate(l, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps));
+        if (invalid)
+        {
+            return (null, "algún enlace no es válido: debe empezar por http:// o https://");
+        }
+
+        return (trimmed.Distinct().ToList(), null);
+    }
 
     private async Task<(List<FirstAscensionist>? FirstAscensionists, string? Error)> ResolveFirstAscensionistsAsync(List<int>? firstAscensionistIds)
     {
