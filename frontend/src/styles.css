@@ -527,31 +527,6 @@ input:focus, select:focus, textarea:focus {
 
 .passkey-form { border-top: 1px solid var(--border); padding-top: var(--space-md); }
 
-.expert-banner {
-  background: var(--accent-2-bg);
-  border: 1px solid var(--accent-2-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-lg) var(--space-xl);
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
-}
-.expert-banner-icon {
-  width: 28px;
-  height: 28px;
-  flex-shrink: 0;
-  color: var(--accent-2);
-}
-.expert-banner h2 {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 15px;
-  color: var(--text);
-  margin: 0 0 var(--space-xxs);
-}
-.expert-banner p { margin: 0; color: var(--text-dim); font-size: 13px; }
-.expert-banner strong { color: var(--text); }
-
 /* Area detail page (issue #105) — same boxed width as settings/users, plus a
    navigable breadcrumb back to its parents and reuses .settings-section for
    its children/media sections and .routes-panel (unwrapped) for its routes. */
@@ -619,7 +594,7 @@ input:focus, select:focus, textarea:focus {
 .fa-card-name { font-weight: 600; font-size: 15px; }
 .fa-card-count { color: var(--text-dim); font-size: 13px; }
 
-.users-page-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
+.page-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-md); }
 .users-toolbar { display: flex; gap: var(--space-md); }
 .users-toolbar input { flex: 1; }
 .users-toolbar select { width: 220px; }
@@ -861,7 +836,7 @@ input:focus, select:focus, textarea:focus {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .settings-page { padding: var(--space-xl); }
   .side-nav-layout { grid-template-columns: 1fr; padding: var(--space-xl); }
-  .users-page-header { flex-direction: column; align-items: stretch; }
+  .page-header { flex-direction: column; align-items: stretch; }
   .users-toolbar { flex-direction: column; }
   .users-toolbar select { width: 100%; }
   .explore-page { padding: var(--space-xl); }

@@ -20,7 +20,7 @@ export function ClaimFirstAscensionistPage() {
 
   useEffect(refresh, []);
 
-  const activeRequestFirstAscensionistIds = mine.filter((r) => r.status !== 'rejected').map((r) => r.firstAscensionistId);
+  const activeClaim = mine.find((r) => r.status !== 'rejected');
 
   async function handleCancel(id: number) {
     try {
@@ -36,51 +36,53 @@ export function ClaimFirstAscensionistPage() {
     refresh();
   }
 
+  const intro =
+    activeClaim === undefined
+      ? 'Al vincularte con un aperturista podrás gestionar sus vías y aparecerás como tal en su ficha. Solo puedes vincularte con un aperturista.'
+      : activeClaim.status === 'pending'
+        ? `Tu solicitud para vincularte con ${activeClaim.firstAscensionistName} está pendiente de aprobación. Solo puedes vincularte con un aperturista, así que no puedes solicitar otro vínculo mientras tanto.`
+        : `Estás vinculado con ${activeClaim.firstAscensionistName}. Solo puedes vincularte con un aperturista; si necesitas cambiarlo, pídeselo a un moderador.`;
+
   return (
     <>
-      <h1>Vincular aperturista</h1>
-
-      <section className="settings-section">
-        {mine.length === 0 ? (
-          <EmptyState>Todavía no has solicitado ningún vínculo</EmptyState>
-        ) : (
-          <List>
-            {mine.map((r) => (
-              <ListRow
-                key={r.id}
-                title={r.firstAscensionistName}
-                subtitle={
-                  <>
-                    {reviewStatusLabels[r.status]}
-                    {r.status !== 'pending' && r.decidedByName && ` · ${r.decidedByName}`}
-                    {r.status === 'rejected' && r.rejectionReason && ` · Motivo: ${r.rejectionReason}`}
-                  </>
-                }
-                trailing={
-                  r.status === 'pending' && (
-                    <RemoveButton label="Retirar solicitud" onClick={() => handleCancel(r.id)} />
-                  )
-                }
-              />
-            ))}
-          </List>
-        )}
-      </section>
-
-      <section className="settings-section">
-        <h2>Solicitar vínculo</h2>
-        <Button type="button" onClick={() => setRequesting(true)}>
+      <div className="page-header">
+        <h1>Vincular aperturista</h1>
+        <Button type="button" onClick={() => setRequesting(true)} disabled={activeClaim !== undefined}>
           Solicitar vínculo
         </Button>
-        {error && <p className="error-text">{error}</p>}
-      </section>
+      </div>
+
+      <p>{intro}</p>
+
+      {error && <p className="error-text">{error}</p>}
+
+      {mine.length === 0 ? (
+        <EmptyState>Todavía no has solicitado ningún vínculo</EmptyState>
+      ) : (
+        <List>
+          {mine.map((r) => (
+            <ListRow
+              key={r.id}
+              title={r.firstAscensionistName}
+              subtitle={
+                <>
+                  {reviewStatusLabels[r.status]}
+                  {r.status !== 'pending' && r.decidedByName && ` · ${r.decidedByName}`}
+                  {r.status === 'rejected' && r.rejectionReason && ` · Motivo: ${r.rejectionReason}`}
+                </>
+              }
+              trailing={
+                r.status === 'pending' && (
+                  <RemoveButton label="Retirar solicitud" onClick={() => handleCancel(r.id)} />
+                )
+              }
+            />
+          ))}
+        </List>
+      )}
 
       {requesting && (
-        <RequestFirstAscensionistLinkModal
-          excludedFirstAscensionistIds={activeRequestFirstAscensionistIds}
-          onClose={() => setRequesting(false)}
-          onRequested={handleRequested}
-        />
+        <RequestFirstAscensionistLinkModal onClose={() => setRequesting(false)} onRequested={handleRequested} />
       )}
     </>
   );

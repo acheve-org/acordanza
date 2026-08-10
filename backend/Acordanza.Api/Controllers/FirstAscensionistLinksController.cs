@@ -60,6 +60,22 @@ public class FirstAscensionistLinksController(
             return BadRequest(new { error = "ya has solicitado este vínculo" });
         }
 
+        // One claim per user (plan 15, §5): a pending request for any aperturista, or an
+        // existing link, blocks a new request — you don't get to shop around by requesting
+        // several and seeing which one a moderator waves through.
+        var hasPendingClaim = await db.FirstAscensionistLinkRequests.AnyAsync(l =>
+            l.UserId == userId && l.Status == ReviewStatus.Pending);
+        if (hasPendingClaim)
+        {
+            return BadRequest(new { error = "ya tienes una solicitud de vínculo pendiente" });
+        }
+
+        var alreadyLinked = await db.FirstAscensionists.AnyAsync(f => f.UserId == userId);
+        if (alreadyLinked)
+        {
+            return BadRequest(new { error = "ya estás vinculado a un aperturista" });
+        }
+
         var link = new FirstAscensionistLinkRequest { FirstAscensionistId = request.FirstAscensionistId, UserId = userId };
         db.FirstAscensionistLinkRequests.Add(link);
         try
@@ -100,24 +116,43 @@ public class FirstAscensionistLinksController(
 
         var link = await Query().FirstAsync(l => l.Id == id);
 
-        // A second atomic UPDATE, conditioned on the target still being unlinked —
-        // guards against it having been claimed by a different, already-approved
-        // competing request between the two operations. This is the genuinely
-        // different shape that keeps this Approve inline rather than going
-        // through the shared service.
-        var linked = await db.FirstAscensionists
-            .Where(f => f.Id == link.FirstAscensionistId && f.UserId == null)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(f => f.UserId, link.UserId));
+        // A second atomic UPDATE, conditioned on the target still being unlinked and the
+        // requester still holding no claim of their own — guards against either having
+        // changed (the target claimed by a different, already-approved competing request;
+        // the requester having been linked to someone else first) between the two
+        // operations. This is the genuinely different shape that keeps this Approve
+        // inline rather than going through the shared service.
+        var requesterAlreadyLinked = await db.FirstAscensionists.AnyAsync(f => f.UserId == link.UserId);
+        var linked = 0;
+        if (!requesterAlreadyLinked)
+        {
+            try
+            {
+                linked = await db.FirstAscensionists
+                    .Where(f => f.Id == link.FirstAscensionistId && f.UserId == null)
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(f => f.UserId, link.UserId));
+            }
+            catch (DbUpdateException)
+            {
+                // Lost a race against another already-approved link for the same
+                // requester — the AnyAsync check above passed, but the unique filtered
+                // index on FirstAscensionist.UserId only lets one account claim through.
+                requesterAlreadyLinked = true;
+            }
+        }
 
         if (linked == 0)
         {
             // Rolling back would leave this request "Pending" forever: it can never
-            // be approved (the target is already linked to someone else), yet its
-            // unique filtered index would still block the requester from submitting
-            // a fresh one. Auto-resolve it as rejected instead, so it's not stuck.
-            // Status is already Approved at this point (the update above), not
-            // Pending, so this can't go through ReviewRequestService.RejectAsync.
-            const string reason = "Este aperturista ya ha sido vinculado a otra cuenta.";
+            // be approved (either the target is already linked to someone else, or the
+            // requester already holds another claim), yet its unique filtered index
+            // would still block the requester from submitting a fresh one. Auto-resolve
+            // it as rejected instead, so it's not stuck. Status is already Approved at
+            // this point (the update above), not Pending, so this can't go through
+            // ReviewRequestService.RejectAsync.
+            var reason = requesterAlreadyLinked
+                ? "Esta cuenta ya está vinculada a otro aperturista."
+                : "Este aperturista ya ha sido vinculado a otra cuenta.";
             await db.FirstAscensionistLinkRequests
                 .Where(l => l.Id == id)
                 .ExecuteUpdateAsync(setters => setters
@@ -130,7 +165,9 @@ public class FirstAscensionistLinksController(
             var autoRejected = await Query().FirstAsync(l => l.Id == id);
             await NotifyDecisionAsync(autoRejected, approved: false, reason);
 
-            return BadRequest(new { error = "este aperturista ya está vinculado a otra cuenta; la solicitud se ha marcado como rechazada" });
+            return BadRequest(new { error = requesterAlreadyLinked
+                ? "esta cuenta ya está vinculada a otro aperturista; la solicitud se ha marcado como rechazada"
+                : "este aperturista ya está vinculado a otra cuenta; la solicitud se ha marcado como rechazada" });
         }
 
         await transaction.CommitAsync();

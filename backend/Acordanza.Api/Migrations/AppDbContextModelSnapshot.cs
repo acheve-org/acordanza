@@ -379,7 +379,9 @@ namespace Acordanza.Api.Migrations
                     b.HasIndex("Slug")
                         .IsUnique();
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("\"UserId\" IS NOT NULL");
 
                     b.ToTable("FirstAscensionists", "core");
                 });

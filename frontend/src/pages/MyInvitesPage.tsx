@@ -33,7 +33,7 @@ export function MyInvitesPage() {
 
   return (
     <>
-      <div className="users-page-header">
+      <div className="page-header">
         <h1>Mis invitaciones</h1>
         <Button type="button" onClick={() => setInviteOpen(true)} disabled={result.invitesLeft === 0}>
           Invitar usuario
