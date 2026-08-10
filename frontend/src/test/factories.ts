@@ -1,5 +1,5 @@
 import type { components } from '../api/generated';
-import type { AreaSummary, FirstAscensionistProfile, RouteDetail, RouteSummary } from '../api/types';
+import type { AreaSummary, Contribution, FirstAscensionistProfile, RouteDetail, RouteSummary } from '../api/types';
 
 // Typed off the generated OpenAPI contract (see api/generated.ts) rather than hand-rolled:
 // a backend DTO change that regenerates generated.ts breaks these at `tsc -b` build time,
@@ -27,6 +27,9 @@ type TopoDto = components['schemas']['TopoDto'];
 type MeResponse = components['schemas']['MeResponse'];
 type LoginResponse = components['schemas']['LoginResponse'];
 type UserAccountDto = components['schemas']['UserAccountDto'];
+// Like makeRoute/makeArea, off the narrowed app type so a result is directly assignable
+// where validationStatus is the closed RequestStatus set.
+type ContributionDto = Contribution;
 
 export const makeFirstAscensionist = (o: Partial<FirstAscensionistDto> = {}): FirstAscensionistDto => ({
   id: 1,
@@ -217,6 +220,18 @@ export const makeLoginResponse = (o: Partial<LoginResponse> = {}): LoginResponse
   mfaRequired: false,
   sessionId: null,
   options: null,
+  ...o,
+});
+
+export const makeContribution = (o: Partial<ContributionDto> = {}): ContributionDto => ({
+  id: 1,
+  name: 'Vía de prueba',
+  detail: 'Peña Rúa › Sector 1',
+  createdAt: '2026-01-01T00:00:00Z',
+  validationStatus: 'pending',
+  decidedAt: null,
+  decidedByName: null,
+  rejectionReason: null,
   ...o,
 });
 

@@ -1,6 +1,6 @@
 # Paginate "Contribuciones": three lazy endpoints, one per kind
 
-Status: planned (not started)
+Status: done
 Issue: [#149](https://github.com/acheve-org/acordanza/issues/149)
 Depends on: [10](10-my-contributions.md) (the page, the controller and the `ContributionDto` this reshapes). Backend + frontend, no schema change, no migration.
 

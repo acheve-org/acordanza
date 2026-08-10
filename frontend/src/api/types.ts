@@ -69,11 +69,12 @@ export type Contribution = Omit<components['schemas']['ContributionDto'], 'valid
   validationStatus: RequestStatus;
 };
 
-export interface MyContributions {
-  routes: Contribution[];
-  areas: Contribution[];
-  firstAscensionists: Contribution[];
-}
+// One page of one kind — GET /contributions/{routes|areas|first-ascensionists}. `items` is
+// re-added narrowed for the same reason `Contribution` narrows: the contract types
+// validationStatus as a plain string.
+export type PagedContributions = Omit<components['schemas']['PagedContributionsResponse'], 'items'> & {
+  items: Contribution[];
+};
 
 export interface RouteFilters {
   q: string;

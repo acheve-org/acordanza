@@ -11,7 +11,8 @@ public record ContributionDto(
     string? DecidedByName,
     string? RejectionReason);
 
-public record MyContributionsResponse(
-    List<ContributionDto> Routes,
-    List<ContributionDto> Areas,
-    List<ContributionDto> FirstAscensionists);
+public record PagedContributionsResponse(
+    List<ContributionDto> Items,
+    int TotalCount,
+    int Page,
+    int PageSize);
