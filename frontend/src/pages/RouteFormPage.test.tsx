@@ -79,6 +79,33 @@ describe('RouteFormPage', () => {
     });
   });
 
+  it('posts null orientation and gear when left as "Sin especificar"', async () => {
+    const user = userEvent.setup();
+    let postedBody: Record<string, unknown> | undefined;
+    server.use(
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      ),
+      http.post(`${API_URL}/routes`, async ({ request }) => {
+        postedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ id: 1 });
+      }),
+    );
+
+    renderCreateForm();
+
+    await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
+    await user.type(screen.getByLabelText('Grado'), '6a');
+    await user.clear(screen.getByLabelText(/Longitud/));
+    await user.type(screen.getByLabelText(/Longitud/), '30');
+    await selectArea(user, 'Peña Rúa');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar vía' }));
+
+    await waitFor(() => expect(postedBody).toBeDefined());
+    expect(postedBody).toMatchObject({ orientation: null, gear: null });
+  });
+
   it('adding two links then removing one posts exactly the remaining URL', async () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;
