@@ -87,6 +87,33 @@
     component gets a preview file, regardless of typical composition
     context.
 
+- **2026-08-10 re-sync (`e8e9b74`, "Implement plan 17: French grade scale
+  validation and colored GradePill bands #162"): 13 components, no count
+  change.** Two components' visuals changed under the hood:
+  - `GradePill` gained automatic French-scale color banding (`gradeBand()`
+    helper, new `--grade-6`/`--grade-7`/`--grade-8-9` tokens) — teal for
+    1–5, orange/red/purple for 6/7/8-9. Its existing `Row` story
+    (`5a`/`6a+`/`7b`/`8a`) happened to already sweep all four bands, so no
+    preview edit was needed; verified visually against the fresh
+    screenshot regardless since a token-only change like this is exactly
+    the kind of drift the render-hash anchor won't always catch on its
+    own (see the risk bullet below).
+  - `Chip` gained a `status` prop (`pending`/`approved`/`rejected`, new
+    `.chip-approved`/`.chip-rejected` CSS classes riding the new
+    `--danger-bg`/`--danger-border` tokens). The existing preview only
+    ever rendered the default `pending` look, so the two new colors were
+    never demonstrated — added a `ValidationStatus` export ported
+    verbatim from the real call site (`RouteCard.tsx`'s
+    `<Chip status={route.validationStatus}>`, labels from
+    `validationStatusLabels` in `frontend/src/api/types.ts`), graded
+    `good` from the fresh capture.
+  - `conventions.md` wasn't touched — its family table only covers
+    system-wide tokens (radius/spacing/fonts/base colors), not
+    per-component variant colors, so nothing in it went stale; the new
+    props/tokens are fully described in `Chip`'s/`GradePill`'s own
+    `.d.ts`/`.prompt.md`, which is what the design agent actually reads
+    for component-level API.
+
 ## Known render warns
 
 None — render check is fully clean (0 bad, 0 thin, 0 variantsIdentical) as
@@ -116,3 +143,15 @@ of the last sync.
   components matched` in every build log is expected, not a regression;
   every `.prompt.md` is synthesized from `.d.ts` + the authored preview,
   which is working fine.
+- **The sourceKeys anchor doesn't always catch a component whose visual
+  output changed via shared tokens/CSS rather than its own emitted
+  `.jsx`/`.d.ts`/`.prompt.md` files** — the 2026-08-10 re-sync's driver
+  diff reported `GradePill` as `unchanged` even though its color banding
+  is new behavior (driven by a token change + an internal `gradeBand.ts`
+  helper, neither of which shows up in the component's own emitted
+  files). Only `Chip` (whose `.d.ts` gained the `status` prop) was
+  flagged `changed`. Anchored re-syncs that touch `tokens.css` or any
+  cross-component helper should eyeball the affected components'
+  screenshots directly (`ds-bundle/_screenshots/<group>__<Name>.png`)
+  rather than trusting `verification.unchanged` alone — same spirit as
+  the `conventions.md` risk above, one level down at the component level.
