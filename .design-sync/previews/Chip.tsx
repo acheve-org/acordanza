@@ -33,3 +33,13 @@ export function TagRow() {
     </div>
   )
 }
+
+export function ValidationStatus() {
+  return (
+    <div style={{ ...canvas, display: 'flex', gap: 6 }}>
+      <Chip status="pending">Pendiente de validación</Chip>
+      <Chip status="approved">Validado</Chip>
+      <Chip status="rejected">Rechazado</Chip>
+    </div>
+  )
+}
