@@ -97,6 +97,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .HasForeignKey(o => o.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // One account can be linked to at most one aperturista (plan 15, §5) — the
+            // controller-level checks in FirstAscensionistLinksController exist to turn a
+            // violation of this into a clean Spanish 400 instead of a DbUpdateException.
+            entity.HasIndex(o => o.UserId)
+                .IsUnique()
+                .HasFilter("\"UserId\" IS NOT NULL");
+
             entity.HasOne(o => o.AddedBy)
                 .WithMany()
                 .HasForeignKey(o => o.AddedByUserId)

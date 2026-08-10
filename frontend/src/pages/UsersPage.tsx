@@ -99,7 +99,7 @@ export function UsersPage() {
 
   return (
     <>
-      <div className="users-page-header">
+      <div className="page-header">
         <h1>Usuarios</h1>
         <Button type="button" onClick={() => setInviteOpen(true)}>
           Invitar usuario

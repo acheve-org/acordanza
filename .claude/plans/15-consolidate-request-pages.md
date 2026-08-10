@@ -1,6 +1,6 @@
 # Consolidate the "Mi acordanza" request pages onto the "Mis invitaciones" layout
 
-Status: planned (not started)
+Status: done
 Issue: [#150](https://github.com/acheve-org/acordanza/issues/150)
 Depends on: nothing. Mostly frontend — no DTO change and no OpenAPI regeneration — but §5 (one first-ascensionist claim per user) is a rule the backend does not enforce today, so it also carries a controller change and one migration. The test harness from [08](08-backend-integration-tests.md)/[09](09-frontend-component-tests.md) is in `main`, so both sides get real tests.
 

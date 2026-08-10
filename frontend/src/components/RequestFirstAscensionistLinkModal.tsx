@@ -6,12 +6,11 @@ import type { FirstAscensionistSummary } from '../api/types';
 import { ApiError } from '../api/client';
 
 interface Props {
-  excludedFirstAscensionistIds: number[];
   onClose: () => void;
   onRequested: () => void;
 }
 
-export function RequestFirstAscensionistLinkModal({ excludedFirstAscensionistIds, onClose, onRequested }: Props) {
+export function RequestFirstAscensionistLinkModal({ onClose, onRequested }: Props) {
   const [q, setQ] = useState('');
   const [firstAscensionists, setFirstAscensionists] = useState<FirstAscensionistSummary[]>([]);
   const [error, setError] = useState('');
@@ -35,8 +34,7 @@ export function RequestFirstAscensionistLinkModal({ excludedFirstAscensionistIds
     };
   }, [q]);
 
-  const excluded = new Set(excludedFirstAscensionistIds);
-  const available = firstAscensionists.filter((fa) => !fa.linkedUserName && !excluded.has(fa.id));
+  const available = firstAscensionists.filter((fa) => !fa.linkedUserName);
 
   async function handleRequest(id: number) {
     setError('');

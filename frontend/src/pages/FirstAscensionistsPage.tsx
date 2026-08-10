@@ -69,7 +69,7 @@ export function FirstAscensionistsPage() {
 
   return (
     <>
-      <div className="users-page-header">
+      <div className="page-header">
         <h1>Aperturistas</h1>
         {canCreate && (
           <Button type="button" onClick={() => setCreateModal(true)}>
