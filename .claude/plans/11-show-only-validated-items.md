@@ -1,6 +1,6 @@
 # Show only validated items outside "Mi acordanza"
 
-Status: planned (not started)
+Status: done (landed in 3e5a837)
 Issue: [#72](https://github.com/acheve-org/acordanza/issues/72)
 Depends on: nothing — but it builds directly on the three-state validation lifecycle and creator attribution landed by [10](10-my-contributions.md) (`IValidatable.ValidationStatus`, `AddedByUserId` on all three entities, the `/manage/pending-tasks` queue, the "Contribuciones" page). Both are already in `main` (e8266e8). The test harness from [07](07-test-harness.md)/[08](08-backend-integration-tests.md)/[09](09-frontend-component-tests.md) is also in, so this one *does* get automated tests — see Steps.
 

@@ -1,6 +1,6 @@
 # "Mis contribuciones" page + a reject-with-reason validation lifecycle
 
-Status: planned (not started)
+Status: done (landed in 08db89a, refined in 3c70d22)
 Issue: [#125](https://github.com/acheve-org/acordanza/issues/125)
 Depends on: nothing. Independent of [07](07-test-harness.md)/[08](08-backend-integration-tests.md)/[09](09-frontend-component-tests.md) — but if the harness lands first, the new `Validation` helper transitions and the three-way permission gating below are exactly the kind of thing plan 07/08 should cover.
 
