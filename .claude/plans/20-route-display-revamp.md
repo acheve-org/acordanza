@@ -1,6 +1,6 @@
 # Revamp route display: denser cards and a sectioned detail modal
 
-Status: planned (not started)
+Status: done
 Issue: not filed yet — file one and link it here before the `plan:` commit
 Depends on: [16](16-route-new-fields.md) (`Length`/`ObligatoryGrade`/`RecommendedGear`/`OptionalGear`/`Links` already exist on `RouteDto`/`RouteDetailDto` and the create/edit form, but were deliberately never rendered anywhere — "route information will be revamped in a following issue". This is that issue) and [17](17-grade-scale-and-pills.md) (`gradeBand`, the French-scale-to-color-band function this reuses for the card's left accent). Purely visual/presentational — one small backend DTO addition (`MyTickDto.Length`, §2), no migration, no routing change. Independent of [21](21-route-slug-and-url.md) (the shareable route URL) — either can ship first, in either order.
 

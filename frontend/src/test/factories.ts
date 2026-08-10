@@ -1,5 +1,12 @@
 import type { components } from '../api/generated';
-import type { AreaSummary, Contribution, FirstAscensionistProfile, RouteDetail, RouteSummary } from '../api/types';
+import type {
+  AreaSummary,
+  Contribution,
+  FirstAscensionistProfile,
+  RouteDetail,
+  RouteSummary,
+  TickedRoute,
+} from '../api/types';
 
 // Typed off the generated OpenAPI contract (see api/generated.ts) rather than hand-rolled:
 // a backend DTO change that regenerates generated.ts breaks these at `tsc -b` build time,
@@ -30,6 +37,24 @@ type UserAccountDto = components['schemas']['UserAccountDto'];
 // Like makeRoute/makeArea, off the narrowed app type so a result is directly assignable
 // where validationStatus is the closed RequestStatus set.
 type ContributionDto = Contribution;
+
+export const makeTickedRoute = (o: Partial<TickedRoute> = {}): TickedRoute => ({
+  tickId: 1,
+  routeId: 1,
+  routeName: 'Travesía del Gato',
+  areaId: 1,
+  areaName: 'Peña Rúa',
+  areaPath: 'Peña Rúa',
+  grade: '6a',
+  orientation: 'south',
+  gear: 'bolted',
+  length: 100,
+  date: '2026-01-01',
+  rating: null,
+  notes: '',
+  createdAt: '2026-01-01T00:00:00Z',
+  ...o,
+});
 
 export const makeFirstAscensionist = (o: Partial<FirstAscensionistDto> = {}): FirstAscensionistDto => ({
   id: 1,

@@ -61,7 +61,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
 
         var items = ticks.Select(t => new MyTickDto(
             t.Id, t.RouteId, t.Route.Name, t.Route.AreaId, areas[t.Route.AreaId].Name, areas.NamePath(t.Route.AreaId),
-            t.Route.Grade, t.Route.Orientation, t.Route.Gear,
+            t.Route.Grade, t.Route.Orientation, t.Route.Gear, t.Route.Length,
             t.Date, t.Rating, t.Notes, t.CreatedAt)).ToList();
 
         return Ok(new PagedMyTicksResponse(items, totalCount, page, pageSize));

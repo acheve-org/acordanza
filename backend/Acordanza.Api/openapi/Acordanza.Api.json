@@ -4399,6 +4399,7 @@
           "grade",
           "orientation",
           "gear",
+          "length",
           "date",
           "rating",
           "notes",
@@ -4441,6 +4442,10 @@
               "null",
               "string"
             ]
+          },
+          "length": {
+            "type": "integer",
+            "format": "int32"
           },
           "date": {
             "type": "string"

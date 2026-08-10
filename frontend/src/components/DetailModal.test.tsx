@@ -78,3 +78,48 @@ describe('DetailModal permission gating', () => {
     expect(screen.queryByRole('button', { name: 'Validar' })).not.toBeInTheDocument();
   });
 });
+
+describe('DetailModal new sections (plan 20)', () => {
+  it('renders the stats row, gear notes, and links when populated', () => {
+    renderModal([], {
+      length: 28,
+      orientation: 'south',
+      gear: 'bolted',
+      obligatoryGrade: '6a',
+      recommendedGear: 'Friends hasta 3',
+      optionalGear: 'Estribos',
+      links: ['https://example.com/topo'],
+    });
+
+    expect(screen.getByText('28 m')).toBeInTheDocument();
+    expect(screen.getByText('Sur')).toBeInTheDocument();
+    expect(screen.getByText('Equipada')).toBeInTheDocument();
+    expect(screen.getByText('Grado obligatorio: 6a')).toBeInTheDocument();
+    expect(screen.getByText('Material recomendado: Friends hasta 3')).toBeInTheDocument();
+    expect(screen.getByText('Material opcional: Estribos')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'https://example.com/topo' })).toHaveAttribute(
+      'href',
+      'https://example.com/topo',
+    );
+  });
+
+  it('omits the new sections when their fields are empty', () => {
+    renderModal([], {
+      length: 0,
+      orientation: null,
+      gear: null,
+      obligatoryGrade: null,
+      recommendedGear: null,
+      optionalGear: null,
+      links: [],
+    });
+
+    expect(screen.queryByText('Longitud')).not.toBeInTheDocument();
+    expect(screen.queryByText('Orientación')).not.toBeInTheDocument();
+    expect(screen.queryByText('Material', { selector: '.detail-stat-label' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Grado obligatorio/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Material recomendado/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Material opcional/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Enlaces')).not.toBeInTheDocument();
+  });
+});
