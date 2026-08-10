@@ -13,6 +13,8 @@
   --color-hairline-strong: rgba(0, 0, 0, 0.15);
   --color-accent-teal: #007a63;
   --color-accent-danger: #d13a4a;
+  --color-grade-orange: #b45309;
+  --color-grade-purple: #6b21a8;
 
   /* App surfaces: a cool light canvas + a near-white elevated card, per DESIGN.md */
   --bg: var(--color-canvas);
@@ -30,6 +32,18 @@
   --danger: var(--color-accent-danger);
   --danger-bg: rgba(209, 58, 74, 0.08);
   --danger-border: rgba(209, 58, 74, 0.24);
+
+  /* Grade bands (issue #152). 1–5 keeps the original teal pill, so the base
+     .grade-pill rule already covers it and it needs no band class. */
+  --grade-6: var(--color-grade-orange);
+  --grade-6-bg: rgba(180, 83, 9, 0.08);
+  --grade-6-border: rgba(180, 83, 9, 0.24);
+  --grade-7: var(--color-accent-danger);
+  --grade-7-bg: var(--danger-bg);
+  --grade-7-border: var(--danger-border);
+  --grade-8-9: var(--color-grade-purple);
+  --grade-8-9-bg: rgba(107, 33, 168, 0.08);
+  --grade-8-9-border: rgba(107, 33, 168, 0.24);
   --border: var(--color-hairline);
   --border-strong: var(--color-hairline-strong);
   --chip-bg: rgba(0, 0, 0, 0.04);

@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { Button, ModalActions, RemoveButton } from 'acordanza-design-system';
+import { Button, gradeBand, ModalActions, RemoveButton } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import { ApiError } from '../api/client';
 import type { RouteDetail, UpsertRouteInput } from '../api/types';
@@ -49,6 +49,7 @@ export function RouteFormPage() {
 
   const [route, setRoute] = useState<RouteDetail | null>(null);
   const [loadError, setLoadError] = useState('');
+  const [error, setError] = useState('');
   const [form, setForm] = useState<RouteFormState>(emptyForm);
 
   useEffect(() => {
@@ -109,10 +110,15 @@ export function RouteFormPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (gradeBand(form.grade) === null) {
+      setError('el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)');
+      return;
+    }
+    setError('');
     const input: UpsertRouteInput = {
       ...form,
       name: form.name.trim(),
-      grade: form.grade.trim(),
+      grade: form.grade.trim().toLowerCase(),
       description: form.description.trim(),
       length: Number(form.length),
       obligatoryGrade: form.obligatoryGrade.trim(),
@@ -138,16 +144,17 @@ export function RouteFormPage() {
               <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} />
             </label>
             <label>
-              Grado
+              Grado <span className="hint">(escala francesa)</span>
               <input
                 type="text"
                 required
-                placeholder="V+, 6a, E2 5b…"
+                placeholder="6a, 7c+, 8a…"
                 value={form.grade}
                 onChange={(e) => set('grade', e.target.value)}
               />
             </label>
           </div>
+          <p className="error-text">{error}</p>
           <label>
             Sector
             <AreaPicker value={form.areaId || null} onChange={(areaId) => set('areaId', areaId ?? 0)} allowCreate />

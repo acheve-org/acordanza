@@ -121,8 +121,8 @@ public class RoutesController(
         return Ok(dtos);
     }
 
-    // Grades are free text (see Models/ClimbingRoute), so the search filter offers the
-    // ones actually in use rather than a hardcoded scale.
+    // Grades are validated on write against the French scale (Models/GradeValidator), so
+    // the search filter offers the ones actually in use rather than all 54 legal ones.
     [HttpGet("grades")]
     public async Task<ActionResult<List<string>>> GetGrades()
     {
@@ -221,6 +221,11 @@ public class RoutesController(
             return BadRequest(new { error = "el sector no existe" });
         }
 
+        if (!GradeValidator.IsValid(request.Grade))
+        {
+            return BadRequest(new { error = "el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)" });
+        }
+
         var orientationError = ValidateOrientation(request.Orientation);
         if (orientationError is not null) return BadRequest(new { error = orientationError });
 
@@ -247,7 +252,7 @@ public class RoutesController(
         {
             Name = request.Name,
             AreaId = request.AreaId,
-            Grade = request.Grade,
+            Grade = GradeValidator.Normalize(request.Grade),
             Orientation = request.Orientation,
             Gear = request.Gear,
             Description = request.Description ?? "",
@@ -290,6 +295,11 @@ public class RoutesController(
             return BadRequest(new { error = "el sector no existe" });
         }
 
+        if (!GradeValidator.IsValid(request.Grade))
+        {
+            return BadRequest(new { error = "el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)" });
+        }
+
         var orientationError = ValidateOrientation(request.Orientation);
         if (orientationError is not null) return BadRequest(new { error = orientationError });
 
@@ -311,11 +321,12 @@ public class RoutesController(
         var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
         if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
+        var normalizedGrade = GradeValidator.Normalize(request.Grade);
         var newFirstAscensionistIds = firstAscensionists!.Select(fa => fa.Id).ToHashSet();
         var newLinkUrls = links!.ToHashSet();
         var changed = route.Name != request.Name ||
             route.AreaId != request.AreaId ||
-            route.Grade != request.Grade ||
+            route.Grade != normalizedGrade ||
             (route.Orientation ?? "") != (request.Orientation ?? "") ||
             (route.Gear ?? "") != (request.Gear ?? "") ||
             route.Description != (request.Description ?? "") ||
@@ -328,7 +339,7 @@ public class RoutesController(
 
         route.Name = request.Name;
         route.AreaId = request.AreaId;
-        route.Grade = request.Grade;
+        route.Grade = normalizedGrade;
         route.Orientation = request.Orientation;
         route.Gear = request.Gear;
         route.Description = request.Description ?? "";

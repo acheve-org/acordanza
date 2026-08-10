@@ -1,6 +1,6 @@
 # The French grade scale: a GradeValidator, and grade pills coloured by band
 
-Status: planned (not started)
+Status: done
 Issue: [#152](https://github.com/acheve-org/acordanza/issues/152)
 Depends on: nothing. Touches all three packages — one new backend rules class + write-side validation, one new pure function and three colour tokens in `design-system/`, and the form/display sites in `frontend/`. No DTO shape changes, so **no OpenAPI regeneration and no `generated.ts` diff** (`Grade` stays a `string` on the wire; what changes is which strings are legal). Interacts with plan [16](16-route-new-fields.md) — see §7.
 

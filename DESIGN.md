@@ -21,6 +21,8 @@ colors:
   accent-teal-bg: "rgba(0,122,99,0.08)"
   accent-teal-border: "rgba(0,122,99,0.24)"
   danger: "#d13a4a"
+  grade-orange: "#b45309"
+  grade-purple: "#6b21a8"
 
 typography:
   display:
@@ -104,6 +106,21 @@ reserved for `GradePill` and success/positive states.
 - **Accent Teal Background/Border** (`{colors.accent-teal-bg}` / `{colors.accent-teal-border}`): `GradePill`'s fill and border, both derived from `{colors.accent-teal}` at low opacity.
 - **Danger** (`{colors.danger}` — `#d13a4a`): destructive state — `Button`'s `danger` ghost variant, delete actions.
 - **Danger Background/Border** (`{colors.danger-bg}` / `{colors.danger-border}`): `Chip`'s `rejected` status fill and border, both derived from `{colors.danger}` at low opacity.
+- **Grade Orange** (`{colors.grade-orange}` — `#b45309`): `GradePill`'s foreground for French grade 6, plus its low-opacity fill/border.
+- **Grade Purple** (`{colors.grade-purple}` — `#6b21a8`): `GradePill`'s foreground for French grades 8–9, plus its low-opacity fill/border. Deliberately not `{colors.primary}` — the brand cobalt means "loudest action" and must not start also meaning "hard route".
+
+`GradePill` colours itself by French-scale band (issue #152), one of four:
+
+| Band | Hue | Token |
+|---|---|---|
+| 1–5 | teal | `{colors.accent-teal}` |
+| 6 | orange | `{colors.grade-orange}` |
+| 7 | red | `{colors.danger}` |
+| 8–9 | purple | `{colors.grade-purple}` |
+
+Band 7 reuses `{colors.danger}` rather than introducing a second red — a grade pill
+(mono-face, `{rounded.sm}`, card header) and a rejected `Chip` (Inter, `{rounded.full}`,
+carries the word "Rechazado") never sit close enough to be confused.
 
 ## Typography
 
@@ -164,7 +181,10 @@ three visual states: `pending` (default, neutral `{colors.chip-bg}` fill), `appr
 (`{colors.accent-teal}` fill/border), or `rejected` (`{colors.danger}` fill/border).
 
 **`GradePill`** — a small monospace badge for climbing grades, the only place
-`{colors.accent-teal}` and JetBrains Mono appear together.
+JetBrains Mono appears. Takes a grade string (`children: string`) and colours
+itself by French-scale band (see Colors § Semantic above) — 1–5 teal, 6 orange,
+7 red, 8–9 purple. A string that isn't a valid French grade (e.g. a legacy
+non-conforming value) falls back to the plain teal look rather than throwing.
 
 **`EmptyState`** — a dashed `{colors.hairline-strong}` box, `{rounded.lg}`, for
 zero-result states.
@@ -202,7 +222,7 @@ selection's label). Filtering and multi/single-select behavior stay with the cal
 
 ### Do
 - Use `Button`'s primary (filled violet) variant once per view for the loudest action; default to `ghost` everywhere else.
-- Keep the accent palette narrow — violet for the primary CTA, teal for grades/success, red for danger. No third accent.
+- Keep the accent palette narrow — violet for the primary CTA, teal for grades/success, red for danger. No third accent, except `GradePill`'s closed, data-driven set of four grade bands (issue #152) — those colours aren't available for general use elsewhere.
 - Style new UI with the token set (`--bg`, `--text`, `--space-*`, `--radius-*`), not hardcoded values — see `design-system/README.md`'s conventions section.
 - Reserve Archivo for headings ≥13px; keep body copy in Inter.
 

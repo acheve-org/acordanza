@@ -60,7 +60,7 @@ describe('RouteFormPage', () => {
     renderCreateForm();
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado'), '6a');
+    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await user.type(screen.getByLabelText('Grado obligatorio'), 'V+');
@@ -95,7 +95,7 @@ describe('RouteFormPage', () => {
     renderCreateForm();
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado'), '6a');
+    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await selectArea(user, 'Peña Rúa');
@@ -140,5 +140,63 @@ describe('RouteFormPage', () => {
     expect(screen.getByDisplayValue('friends medianos')).toBeInTheDocument();
     expect(screen.getByDisplayValue('https://example.com/a')).toBeInTheDocument();
     expect(screen.getByDisplayValue('https://example.com/b')).toBeInTheDocument();
+  });
+
+  // Issue #152: the French scale is enforced client-side too, so a bad grade never
+  // reaches the network — the point of the check is saving the round trip.
+  it('a non-french-scale grade shows the Spanish error and issues no POST', async () => {
+    const user = userEvent.setup();
+    let posted = false;
+    server.use(
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      ),
+      http.post(`${API_URL}/routes`, () => {
+        posted = true;
+        return HttpResponse.json({ id: 1 });
+      }),
+    );
+
+    renderCreateForm();
+
+    await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
+    await user.type(screen.getByLabelText('Grado (escala francesa)'), 'V+');
+    await user.clear(screen.getByLabelText(/Longitud/));
+    await user.type(screen.getByLabelText(/Longitud/), '30');
+    await selectArea(user, 'Peña Rúa');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar vía' }));
+
+    expect(
+      await screen.findByText('el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)'),
+    ).toBeInTheDocument();
+    expect(posted).toBe(false);
+  });
+
+  it('a mixed-case grade is lowercased before it is posted', async () => {
+    const user = userEvent.setup();
+    let postedBody: Record<string, unknown> | undefined;
+    server.use(
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      ),
+      http.post(`${API_URL}/routes`, async ({ request }) => {
+        postedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ id: 1 });
+      }),
+    );
+
+    renderCreateForm();
+
+    await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
+    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6A');
+    await user.clear(screen.getByLabelText(/Longitud/));
+    await user.type(screen.getByLabelText(/Longitud/), '30');
+    await selectArea(user, 'Peña Rúa');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar vía' }));
+
+    await waitFor(() => expect(postedBody).toBeDefined());
+    expect(postedBody).toMatchObject({ grade: '6a' });
   });
 });
