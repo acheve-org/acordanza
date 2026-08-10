@@ -124,6 +124,8 @@ export function RouteFormPage() {
       obligatoryGrade: form.obligatoryGrade.trim(),
       recommendedGear: form.recommendedGear.trim(),
       optionalGear: form.optionalGear.trim(),
+      orientation: form.orientation || null,
+      gear: form.gear || null,
     };
     if (route) {
       await routesApi.updateRoute(route.id, input);
