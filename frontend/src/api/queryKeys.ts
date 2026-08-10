@@ -1,3 +1,4 @@
+import type { ContributionKind } from './contributions';
 import type { RouteFilters } from './types';
 
 // One place for react-query key shapes, so pages invalidate/match against
@@ -6,5 +7,5 @@ import type { RouteFilters } from './types';
 export const queryKeys = {
   routes: (filters: RouteFilters) => ['routes', filters] as const,
   route: (id: number) => ['route', id] as const,
-  myContributions: () => ['myContributions'] as const,
+  contributions: (kind: ContributionKind, page: number) => ['contributions', kind, page] as const,
 };

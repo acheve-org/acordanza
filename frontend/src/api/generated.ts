@@ -1205,7 +1205,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/contributions/mine": {
+    "/api/contributions/routes": {
         parameters: {
             query?: never;
             header?: never;
@@ -1214,7 +1214,10 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -1227,9 +1230,89 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["MyContributionsResponse"];
-                        "application/json": components["schemas"]["MyContributionsResponse"];
-                        "text/json": components["schemas"]["MyContributionsResponse"];
+                        "text/plain": components["schemas"]["PagedContributionsResponse"];
+                        "application/json": components["schemas"]["PagedContributionsResponse"];
+                        "text/json": components["schemas"]["PagedContributionsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contributions/areas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PagedContributionsResponse"];
+                        "application/json": components["schemas"]["PagedContributionsResponse"];
+                        "text/json": components["schemas"]["PagedContributionsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/contributions/first-ascensionists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: {
+                    page?: number;
+                    pageSize?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["PagedContributionsResponse"];
+                        "application/json": components["schemas"]["PagedContributionsResponse"];
+                        "text/json": components["schemas"]["PagedContributionsResponse"];
                     };
                 };
             };
@@ -2935,11 +3018,6 @@ export interface components {
             isFirstAscensionist: boolean;
             isAreaExpert: boolean;
         };
-        MyContributionsResponse: {
-            routes: components["schemas"]["ContributionDto"][];
-            areas: components["schemas"]["ContributionDto"][];
-            firstAscensionists: components["schemas"]["ContributionDto"][];
-        };
         MyInviteDto: {
             email: string;
             pending: boolean;
@@ -2974,6 +3052,15 @@ export interface components {
         };
         PagedAreaNodesResponse: {
             items: components["schemas"]["AreaNodeDto"][];
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        PagedContributionsResponse: {
+            items: components["schemas"]["ContributionDto"][];
             /** Format: int32 */
             totalCount: number;
             /** Format: int32 */

@@ -1,29 +1,41 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Badge, Chip, EmptyState, List, ListRow } from 'acordanza-design-system';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { Chip, EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
 import * as contributionsApi from '../api/contributions';
+import type { ContributionKind } from '../api/contributions';
 import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
 import { validationStatusLabels } from '../api/types';
 import type { Contribution } from '../api/types';
 
-type Tab = 'routes' | 'areas' | 'firstAscensionists';
+const PAGE_SIZE = 10;
 
-const tabLabels: Record<Tab, string> = {
+// Tab keys are the API's kind strings, so the active tab indexes the endpoint directly.
+const tabLabels: Record<ContributionKind, string> = {
   routes: 'Vías',
   areas: 'Sectores',
-  firstAscensionists: 'Aperturistas',
+  'first-ascensionists': 'Aperturistas',
 };
 
 export function MyContributionsPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('routes');
-
-  const { data, error } = useQuery({
-    queryKey: queryKeys.myContributions(),
-    queryFn: contributionsApi.getMyContributions,
+  const [activeTab, setActiveTab] = useState<ContributionKind>('routes');
+  // Per tab, so switching away and back returns to the page you were on.
+  const [pages, setPages] = useState<Record<ContributionKind, number>>({
+    routes: 1,
+    areas: 1,
+    'first-ascensionists': 1,
   });
 
-  const items = data?.[activeTab] ?? [];
+  // One query, keyed on the *active* tab: a tab that was never opened is never part of a
+  // query key, so its endpoint is never called.
+  const { data, error } = useQuery({
+    queryKey: queryKeys.contributions(activeTab, pages[activeTab]),
+    queryFn: () => contributionsApi.listMyContributions(activeTab, pages[activeTab], PAGE_SIZE),
+    placeholderData: keepPreviousData,
+  });
+
+  const items = data?.items ?? [];
+  const pageCount = Math.max(1, Math.ceil((data?.totalCount ?? 0) / PAGE_SIZE));
 
   return (
     <>
@@ -34,7 +46,7 @@ export function MyContributionsPage() {
       ) : (
         <>
           <div className="tab-bar">
-            {(['routes', 'areas', 'firstAscensionists'] as const).map((tab) => (
+            {(Object.keys(tabLabels) as ContributionKind[]).map((tab) => (
               <button
                 key={tab}
                 type="button"
@@ -42,7 +54,6 @@ export function MyContributionsPage() {
                 onClick={() => setActiveTab(tab)}
               >
                 {tabLabels[tab]}
-                <Badge count={data?.[tab].length ?? 0} />
               </button>
             ))}
           </div>
@@ -51,17 +62,26 @@ export function MyContributionsPage() {
             {items.length === 0 ? (
               <EmptyState>Todavía no has creado nada aquí</EmptyState>
             ) : (
-              <List>
-                {items.map((c) => (
-                  <ListRow
-                    key={c.id}
-                    title={c.name}
-                    subtitle={<ContributionSubtitle contribution={c} />}
-                    trailing={
-                    <Chip status={c.validationStatus}>{validationStatusLabels[c.validationStatus]}</Chip>
-                  } />
-                ))}
-              </List>
+              <>
+                <List>
+                  {items.map((c) => (
+                    <ListRow
+                      key={c.id}
+                      title={c.name}
+                      subtitle={<ContributionSubtitle contribution={c} />}
+                      trailing={
+                      <Chip status={c.validationStatus}>{validationStatusLabels[c.validationStatus]}</Chip>
+                    } />
+                  ))}
+                </List>
+                {pageCount > 1 && (
+                  <Pagination
+                    page={pages[activeTab]}
+                    pageCount={pageCount}
+                    onPageChange={(page) => setPages((prev) => ({ ...prev, [activeTab]: page }))}
+                  />
+                )}
+              </>
             )}
           </section>
         </>
