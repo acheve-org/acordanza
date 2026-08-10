@@ -3043,6 +3043,8 @@ export interface components {
             grade: string;
             orientation: null | string;
             gear: null | string;
+            /** Format: int32 */
+            length: number;
             date: string;
             /** Format: int32 */
             rating: null | number;

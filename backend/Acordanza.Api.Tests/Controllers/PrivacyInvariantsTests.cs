@@ -63,6 +63,26 @@ public partial class PrivacyInvariantsTests(ApiFixture fixture) : IntegrationTes
     }
 
     [Fact]
+    public async Task GetMyTicks_includes_the_routes_length()
+    {
+        using var owner = await TestUsers.CreateAsync(Factory, Roles.User);
+        int routeId;
+        using (var scope = Factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
+            var route = await SeedData.CreateRouteAsync(db, area, owner.UserId, name: $"Route {Guid.NewGuid():N}", length: 28);
+            routeId = route.Id;
+            await SeedData.CreateTickAsync(db, route, owner.UserId);
+        }
+
+        var response = await owner.Client.GetFromJsonAsync<PagedMyTicksResponse>(
+            "/api/ticks/mine", TestContext.Current.CancellationToken);
+
+        response!.Items.Single(t => t.RouteId == routeId).Length.ShouldBe(28);
+    }
+
+    [Fact]
     public async Task Deleting_someone_elses_tick_silently_no_ops()
     {
         using var owner = await TestUsers.CreateAsync(Factory, Roles.User);

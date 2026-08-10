@@ -72,11 +72,6 @@ export function DetailModal({
               <GradePill>{route.grade}</GradePill>
               {route.areaPath}
             </p>
-            <p className="detail-fa">
-              {[route.orientation && orientationLabels[route.orientation], route.gear && gearLabels[route.gear]]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
             {route.validationStatus === 'approved' && (
               <p className="detail-fa">
                 ✓ Validada por {route.decidedByName} el {new Date(route.decidedAt!).toLocaleDateString()}
@@ -113,50 +108,105 @@ export function DetailModal({
             )}
           </div>
         </div>
-        <p className="detail-desc">{route.description || 'Sin descripción todavía.'}</p>
-        {route.firstAscensionists.length > 0 && (
-          <p className="detail-fa">
-            Apertura:{' '}
-            {route.firstAscensionists
-              .map((o) => (o.linkedUserName ? `${o.name} (${o.linkedUserName})` : o.name))
-              .join(', ')}
-          </p>
-        )}
-
-        <hr className="divider" />
-
-        <h3>Topos</h3>
-        {route.topos.length > 0 && (
-          <div className="topo-grid">
-            {route.topos.map((topo) => (
-              <div key={topo.id} className="topo-thumb">
-                <a href={topo.url} target="_blank" rel="noreferrer">
-                  <img src={topo.url} alt={topo.fileName} loading="lazy" />
-                </a>
-                <RemoveButton variant="overlay" label="Eliminar" onClick={() => onDeleteTopo(topo.id)} />
+        <div className="detail-section">
+          <div className="detail-stats">
+            <div className="detail-stat">
+              <span className="detail-stat-label">Grado</span>
+              <span className="detail-stat-value">{route.grade}</span>
+            </div>
+            {route.length > 0 && (
+              <div className="detail-stat">
+                <span className="detail-stat-label">Longitud</span>
+                <span className="detail-stat-value">{route.length} m</span>
               </div>
-            ))}
+            )}
+            {route.orientation && (
+              <div className="detail-stat">
+                <span className="detail-stat-label">Orientación</span>
+                <span className="detail-stat-value">{orientationLabels[route.orientation]}</span>
+              </div>
+            )}
+            {route.gear && (
+              <div className="detail-stat">
+                <span className="detail-stat-label">Material</span>
+                <span className="detail-stat-value">{gearLabels[route.gear]}</span>
+              </div>
+            )}
+          </div>
+          {route.obligatoryGrade && (
+            <p className="detail-fa">Grado obligatorio: {route.obligatoryGrade}</p>
+          )}
+        </div>
+
+        <div className="detail-section">
+          <p className="detail-desc">{route.description || 'Sin descripción todavía.'}</p>
+        </div>
+
+        {(route.recommendedGear || route.optionalGear) && (
+          <div className="detail-section">
+            {route.recommendedGear && <p className="detail-fa">Material recomendado: {route.recommendedGear}</p>}
+            {route.optionalGear && <p className="detail-fa">Material opcional: {route.optionalGear}</p>}
           </div>
         )}
-        <Button as="label" variant="ghost" small className="topo-upload">
-          {uploading ? 'Subiendo…' : '+ Añadir topo'}
-          <input
-            type="file"
-            accept={ACCEPTED_TOPO_TYPES}
-            multiple
-            disabled={uploading}
-            onChange={handleTopoFilesSelected}
-            className="hidden"
-          />
-        </Button>
-        {uploadError && <p className="error-text">{uploadError}</p>}
 
-        <hr className="divider" />
+        {route.links.length > 0 && (
+          <div className="detail-section">
+            <h3>Enlaces</h3>
+            <div className="tag-row">
+              {route.links.map((link) => (
+                <a key={link} href={link} target="_blank" rel="noreferrer" className="detail-link">
+                  {link}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {route.firstAscensionists.length > 0 && (
+          <div className="detail-section">
+            <p className="detail-fa">
+              Apertura:{' '}
+              {route.firstAscensionists
+                .map((o) => (o.linkedUserName ? `${o.name} (${o.linkedUserName})` : o.name))
+                .join(', ')}
+            </p>
+          </div>
+        )}
+
+        <div className="detail-section">
+          <h3>Topos</h3>
+          {route.topos.length > 0 && (
+            <div className="topo-grid">
+              {route.topos.map((topo) => (
+                <div key={topo.id} className="topo-thumb">
+                  <a href={topo.url} target="_blank" rel="noreferrer">
+                    <img src={topo.url} alt={topo.fileName} loading="lazy" />
+                  </a>
+                  <RemoveButton variant="overlay" label="Eliminar" onClick={() => onDeleteTopo(topo.id)} />
+                </div>
+              ))}
+            </div>
+          )}
+          <Button as="label" variant="ghost" small className="topo-upload">
+            {uploading ? 'Subiendo…' : '+ Añadir topo'}
+            <input
+              type="file"
+              accept={ACCEPTED_TOPO_TYPES}
+              multiple
+              disabled={uploading}
+              onChange={handleTopoFilesSelected}
+              className="hidden"
+            />
+          </Button>
+          {uploadError && <p className="error-text">{uploadError}</p>}
+        </div>
 
         {hasPermission(Permissions.tickCreate) && (
-          <Button variant="ghost" small onClick={() => setAddingTick(true)}>
-            {route.hasTick ? 'Registrar otro ascenso' : '+ Registrar ascenso'}
-          </Button>
+          <div className="detail-section">
+            <Button variant="ghost" small onClick={() => setAddingTick(true)}>
+              {route.hasTick ? 'Registrar otro ascenso' : '+ Registrar ascenso'}
+            </Button>
+          </div>
         )}
       </Modal>
 

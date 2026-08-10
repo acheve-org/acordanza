@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
-import { ConfirmModal, GradePill, RemoveButton } from 'acordanza-design-system';
+import { ConfirmModal, GradePill, RemoveButton, gradeBand } from 'acordanza-design-system';
 import type { TickedRoute } from '../api/types';
-import { gearLabels } from '../api/types';
+import { gearLabels, orientationLabels } from '../api/types';
 
 interface Props {
   tick: TickedRoute;
@@ -11,10 +11,19 @@ interface Props {
 
 export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const band = gradeBand(tick.grade);
+  const bandClass = band && band !== '1-5' ? ` grade-band-${band}` : '';
+  const meta = [
+    tick.orientation && orientationLabels[tick.orientation],
+    tick.length ? `${tick.length} m` : null,
+    tick.gear && gearLabels[tick.gear],
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Fragment>
-      <div className="route-card" onClick={onSelect}>
+      <div className={`route-card${bandClass}`} onClick={onSelect}>
         <div className="rc-top">
           <GradePill>{tick.grade}</GradePill>
           {onDelete && (
@@ -31,7 +40,7 @@ export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
           <div className="rc-name">{tick.routeName}</div>
           <div className="rc-sub">{tick.areaPath}</div>
         </div>
-        {tick.gear && <span className="rc-type">{gearLabels[tick.gear] ?? tick.gear}</span>}
+        {meta && <div className="rc-meta">{meta}</div>}
         <div className="trc-tick">
           <span className="trc-date">
             {tick.date}

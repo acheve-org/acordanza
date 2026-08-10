@@ -377,27 +377,24 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent-2);
   border-radius: var(--radius-lg);
-  padding: var(--space-lg);
+  padding: var(--space-md);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.route-card:hover { background: var(--bg-card-hover); border-color: var(--border-strong); border-left-color: var(--accent-2); }
+.route-card:hover { background: var(--bg-card-hover); border-color: var(--border-strong); }
+
+/* Grade-colored left accent (plan 17's gradeBand) — '1-5'/ungraded routes keep the
+   default teal set above, only 6th/7th/8th-9th grade routes pick up a band color. */
+.route-card.grade-band-6   { border-left-color: var(--grade-6); }
+.route-card.grade-band-7   { border-left-color: var(--grade-7); }
+.route-card.grade-band-8-9 { border-left-color: var(--grade-8-9); }
 
 .rc-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
 .rc-icons { display: flex; align-items: center; gap: var(--space-sm); flex-shrink: 0; }
 .rc-main { min-width: 0; margin-top: var(--space-xs); }
 .rc-name { font-weight: 600; font-size: 15px; }
 .rc-sub { color: var(--text-dim); font-size: 13px; line-height: 1.4; margin-top: 2px; }
-.rc-type {
-  align-self: flex-start;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 3px var(--space-xs);
-}
+.rc-meta { color: var(--text-dim); font-size: 12px; }
 .rc-tick-icon { width: 16px; height: 16px; color: var(--accent-2); flex-shrink: 0; }
 .rc-topo-icon { width: 16px; height: 16px; color: var(--text-dim); flex-shrink: 0; }
 
@@ -422,7 +419,33 @@ input:focus, select:focus, textarea:focus {
 .detail-meta { display: flex; align-items: center; gap: var(--space-sm); color: var(--text-dim); font-size: 13px; margin: 4px 0 0; }
 .detail-desc { color: var(--text); line-height: 1.5; font-size: 16px; letter-spacing: 0.24px; }
 .detail-fa { color: var(--text-dim); font-size: 13px; }
-.divider { border: none; border-top: 1px solid var(--border); margin: var(--space-xl) 0; }
+
+/* Sectioned modal body (plan 20) — every block below the head shares this hairline-bordered
+   language, the same radius.md/border DESIGN.md already uses for .route-card. */
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+.detail-section h3 { margin: 0; }
+.detail-stats { display: flex; flex-wrap: wrap; gap: var(--space-lg); }
+.detail-stat { display: flex; flex-direction: column; gap: 2px; }
+.detail-stat-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.detail-stat-value { font-weight: 600; font-size: 14px; }
+.detail-link {
+  font-size: 13px;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px var(--space-xs);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .tag-row { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
 
