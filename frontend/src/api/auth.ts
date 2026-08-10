@@ -15,3 +15,7 @@ export function acceptInvite(email: string, token: string, name: string, passwor
 export function validateToken(email: string, token: string): Promise<{ ok: true }> {
   return api.post<{ ok: true }>('/auth/validate-token', { email, token });
 }
+
+export function confirmEmailChange(userId: string, newEmail: string, token: string): Promise<{ ok: true }> {
+  return api.post<{ ok: true }>('/auth/confirm-email-change', { userId, newEmail, token });
+}

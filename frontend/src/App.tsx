@@ -13,6 +13,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { UsersPage } from './pages/UsersPage';
 import { ResetPasswordScreen } from './pages/ResetPasswordScreen';
 import { AcceptInviteScreen } from './pages/AcceptInviteScreen';
+import { ConfirmEmailChangeScreen } from './pages/ConfirmEmailChangeScreen';
 import { RouteFormPage } from './pages/RouteFormPage';
 import { ExplorePage } from './pages/ExplorePage';
 import { AreaPage } from './pages/AreaPage';
@@ -125,6 +126,9 @@ function App() {
   if (location.pathname === '/reset-password') return <ResetPasswordScreen />;
   // Reachable while logged out — this is where the invite email links.
   if (location.pathname === '/accept-invite') return <AcceptInviteScreen />;
+  // Reachable regardless of auth state — the confirmation link opens in
+  // whatever browser reads the new inbox, logged in or not.
+  if (location.pathname === '/confirm-email-change') return <ConfirmEmailChangeScreen />;
 
   if (loading) return null;
   if (!username) return <LoginScreen />;

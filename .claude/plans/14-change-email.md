@@ -1,6 +1,6 @@
 # The account's email in "Perfil", and changing it through a confirmed link
 
-Status: planned (not started)
+Status: done
 Issue: [#147](https://github.com/acheve-org/acordanza/issues/147)
 Depends on: nothing. No migration and no new entity — Identity's own `ChangeEmail` token carries the whole pending change, so nothing has to be persisted between request and confirmation. Touches both sides plus one new email template; the test harness from [08](08-backend-integration-tests.md)/[09](09-frontend-component-tests.md) is in `main`, so it gets automated tests on both.
 
