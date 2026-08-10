@@ -47,7 +47,7 @@ The app is organized around four sections (issue #108), which are the top nav's 
 
 | Section | Path | Page | What it's for |
 |---|---|---|---|
-| Busca | `/routes` | `pages/SearchPage.tsx` | the routes list + filters (name, sector, grade, orientation, gear, tag, topo) |
+| Busca | `/routes` | `pages/SearchPage.tsx` | the routes list + filters (name, sector, grade, orientation, gear, topo) |
 | Explora | `/explore` | `pages/ExplorePage.tsx` | the map plus a browsable list of zones, leading into `/areas/*` |
 | Sigue | `/fa` | `pages/FirstAscensionistsDirectoryPage.tsx` (+ `FirstAscensionistPage.tsx` per opener) | discovering aperturistas and what they've opened |
 | Mi acordanza | `/my-acordanza` | `pages/MyAcordanzaLayout.tsx` | the user's own ticks, invites, areas, claims |

@@ -2133,13 +2133,6 @@
             }
           },
           {
-            "name": "tag",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "name": "hasTopo",
             "in": "query",
             "schema": {
@@ -2606,13 +2599,6 @@
           },
           {
             "name": "gear",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tag",
             "in": "query",
             "schema": {
               "type": "string"
@@ -4323,7 +4309,6 @@
           "grade",
           "orientation",
           "gear",
-          "tags",
           "date",
           "rating",
           "notes",
@@ -4366,9 +4351,6 @@
               "null",
               "string"
             ]
-          },
-          "tags": {
-            "type": "string"
           },
           "date": {
             "type": "string"
@@ -4674,7 +4656,11 @@
           "orientation",
           "gear",
           "description",
-          "tags",
+          "length",
+          "obligatoryGrade",
+          "recommendedGear",
+          "optionalGear",
+          "links",
           "firstAscensionists",
           "addedBy",
           "createdAt",
@@ -4723,8 +4709,33 @@
           "description": {
             "type": "string"
           },
-          "tags": {
-            "type": "string"
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "obligatoryGrade": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recommendedGear": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "optionalGear": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "firstAscensionists": {
             "type": "array",
@@ -4786,7 +4797,11 @@
           "orientation",
           "gear",
           "description",
-          "tags",
+          "length",
+          "obligatoryGrade",
+          "recommendedGear",
+          "optionalGear",
+          "links",
           "firstAscensionists",
           "addedBy",
           "createdAt",
@@ -4835,8 +4850,33 @@
           "description": {
             "type": "string"
           },
-          "tags": {
-            "type": "string"
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "obligatoryGrade": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recommendedGear": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "optionalGear": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "firstAscensionists": {
             "type": "array",
@@ -5009,7 +5049,11 @@
           "orientation",
           "gear",
           "description",
-          "tags",
+          "length",
+          "obligatoryGrade",
+          "recommendedGear",
+          "optionalGear",
+          "links",
           "firstAscensionistIds"
         ],
         "type": "object",
@@ -5042,11 +5086,36 @@
               "string"
             ]
           },
-          "tags": {
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "obligatoryGrade": {
             "type": [
               "null",
               "string"
             ]
+          },
+          "recommendedGear": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "optionalGear": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "links": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
           },
           "firstAscensionistIds": {
             "type": [

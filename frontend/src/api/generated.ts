@@ -1973,7 +1973,6 @@ export interface paths {
                     grade?: string;
                     orientation?: string;
                     gear?: string;
-                    tag?: string;
                     hasTopo?: boolean;
                     firstAscensionistId?: number;
                     exactArea?: boolean;
@@ -2361,7 +2360,6 @@ export interface paths {
                     q?: string;
                     areaId?: number;
                     gear?: string;
-                    tag?: string;
                     page?: number;
                     pageSize?: number;
                 };
@@ -2967,7 +2965,6 @@ export interface components {
             grade: string;
             orientation: null | string;
             gear: null | string;
-            tags: string;
             date: string;
             /** Format: int32 */
             rating: null | number;
@@ -3068,7 +3065,12 @@ export interface components {
             orientation: null | string;
             gear: null | string;
             description: string;
-            tags: string;
+            /** Format: int32 */
+            length: number;
+            obligatoryGrade: null | string;
+            recommendedGear: null | string;
+            optionalGear: null | string;
+            links: string[];
             firstAscensionists: components["schemas"]["FirstAscensionistDto"][];
             addedBy: string;
             /** Format: date-time */
@@ -3094,7 +3096,12 @@ export interface components {
             orientation: null | string;
             gear: null | string;
             description: string;
-            tags: string;
+            /** Format: int32 */
+            length: number;
+            obligatoryGrade: null | string;
+            recommendedGear: null | string;
+            optionalGear: null | string;
+            links: string[];
             firstAscensionists: components["schemas"]["FirstAscensionistDto"][];
             addedBy: string;
             /** Format: date-time */
@@ -3149,7 +3156,12 @@ export interface components {
             orientation: null | string;
             gear: null | string;
             description: null | string;
-            tags: null | string;
+            /** Format: int32 */
+            length: number;
+            obligatoryGrade: null | string;
+            recommendedGear: null | string;
+            optionalGear: null | string;
+            links: null | string[];
             firstAscensionistIds: null | number[];
         };
         UserAccountDto: {

@@ -294,18 +294,29 @@ namespace Acordanza.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("Length")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ObligatoryGrade")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("OptionalGear")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<string>("Orientation")
                         .HasColumnType("text");
 
-                    b.Property<string>("RejectionReason")
-                        .HasColumnType("text");
+                    b.Property<string>("RecommendedGear")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
-                    b.Property<string>("Tags")
-                        .IsRequired()
+                    b.Property<string>("RejectionReason")
                         .HasColumnType("text");
 
                     b.Property<string>("ValidationStatus")
@@ -429,6 +440,29 @@ namespace Acordanza.Api.Migrations
                         .HasFilter("\"Status\" = 'Pending'");
 
                     b.ToTable("FirstAscensionistLinkRequests", "core");
+                });
+
+            modelBuilder.Entity("Acordanza.Api.Models.Link", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("RouteId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RouteId");
+
+                    b.ToTable("Links", "core");
                 });
 
             modelBuilder.Entity("Acordanza.Api.Models.PasskeyCredential", b =>
@@ -878,6 +912,17 @@ namespace Acordanza.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Acordanza.Api.Models.Link", b =>
+                {
+                    b.HasOne("Acordanza.Api.Models.ClimbingRoute", "Route")
+                        .WithMany("Links")
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Route");
+                });
+
             modelBuilder.Entity("Acordanza.Api.Models.PasskeyCredential", b =>
                 {
                     b.HasOne("Acordanza.Api.Models.ApplicationUser", "User")
@@ -1000,6 +1045,8 @@ namespace Acordanza.Api.Migrations
 
             modelBuilder.Entity("Acordanza.Api.Models.ClimbingRoute", b =>
                 {
+                    b.Navigation("Links");
+
                     b.Navigation("Ticks");
 
                     b.Navigation("Topos");

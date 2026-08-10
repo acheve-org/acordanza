@@ -24,7 +24,6 @@ describe('listRoutes', () => {
       grade: '6a',
       orientation: 'north',
       gear: 'bolted',
-      tag: 'clásica',
       hasTopo: 'true',
     });
 
@@ -35,7 +34,6 @@ describe('listRoutes', () => {
     expect(params.get('grade')).toBe('6a');
     expect(params.get('orientation')).toBe('north');
     expect(params.get('gear')).toBe('bolted');
-    expect(params.get('tag')).toBe('clásica');
     expect(params.get('hasTopo')).toBe('true');
   });
 

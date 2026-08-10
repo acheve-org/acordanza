@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<FirstAscensionist> FirstAscensionists => Set<FirstAscensionist>();
     public DbSet<Topo> Topos => Set<Topo>();
+    public DbSet<Link> Links => Set<Link>();
     public DbSet<AreaMedia> AreaMedia => Set<AreaMedia>();
     public DbSet<AreaExpert> AreaExperts => Set<AreaExpert>();
     public DbSet<FirstAscensionistLinkRequest> FirstAscensionistLinkRequests => Set<FirstAscensionistLinkRequest>();
@@ -123,6 +124,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasIndex(r => r.AreaId);
 
             entity.Property(r => r.ValidationStatus).HasConversion<string>().HasMaxLength(20);
+            entity.Property(r => r.ObligatoryGrade).HasMaxLength(20);
+            entity.Property(r => r.RecommendedGear).HasMaxLength(500);
+            entity.Property(r => r.OptionalGear).HasMaxLength(500);
 
             entity.HasOne(r => r.AddedBy)
                 .WithMany()
@@ -150,6 +154,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                         j.ToTable("RouteFirstAscensionists", "core");
                         j.HasKey("RouteId", "FirstAscensionistId");
                     });
+        });
+
+        builder.Entity<Link>(entity =>
+        {
+            entity.ToTable("Links", "core");
+            entity.HasIndex(l => l.RouteId);
+            entity.Property(l => l.Url).HasMaxLength(2048);
+
+            entity.HasOne(l => l.Route)
+                .WithMany(r => r.Links)
+                .HasForeignKey(l => l.RouteId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Tick>(entity =>

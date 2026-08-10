@@ -73,14 +73,6 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
         ))}
       </select>
 
-      <label className="field-label">Etiqueta</label>
-      <input
-        type="text"
-        placeholder="p. ej. regletas, clásica"
-        value={filters.tag}
-        onChange={(e) => set('tag', e.target.value)}
-      />
-
       <label className="checkbox-field">
         <input
           type="checkbox"

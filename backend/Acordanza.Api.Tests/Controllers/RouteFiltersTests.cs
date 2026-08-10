@@ -41,16 +41,16 @@ public class RouteFiltersTests(ApiFixture fixture) : IntegrationTestBase(fixture
 
         await SeedData.CreateRouteAsync(db, root, admin.UserId,
             name: Alpha, grade: "6a", orientation: "north", gear: "bolted",
-            tags: "classic,exposed", description: "a nice line up the wall",
+            description: "a nice line up the wall",
             firstAscensionists: [alphaOpener], hasTopo: true);
 
         await SeedData.CreateRouteAsync(db, child, admin.UserId,
             name: Beta, grade: "6b", orientation: "south", gear: "removable",
-            tags: "classic", hasTopo: false);
+            hasTopo: false);
 
         await SeedData.CreateRouteAsync(db, root, admin.UserId,
             name: Gamma, grade: "6a", orientation: null, gear: null,
-            tags: "", hasTopo: false);
+            hasTopo: false);
     }
 
     private async Task<List<string>> GetRouteNamesAsync(string query)
@@ -117,14 +117,6 @@ public class RouteFiltersTests(ApiFixture fixture) : IntegrationTestBase(fixture
     }
 
     [Fact]
-    public async Task Tag_filters_by_substring_match()
-    {
-        await SeedAsync();
-
-        (await GetRouteNamesAsync("?tag=classic")).ShouldBe([Alpha, Beta], ignoreOrder: true);
-    }
-
-    [Fact]
     public async Task HasTopo_filters_to_routes_with_at_least_one_topo()
     {
         await SeedAsync();
@@ -149,7 +141,8 @@ public class RouteFiltersTests(ApiFixture fixture) : IntegrationTestBase(fixture
         // to just Alpha (Gamma has no orientation).
         (await GetRouteNamesAsync($"?areaId={_rootAreaId}&grade=6a&orientation=north")).ShouldBe([Alpha]);
 
-        // "classic" alone matches Alpha and Beta; scoping to the Child subtree narrows to Beta.
-        (await GetRouteNamesAsync($"?tag=classic&areaId={_childAreaId}")).ShouldBe([Beta]);
+        // grade=6a alone matches Alpha and Gamma, both under Root; scoping to the Child
+        // subtree (which has neither) narrows to nothing.
+        (await GetRouteNamesAsync($"?grade=6a&areaId={_childAreaId}")).ShouldBeEmpty();
     }
 }

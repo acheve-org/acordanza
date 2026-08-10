@@ -1,5 +1,5 @@
 import { Fragment, useState, type ChangeEvent } from 'react';
-import { Button, Chip, ConfirmModal, Modal, RemoveButton } from 'acordanza-design-system';
+import { Button, ConfirmModal, Modal, RemoveButton } from 'acordanza-design-system';
 import type { CreateTickInput, RouteDetail } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -62,11 +62,6 @@ export function DetailModal({
     }
   }
 
-  const tags = route.tags
-    .split(',')
-    .map((t) => t.trim())
-    .filter(Boolean);
-
   return (
     <Fragment>
       <Modal onClose={onClose}>
@@ -126,11 +121,6 @@ export function DetailModal({
               .join(', ')}
           </p>
         )}
-        <div className="tag-row">
-          {tags.map((t) => (
-            <Chip key={t}>{t}</Chip>
-          ))}
-        </div>
 
         <hr className="divider" />
 

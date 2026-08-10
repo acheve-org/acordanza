@@ -18,7 +18,6 @@ export function listRoutes(filters: RouteFilters, exactArea?: boolean): Promise<
   if (filters.grade) params.set('grade', filters.grade);
   if (filters.orientation) params.set('orientation', filters.orientation);
   if (filters.gear) params.set('gear', filters.gear);
-  if (filters.tag) params.set('tag', filters.tag);
   if (filters.hasTopo) params.set('hasTopo', filters.hasTopo);
   if (exactArea) params.set('exactArea', 'true');
   const qs = params.toString();

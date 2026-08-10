@@ -12,7 +12,7 @@ import type { CreateTickInput, RouteDetail, TickedRoute, TickFilters } from '../
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
 
-const emptyFilters: TickFilters = { q: '', areaId: '', gear: '', tag: '' };
+const emptyFilters: TickFilters = { q: '', areaId: '', gear: '' };
 const PAGE_SIZE = 20;
 
 export function MyTicksPage() {
@@ -172,14 +172,6 @@ export function MyTicksPage() {
               </option>
             ))}
           </select>
-
-          <label className="field-label">Etiqueta</label>
-          <input
-            type="text"
-            placeholder="p. ej. regletas, clásica"
-            value={filters.tag}
-            onChange={(e) => set('tag', e.target.value)}
-          />
         </aside>
 
         <section className="routes-panel">
