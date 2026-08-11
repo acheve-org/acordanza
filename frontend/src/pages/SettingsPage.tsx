@@ -5,8 +5,9 @@ import { Button, ConfirmModal, EmptyState, List, ListRow, ModalActions, RemoveBu
 import * as accountApi from '../api/account';
 import * as passkeysApi from '../api/passkeys';
 import type { PasskeySummary } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import { useAuth } from '../context/AuthContext';
+import { formatDate } from '../format';
 import { ChangeEmailModal } from '../components/ChangeEmailModal';
 
 export function SettingsPage() {
@@ -41,7 +42,7 @@ function ProfileSection() {
       setValue(res.name);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo guardar el nombre');
+      setError(errorMessage(err, 'No se pudo guardar el nombre'));
     }
   }
 
@@ -96,7 +97,7 @@ function PasswordSection() {
       setConfirmPassword('');
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo cambiar la contraseña');
+      setError(errorMessage(err, 'No se pudo cambiar la contraseña'));
     }
   }
 
@@ -160,7 +161,7 @@ function PasskeysSection() {
       setNewPasskeyName('');
       setPasskeys(await passkeysApi.listPasskeys());
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo registrar la llave de acceso');
+      setError(errorMessage(err, 'No se pudo registrar la llave de acceso'));
     } finally {
       setRegistering(false);
     }
@@ -187,7 +188,7 @@ function PasskeysSection() {
             <ListRow
               key={p.id}
               title={p.name}
-              subtitle={`Añadida el ${new Date(p.createdAt).toLocaleDateString('es-ES')}`}
+              subtitle={`Añadida el ${formatDate(p.createdAt)}`}
               trailing={
                 <RemoveButton label="Eliminar llave de acceso" onClick={() => setConfirmingDeleteId(p.id)} />
               }

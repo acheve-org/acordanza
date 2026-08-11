@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 interface Props {
   firstAscensionist?: { id: number; name: string };
@@ -29,11 +29,7 @@ export function FirstAscensionistNameModal({ firstAscensionist, onClose, onSaved
       onSaved();
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : firstAscensionist
-            ? 'No se pudo actualizar el aperturista'
-            : 'No se pudo crear el aperturista',
+        errorMessage(err, firstAscensionist ? 'No se pudo actualizar el aperturista' : 'No se pudo crear el aperturista'),
       );
     } finally {
       setSubmitting(false);

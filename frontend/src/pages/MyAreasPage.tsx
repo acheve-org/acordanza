@@ -2,14 +2,9 @@ import { useEffect, useState } from 'react';
 import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
 import type { AreaExpert } from '../api/types';
-import { ApiError } from '../api/client';
+import { reviewStatusLabels } from '../api/types';
+import { errorMessage } from '../api/errorMessage';
 import { RequestAreaExpertModal } from '../components/RequestAreaExpertModal';
-
-const statusLabels: Record<AreaExpert['status'], string> = {
-  pending: 'Solicitud pendiente de aprobación',
-  approved: 'Experto aprobado',
-  rejected: 'Solicitud rechazada',
-};
 
 export function MyAreasPage() {
   const [mine, setMine] = useState<AreaExpert[]>([]);
@@ -20,7 +15,7 @@ export function MyAreasPage() {
     areaExpertsApi
       .listMyAreaExperts()
       .then(setMine)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'No se pudieron cargar tus sectores'));
+      .catch((err) => setError(errorMessage(err, 'No se pudieron cargar tus sectores')));
   }
 
   useEffect(refresh, []);
@@ -31,7 +26,7 @@ export function MyAreasPage() {
     try {
       await areaExpertsApi.cancelAreaExpert(id);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo retirar la solicitud');
+      setError(errorMessage(err, 'No se pudo retirar la solicitud'));
     }
     refresh();
   }
@@ -67,7 +62,7 @@ export function MyAreasPage() {
               title={e.areaName}
               subtitle={
                 <>
-                  {statusLabels[e.status]}
+                  {reviewStatusLabels[e.status]}
                   {e.status !== 'pending' && e.decidedByName && ` · ${e.decidedByName}`}
                   {e.status === 'rejected' && e.rejectionReason && ` · Motivo: ${e.rejectionReason}`}
                 </>

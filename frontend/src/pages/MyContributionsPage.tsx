@@ -7,6 +7,7 @@ import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
 import { validationStatusLabels } from '../api/types';
 import type { Contribution } from '../api/types';
+import { formatDate } from '../format';
 
 const PAGE_SIZE = 10;
 
@@ -92,8 +93,8 @@ export function MyContributionsPage() {
 
 function ContributionSubtitle({ contribution }: { contribution: Contribution }) {
   const detail = contribution.detail ? `${contribution.detail}` : '';
-  const created = `Creado el ${new Date(contribution.createdAt).toLocaleDateString()}`
-  const decided = contribution.decidedByName && contribution.decidedAt ? ` ·  Validado por ${contribution.decidedByName} el ${new Date(contribution.decidedAt).toLocaleDateString()}` : '';
+  const created = `Creado el ${formatDate(contribution.createdAt)}`
+  const decided = contribution.decidedByName && contribution.decidedAt ? ` ·  Validado por ${contribution.decidedByName} el ${formatDate(contribution.decidedAt)}` : '';
   const rejected = contribution.validationStatus === 'rejected' && contribution.rejectionReason ? ` · Motivo: ${contribution.rejectionReason}` : '';
   const validation = `${created}${decided}${rejected}`
   return (

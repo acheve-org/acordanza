@@ -20,9 +20,9 @@ describe('MyAreasPage', () => {
     renderWithProviders(<MyAreasPage />);
 
     await waitFor(() => expect(screen.getByText('Peña Rúa')).toBeInTheDocument());
-    expect(screen.getByText('Solicitud pendiente de aprobación')).toBeInTheDocument();
+    expect(screen.getByText('Pendiente de aprobación')).toBeInTheDocument();
     expect(screen.getByText('Sector Norte')).toBeInTheDocument();
-    expect(screen.getByText('Experto aprobado · Hugo')).toBeInTheDocument();
+    expect(screen.getByText('Aprobado · Hugo')).toBeInTheDocument();
   });
 
   it('shows Retirar solicitud for a pending row and not for an approved/rejected one', async () => {

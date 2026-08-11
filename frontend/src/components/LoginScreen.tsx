@@ -1,7 +1,7 @@
 import { useState, type SubmitEvent } from 'react';
 import { Button } from 'acordanza-design-system';
 import { useAuth, type PasskeyChallenge } from '../context/AuthContext';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import * as authApi from '../api/auth';
 import { Brand } from './Brand';
 
@@ -27,7 +27,7 @@ export function LoginScreen() {
         await confirmPasskey(pending);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo iniciar sesión');
+      setError(errorMessage(err, 'No se pudo iniciar sesión'));
     }
   }
 
@@ -38,7 +38,7 @@ export function LoginScreen() {
       setChallenge(pending);
       await confirmPasskey(pending);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo iniciar sesión');
+      setError(errorMessage(err, 'No se pudo iniciar sesión'));
     }
   }
 
@@ -48,7 +48,7 @@ export function LoginScreen() {
     try {
       await completeLoginWithPasskey(pending);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo verificar la llave de acceso');
+      setError(errorMessage(err, 'No se pudo verificar la llave de acceso'));
     } finally {
       setVerifying(false);
     }
@@ -61,7 +61,7 @@ export function LoginScreen() {
       await authApi.forgotPassword(forgotEmail);
       setForgotSubmitted(true);
     } catch (err) {
-      setForgotError(err instanceof ApiError ? err.message : 'No se pudo enviar el correo');
+      setForgotError(errorMessage(err, 'No se pudo enviar el correo'));
     }
   }
 

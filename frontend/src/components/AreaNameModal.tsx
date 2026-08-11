@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 interface Props {
   parentAreaId: number | null;
@@ -29,7 +29,7 @@ export function AreaNameModal({ parentAreaId, area, onClose, onSaved }: Props) {
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : area ? 'No se pudo actualizar el sector' : 'No se pudo crear el sector');
+      setError(errorMessage(err, area ? 'No se pudo actualizar el sector' : 'No se pudo crear el sector'));
     } finally {
       setSubmitting(false);
     }

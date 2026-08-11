@@ -7,7 +7,7 @@ import 'leaflet-draw/dist/leaflet.draw.css';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import type { AreaSummary, GeoPoint } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 const SPAIN_CENTER: [number, number] = [40.4168, -3.7038];
 const SPAIN_ZOOM = 6;
@@ -111,7 +111,7 @@ export function AreaPolygonModal({ areaId, areaName, parentAreaId, onClose, onSa
       await areasApi.updateAreaCoordinates(areaId, pendingPolygon);
       onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo guardar el polígono');
+      setError(errorMessage(err, 'No se pudo guardar el polígono'));
     } finally {
       setSaving(false);
     }

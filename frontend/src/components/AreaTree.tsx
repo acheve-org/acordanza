@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { Button, ConfirmModal, EmptyState, Pagination } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import type { AreaNode, PagedAreaNodes } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import { AreaNameModal } from './AreaNameModal';
 
 const AreaPolygonModal = lazy(() => import('./AreaPolygonModal').then((m) => ({ default: m.AreaPolygonModal })));
@@ -54,7 +54,7 @@ function AreaTreeNode({
         setChildren(items);
         setHasChildren(items.length > 0);
       })
-      .catch((err) => onError(err instanceof ApiError ? err.message : 'No se pudieron cargar los subsectores'))
+      .catch((err) => onError(errorMessage(err, 'No se pudieron cargar los subsectores')))
       .finally(() => setLoadingChildren(false));
   }
 
@@ -70,7 +70,7 @@ function AreaTreeNode({
       await areasApi.deleteArea(node.id);
       onListChanged();
     } catch (err) {
-      onError(err instanceof ApiError ? err.message : 'No se pudo eliminar el sector');
+      onError(errorMessage(err, 'No se pudo eliminar el sector'));
     }
   }
 
@@ -209,7 +209,7 @@ export function AreaTree({ canCreate, canEdit, canDelete }: Props) {
         setResult(r);
         setError('');
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'No se pudieron cargar los sectores'));
+      .catch((err) => setError(errorMessage(err, 'No se pudieron cargar los sectores')));
   }
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Button, gradeBand, ModalActions, RemoveButton } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import type { RouteDetail, UpsertRouteInput } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 import { AreaPicker } from '../components/AreaPicker';
@@ -74,7 +74,7 @@ export function RouteFormPage() {
         });
       })
       .catch((err) => {
-        setLoadError(err instanceof ApiError ? err.message : 'No se pudo cargar la vía');
+        setLoadError(errorMessage(err, 'No se pudo cargar la vía'));
       });
   }, [id, editing]);
 

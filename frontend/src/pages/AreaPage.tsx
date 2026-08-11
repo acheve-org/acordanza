@@ -5,6 +5,7 @@ import * as areasApi from '../api/areas';
 import * as routesApi from '../api/routes';
 import type { AreaDetail, RouteSummary } from '../api/types';
 import { emptyRouteFilters } from '../api/types';
+import { formatDate } from '../format';
 import { RoutesList } from '../components/RoutesList';
 
 const ACCEPTED_MEDIA_TYPES = 'image/jpeg,image/png,image/webp';
@@ -113,12 +114,12 @@ export function AreaPage() {
       <h1>{area.name}</h1>
       {area.validationStatus === 'approved' && (
         <p className="detail-fa">
-          ✓ Validado por {area.decidedByName} el {new Date(area.decidedAt!).toLocaleDateString()}
+          ✓ Validado por {area.decidedByName} el {formatDate(area.decidedAt!)}
         </p>
       )}
       {area.validationStatus === 'rejected' && (
         <p className="detail-fa">
-          ✗ Rechazado por {area.decidedByName} el {new Date(area.decidedAt!).toLocaleDateString()}
+          ✗ Rechazado por {area.decidedByName} el {formatDate(area.decidedAt!)}
           {area.rejectionReason && ` · Motivo: ${area.rejectionReason}`}
         </p>
       )}

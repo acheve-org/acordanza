@@ -5,6 +5,7 @@ import type { CreateTickInput, RouteDetail } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
+import { formatDate } from '../format';
 import { AddTickModal } from './AddTickModal';
 import { RejectReasonModal } from './RejectReasonModal';
 
@@ -100,12 +101,12 @@ export function DetailModal({
             </p>
             {route.validationStatus === 'approved' && (
               <p className="detail-fa">
-                ✓ Validada por {route.decidedByName} el {new Date(route.decidedAt!).toLocaleDateString()}
+                ✓ Validada por {route.decidedByName} el {formatDate(route.decidedAt!)}
               </p>
             )}
             {route.validationStatus === 'rejected' && (
               <p className="detail-fa">
-                ✗ Rechazada por {route.decidedByName} el {new Date(route.decidedAt!).toLocaleDateString()}
+                ✗ Rechazada por {route.decidedByName} el {formatDate(route.decidedAt!)}
                 {route.rejectionReason && ` · Motivo: ${route.rejectionReason}`}
               </p>
             )}
@@ -239,7 +240,7 @@ export function DetailModal({
               {route.enrichedAt ? 'Volver a buscar' : 'Buscar enlaces y topo'}
             </Button>
             {route.enrichedAt && (
-              <p className="detail-fa">Última búsqueda: {new Date(route.enrichedAt).toLocaleDateString()}</p>
+              <p className="detail-fa">Última búsqueda: {formatDate(route.enrichedAt)}</p>
             )}
             {enrichStarted && (
               <p className="detail-fa">

@@ -4,7 +4,7 @@ import { Button, ConfirmModal, EmptyState, List, ListRow } from 'acordanza-desig
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import type { FirstAscensionistSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import { FirstAscensionistNameModal } from '../components/FirstAscensionistNameModal';
 
@@ -31,7 +31,7 @@ export function FirstAscensionistsPage() {
         setItems(result);
         setError('');
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'No se pudieron cargar los aperturistas'));
+      .catch((err) => setError(errorMessage(err, 'No se pudieron cargar los aperturistas')));
   }
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function FirstAscensionistsPage() {
         })
         .catch((err) => {
           if (!active) return;
-          setError(err instanceof ApiError ? err.message : 'No se pudieron cargar los aperturistas');
+          setError(errorMessage(err, 'No se pudieron cargar los aperturistas'));
         });
     }, 250);
     return () => {
@@ -63,7 +63,7 @@ export function FirstAscensionistsPage() {
       await firstAscensionistsApi.deleteFirstAscensionist(id);
       refresh();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo eliminar el aperturista');
+      setError(errorMessage(err, 'No se pudo eliminar el aperturista'));
     }
   }
 

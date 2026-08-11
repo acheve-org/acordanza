@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { Button } from 'acordanza-design-system';
 import * as authApi from '../api/auth';
 import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import { Brand } from '../components/Brand';
 
 export function AcceptInviteScreen() {
@@ -90,7 +91,7 @@ export function AcceptInviteScreen() {
       await authApi.acceptInvite(email!, token!, name.trim(), password);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo completar el registro');
+      setError(errorMessage(err, 'No se pudo completar el registro'));
     }
   }
 

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { Button } from 'acordanza-design-system';
 import * as authApi from '../api/auth';
 import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import { Brand } from '../components/Brand';
 
 export function ResetPasswordScreen() {
@@ -89,7 +90,7 @@ export function ResetPasswordScreen() {
       await authApi.resetPassword(email!, token!, newPassword);
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo restablecer la contraseña');
+      setError(errorMessage(err, 'No se pudo restablecer la contraseña'));
     }
   }
 
