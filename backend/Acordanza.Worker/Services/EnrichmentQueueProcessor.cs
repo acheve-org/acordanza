@@ -1,4 +1,5 @@
 using Acordanza.Core.Services;
+using System.Diagnostics;
 using System.Text.Json;
 using Azure.Storage.Queues;
 using Azure.Storage.Queues.Models;
@@ -19,6 +20,12 @@ public class EnrichmentQueueProcessor(
     private static readonly TimeSpan VisibilityTimeout = TimeSpan.FromMinutes(5);
     private const int MaxDeliveryAttempts = 5;
 
+    // Unlike the API, nothing (no ASP.NET Core request) automatically opens a span
+    // around "one unit of work" here — without this, every DB/HTTP call an enrichment
+    // makes shows up as its own disconnected root trace instead of children of one
+    // "processed this message" trace. Registered via .AddSource in AddEnrichmentWorker.
+    private static readonly ActivitySource ActivitySource = new("Acordanza.Worker.EnrichmentQueueProcessor");
+
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
         while (true)
@@ -36,6 +43,10 @@ public class EnrichmentQueueProcessor(
 
     private async Task ProcessAsync(QueueMessage message, CancellationToken cancellationToken)
     {
+        using var activity = ActivitySource.StartActivity("enrichment.process_message", ActivityKind.Consumer);
+        activity?.SetTag("messaging.message.id", message.MessageId);
+        activity?.SetTag("messaging.azure.dequeue_count", message.DequeueCount);
+
         EnrichmentMessage? body;
         try
         {
@@ -43,6 +54,7 @@ public class EnrichmentQueueProcessor(
         }
         catch (JsonException ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, "unparseable message");
             logger.LogError(ex, "enrichment poison message (unparseable), dropping: {Body}", message.MessageText);
             await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken);
             return;
@@ -50,10 +62,14 @@ public class EnrichmentQueueProcessor(
 
         if (body is null)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, "null message body");
             logger.LogError("enrichment poison message (null body), dropping: {Body}", message.MessageText);
             await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken);
             return;
         }
+
+        activity?.SetTag("acordanza.route_id", body.RouteId);
+        activity?.SetTag("acordanza.force", body.Force);
 
         try
         {
@@ -64,14 +80,17 @@ public class EnrichmentQueueProcessor(
         }
         catch (Exception ex)
         {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             if (message.DequeueCount > MaxDeliveryAttempts)
             {
+                activity?.SetTag("acordanza.enrichment.outcome", "poison");
                 logger.LogError(ex, "enrichment poison message for route {RouteId}, dropping after {Count} attempts",
                     body.RouteId, message.DequeueCount);
                 await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken);
             }
             else
             {
+                activity?.SetTag("acordanza.enrichment.outcome", "retry");
                 logger.LogError(ex, "enrichment failed for route {RouteId} (attempt {Count}), will be redelivered",
                     body.RouteId, message.DequeueCount);
                 // Left in place — the visibility timeout expiring redelivers it.

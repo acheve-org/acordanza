@@ -13,6 +13,12 @@ builder.Services.AddEnrichmentWorker(builder.Configuration);
 
 using var app = builder.Build();
 
+// StartAsync/StopAsync (not just Build) because OpenTelemetry.Extensions.Hosting's
+// TracerProvider/MeterProvider are only instantiated and flushed by the hosted
+// service it registers — a drain-and-exit job that never starts the host never
+// exports a trace or metric, and never flushes the OTLP batch exporter before exit.
+await app.StartAsync();
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -21,3 +27,5 @@ using (var scope = app.Services.CreateScope())
     var processor = scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>();
     await processor.RunAsync();
 }
+
+await app.StopAsync();
