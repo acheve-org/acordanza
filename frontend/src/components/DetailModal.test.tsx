@@ -83,6 +83,16 @@ describe('DetailModal permission gating', () => {
       decidedByName: 'Alex',
     });
     expect(screen.queryByRole('button', { name: 'Validar' })).not.toBeInTheDocument();
+    expect(screen.getByText('✓ Validada por Alex el 1/1/2026')).toBeInTheDocument();
+  });
+
+  it('shows the rejection line with the es-ES decision date', () => {
+    renderModal([], {
+      validationStatus: 'rejected',
+      decidedAt: '2026-01-01T00:00:00Z',
+      decidedByName: 'Alex',
+    });
+    expect(screen.getByText('✗ Rechazada por Alex el 1/1/2026')).toBeInTheDocument();
   });
 });
 
@@ -157,7 +167,7 @@ describe('DetailModal route enrichment', () => {
   it('shows "Volver a buscar" plus the last-search date once enrichedAt is set', () => {
     renderModal([Permissions.routeEnrich], { enrichedAt: '2026-01-01T00:00:00Z' }, noopAsync);
     expect(screen.getByRole('button', { name: 'Volver a buscar' })).toBeInTheDocument();
-    expect(screen.getByText(/Última búsqueda:/)).toBeInTheDocument();
+    expect(screen.getByText('Última búsqueda: 1/1/2026')).toBeInTheDocument();
   });
 
   it('posts once, disables the button, and shows the inline status note on click', async () => {

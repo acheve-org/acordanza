@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 interface Props {
   title: string;
@@ -21,7 +21,7 @@ export function RejectReasonModal({ title, onClose, onReject }: Props) {
     try {
       await onReject(reason.trim());
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo rechazar la solicitud');
+      setError(errorMessage(err, 'No se pudo rechazar la solicitud'));
       setSubmitting(false);
     }
   }

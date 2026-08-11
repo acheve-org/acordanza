@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Button, Chip, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
 import type { MyInvitesResponse } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import { InviteUserModal } from '../components/InviteUserModal';
 
 const emptyResult: MyInvitesResponse = { invites: [], invitesLeft: null, maxInvites: null };
@@ -20,7 +20,7 @@ export function MyInvitesPage() {
         setError('');
       })
       .catch((err) => {
-        setError(err instanceof ApiError ? err.message : 'No se pudieron cargar las invitaciones');
+        setError(errorMessage(err, 'No se pudieron cargar las invitaciones'));
       });
   }
 

@@ -9,6 +9,7 @@ import { PendingAreaExpertRequests } from '../components/PendingAreaExpertReques
 import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
 import { RejectReasonModal } from '../components/RejectReasonModal';
 import type { AreaPending, FirstAscensionistPending, RoutePending } from '../api/types';
+import { formatDate } from '../format';
 
 type Tab = 'routes' | 'areas' | 'firstAscensionists' | 'areaExperts' | 'firstAscensionistLinks';
 
@@ -195,8 +196,8 @@ export function PendingTasksPage() {
                   title={o.name}
                   subtitle={
                     o.addedByName
-                      ? `Creado por ${o.addedByName} el ${new Date(o.createdAt).toLocaleDateString()}`
-                      : new Date(o.createdAt).toLocaleDateString()
+                      ? `Creado por ${o.addedByName} el ${formatDate(o.createdAt)}`
+                      : formatDate(o.createdAt)
                   }
                   trailing={
                     <>

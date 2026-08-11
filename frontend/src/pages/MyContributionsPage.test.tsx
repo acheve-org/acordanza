@@ -43,6 +43,7 @@ describe('MyContributionsPage', () => {
     expect(await screen.findByText('Diedro del Sol')).toBeInTheDocument();
     expect(screen.getByText('Peña Rúa › Sector 1')).toBeInTheDocument();
     expect(screen.getByText('Pendiente de validación')).toBeInTheDocument();
+    expect(screen.getByText('Creado el 1/1/2026')).toBeInTheDocument();
     expect(screen.getByText('Fisura Negra')).toBeInTheDocument();
     expect(screen.getByText('Rechazado')).toBeInTheDocument();
     expect(screen.getByText(/Motivo: Ya existe/)).toBeInTheDocument();

@@ -5,8 +5,9 @@ import * as usersApi from '../api/users';
 import type { PagedUsers, UserAccount, UserFilters } from '../api/types';
 import { roleLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import { useAuth } from '../context/AuthContext';
+import { formatDate } from '../format';
 import { InviteUserModal } from '../components/InviteUserModal';
 
 const emptyFilters: UserFilters = { q: '', role: '', page: 1, sortBy: 'name', sortDir: 'asc' };
@@ -22,12 +23,12 @@ const columns: { key: UserFilters['sortBy']; label: string }[] = [
 function inviteMeta(u: UserAccount): string | null {
   const segments: string[] = [];
   if (u.invitedByName && u.invitedAt) {
-    segments.push(`Invitado por ${u.invitedByName} el ${new Date(u.invitedAt).toLocaleDateString('es-ES')}`);
+    segments.push(`Invitado por ${u.invitedByName} el ${formatDate(u.invitedAt)}`);
   } else if (u.invitedAt) {
-    segments.push(`Invitado el ${new Date(u.invitedAt).toLocaleDateString('es-ES')}`);
+    segments.push(`Invitado el ${formatDate(u.invitedAt)}`);
   }
   if (u.confirmedAt) {
-    segments.push(`Confirmado el ${new Date(u.confirmedAt).toLocaleDateString('es-ES')}`);
+    segments.push(`Confirmado el ${formatDate(u.confirmedAt)}`);
   }
   return segments.length > 0 ? segments.join(' · ') : null;
 }
@@ -48,7 +49,7 @@ export function UsersPage() {
         setError('');
       })
       .catch((err) => {
-        setError(err instanceof ApiError ? err.message : 'No se pudieron cargar los usuarios');
+        setError(errorMessage(err, 'No se pudieron cargar los usuarios'));
       });
   }
 
@@ -65,7 +66,7 @@ export function UsersPage() {
         })
         .catch((err) => {
           if (!active) return;
-          setError(err instanceof ApiError ? err.message : 'No se pudieron cargar los usuarios');
+          setError(errorMessage(err, 'No se pudieron cargar los usuarios'));
         });
     }, 250);
     return () => {

@@ -1,6 +1,6 @@
 # Adopt the shared presentation helpers everywhere (errors, dates, status labels)
 
-Status: not started
+Status: done. §4 (the `.oxlintrc.json` guard rail) skipped — `no-restricted-syntax` isn't an oxlint rule (oxlint 1.77.0 rejects it: "Rule 'no-restricted-syntax' not found in plugin 'eslint'"); it's an ESLint-only construct with no oxlint equivalent for banning a member-call selector. The sweep stands without it, as the plan allowed.
 Depends on: nothing. Frontend only — no backend change, no DTO change, no OpenAPI regeneration. Mechanical, but §2 fixes a user-visible bug.
 
 ## Problem

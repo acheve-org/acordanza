@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, EmptyState, List, ListRow } from 'acordanza-design-system';
 import { RejectReasonModal } from './RejectReasonModal';
+import { formatDate } from '../format';
 
 interface PendingRequestItem {
   id: number;
@@ -60,7 +61,7 @@ export function PendingRequestsList<T extends PendingRequestItem>({
                   </div>
                 </>
               }
-              subtitle={`Solicitado el ${new Date(item.requestedAt).toLocaleDateString('es-ES')}`}
+              subtitle={`Solicitado el ${formatDate(item.requestedAt)}`}
               trailing={
                 <>
                   <Button variant="ghost" small type="button" onClick={() => handleApprove(item.id)}>

@@ -3,7 +3,7 @@ import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
 import * as areasApi from '../api/areas';
 import type { AreaSummary } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 interface Props {
   // Areas the user already has a pending/approved request for — filtered out of the picker.
@@ -30,7 +30,7 @@ export function RequestAreaExpertModal({ excludedAreaIds, onClose, onRequested }
       .catch((err) => {
         if (cancelled) return;
         setAreas([]);
-        setError(err instanceof ApiError ? err.message : 'No se pudieron cargar los sectores');
+        setError(errorMessage(err, 'No se pudieron cargar los sectores'));
       });
     return () => {
       cancelled = true;
@@ -49,7 +49,7 @@ export function RequestAreaExpertModal({ excludedAreaIds, onClose, onRequested }
       await areaExpertsApi.requestAreaExpert(Number(areaId));
       onRequested();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo solicitar el acceso');
+      setError(errorMessage(err, 'No se pudo solicitar el acceso'));
     } finally {
       setSubmitting(false);
     }

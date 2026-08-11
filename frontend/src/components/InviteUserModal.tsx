@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
 import { roleLabels } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 interface Props {
   onClose: () => void;
@@ -25,7 +25,7 @@ export function InviteUserModal({ onClose, onInvited, allowRoleSelection = true 
       await usersApi.inviteUser({ email: email.trim(), role });
       onInvited();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo enviar la invitación');
+      setError(errorMessage(err, 'No se pudo enviar la invitación'));
     } finally {
       setSubmitting(false);
     }

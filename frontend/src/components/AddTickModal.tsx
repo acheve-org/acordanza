@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import type { CreateTickInput } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 interface Props {
   routeName: string;
@@ -24,7 +24,7 @@ export function AddTickModal({ routeName, onClose, onSubmit }: Props) {
       await onSubmit({ date, rating: rating ? Number(rating) : null, notes: notes.trim() });
       onClose();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo registrar el ascenso');
+      setError(errorMessage(err, 'No se pudo registrar el ascenso'));
     } finally {
       setSubmitting(false);
     }

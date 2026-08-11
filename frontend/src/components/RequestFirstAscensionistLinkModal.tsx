@@ -3,7 +3,7 @@ import { Button, EmptyState, List, ListRow, Modal } from 'acordanza-design-syste
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type { FirstAscensionistSummary } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 interface Props {
   onClose: () => void;
@@ -25,7 +25,7 @@ export function RequestFirstAscensionistLinkModal({ onClose, onRequested }: Prop
           if (!cancelled) setFirstAscensionists(results);
         })
         .catch((err) => {
-          if (!cancelled) setError(err instanceof ApiError ? err.message : 'No se pudieron cargar los aperturistas');
+          if (!cancelled) setError(errorMessage(err, 'No se pudieron cargar los aperturistas'));
         });
     }, 250);
     return () => {
@@ -43,7 +43,7 @@ export function RequestFirstAscensionistLinkModal({ onClose, onRequested }: Prop
       await firstAscensionistLinksApi.requestFirstAscensionistLink(id);
       onRequested();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo solicitar el vínculo');
+      setError(errorMessage(err, 'No se pudo solicitar el vínculo'));
       setRequestingId(null);
     }
   }

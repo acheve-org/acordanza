@@ -3,7 +3,7 @@ import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-desig
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import type { FirstAscensionistLinkRequestSummary } from '../api/types';
 import { reviewStatusLabels } from '../api/types';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 import { RequestFirstAscensionistLinkModal } from '../components/RequestFirstAscensionistLinkModal';
 
 export function ClaimFirstAscensionistPage() {
@@ -15,7 +15,7 @@ export function ClaimFirstAscensionistPage() {
     firstAscensionistLinksApi
       .listMyFirstAscensionistLinks()
       .then(setMine)
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'No se pudieron cargar tus solicitudes'));
+      .catch((err) => setError(errorMessage(err, 'No se pudieron cargar tus solicitudes')));
   }
 
   useEffect(refresh, []);
@@ -26,7 +26,7 @@ export function ClaimFirstAscensionistPage() {
     try {
       await firstAscensionistLinksApi.cancelFirstAscensionistLink(id);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo retirar la solicitud');
+      setError(errorMessage(err, 'No se pudo retirar la solicitud'));
     }
     refresh();
   }

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as accountApi from '../api/account';
-import { ApiError } from '../api/client';
+import { errorMessage } from '../api/errorMessage';
 
 interface Props {
   onClose: () => void;
@@ -24,7 +24,7 @@ export function ChangeEmailModal({ onClose }: Props) {
       await accountApi.requestEmailChange(newEmail.trim(), currentPassword);
       setStep('sent');
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'No se pudo solicitar el cambio de correo');
+      setError(errorMessage(err, 'No se pudo solicitar el cambio de correo'));
     } finally {
       setSubmitting(false);
     }
