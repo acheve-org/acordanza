@@ -24,7 +24,7 @@ resource "azapi_resource" "ai_foundry" {
   type      = "Microsoft.CognitiveServices/accounts@2025-06-01"
   name      = local.ai_foundry_account_name
   parent_id = data.azurerm_resource_group.main.id
-  location  = data.azurerm_resource_group.main.location
+  location  = var.ai_foundry_location
 
   body = {
     kind = "AIServices"

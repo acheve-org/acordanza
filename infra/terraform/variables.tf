@@ -129,6 +129,12 @@ variable "landing_location" {
   default     = "westeurope"
 }
 
+variable "ai_foundry_location" {
+  description = "Azure region for the AI Foundry resource (route enrichment, plan 18). GlobalStandard deployments of the Anthropic-hosted Claude models (model.format = \"Anthropic\", used here) are only available in swedencentral within Europe as of mid-2026 — not var.location (Spain Central). See Microsoft's \"Region availability by deployment type\" docs before changing this."
+  type        = string
+  default     = "swedencentral"
+}
+
 variable "bootstrap_image" {
   description = "Placeholder public image used only on the very first `terraform apply`, before CI has ever pushed a real image to the ACR. Ignored on every subsequent apply — see the `lifecycle.ignore_changes` on the container app's image."
   type        = string
