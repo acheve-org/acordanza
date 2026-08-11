@@ -122,6 +122,16 @@ resource "azurerm_container_app_job" "enrichment" {
         value = local.ai_foundry_account_name
       }
 
+      # The same user-assigned identity Storage__ManagedIdentityClientId names,
+      # written a second time under its own section rather than shared: this job
+      # has no system-assigned identity, so DefaultAzureCredential can't find the
+      # right one without being told, and the Foundry client has no business
+      # reading a Storage__ key to learn it. See Acordanza.Worker's FoundryClient.
+      env {
+        name  = "Anthropic__ManagedIdentityClientId"
+        value = azurerm_user_assigned_identity.container_app.client_id
+      }
+
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
         value = var.grafana_otlp_endpoint

@@ -30,7 +30,8 @@ public class WorkerConfigurationTests
             ["Storage:ContainerName"] = "topos",
             ["Storage:EnrichmentQueueName"] = "route-enrichment",
             ["Storage:ManagedIdentityClientId"] = Guid.NewGuid().ToString(),
-            ["Anthropic:FoundryResource"] = "acordanza-foundry-test"
+            ["Anthropic:FoundryResource"] = "acordanza-foundry-test",
+            ["Anthropic:ManagedIdentityClientId"] = Guid.NewGuid().ToString()
         });
 
         builder.Services.AddEnrichmentWorker(builder.Configuration);
@@ -38,5 +39,23 @@ public class WorkerConfigurationTests
         using var scope = host.Services.CreateScope();
 
         Should.NotThrow(() => scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>());
+        // The Claude providers, not the no-op pair — Anthropic:FoundryResource is set above,
+        // so this asserts the real Foundry-backed graph resolves, not just some graph.
+        scope.ServiceProvider.GetRequiredService<IRouteEnrichmentProvider>()
+            .ShouldBeOfType<ClaudeRouteEnrichmentProvider>();
+        scope.ServiceProvider.GetRequiredService<ITopoVerificationProvider>()
+            .ShouldBeOfType<ClaudeTopoVerificationProvider>();
+    }
+
+    // Regression guard: the deployed worker once passed an empty scope array to
+    // AnthropicFoundryIdentityTokenCredentials, whose scopes parameter only falls back to
+    // Foundry's audience when it's *null* — [] is stored verbatim, so every enrichment failed
+    // with "Value cannot be null. (Parameter 'resource')" from MSAL. Nothing else can catch
+    // this: the provider constructors build the credential without making a call, so the DI
+    // graph resolves perfectly and the failure waits for the first real message.
+    [Fact]
+    public void The_foundry_client_requests_a_token_on_foundrys_audience()
+    {
+        FoundryClient.Scopes.ShouldBe(["https://ai.azure.com/.default"]);
     }
 }
