@@ -1,7 +1,7 @@
 # Route enrichment worker: web-searched links and a topo candidate, found off the request path
 
-Status: planned (not started)
-Issue: not filed yet — file one and link it here before the `plan:` commit
+Status: in progress
+Issue: [#169](https://github.com/acheve-org/acordanza/issues/169)
 Depends on: [16](16-route-new-fields.md) (the `Link` entity and its validation rules — enrichment results land as route links); [20](20-route-display-revamp.md) (the sectioned detail modal the trigger button lives in). A Storage Queue on the existing storage account, an Azure AI Foundry resource hosting two Claude deployments (Entra ID auth via the job's managed identity — no stored API key, §6), a `process-enrichment` CLI branch in `Program.cs`, an event-driven Container Apps Job running the existing image, and two Claude API calls per enrichment — **triggered manually, per route, from a button in the route detail modal** (decision below), never automatically on route creation. Found links surface through plan 16's `Links` collection, which the edit form already renders and the route-display revamp renders publicly.
 
 ## Problem

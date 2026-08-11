@@ -2733,6 +2733,38 @@
         }
       }
     },
+    "/api/routes/{id}/enrich": {
+      "post": {
+        "tags": [
+          "Routes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/ticks/mine": {
       "get": {
         "tags": [
@@ -4843,7 +4875,8 @@
           "decidedAt",
           "decidedByName",
           "rejectionReason",
-          "canValidate"
+          "canValidate",
+          "enrichedAt"
         ],
         "type": "object",
         "properties": {
@@ -4962,6 +4995,13 @@
           },
           "canValidate": {
             "type": "boolean"
+          },
+          "enrichedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

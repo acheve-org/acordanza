@@ -155,3 +155,32 @@ variable "container_app_web_max_replicas" {
   type    = number
   default = 2
 }
+
+# --- Route enrichment worker (plan 18) ---
+
+variable "worker_bootstrap_image" {
+  description = "Placeholder image for the enrichment Container Apps Job on the very first apply, before CI has pushed a real image. Ignored on every subsequent apply, mirroring var.bootstrap_image."
+  type        = string
+  default     = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
+}
+
+# Anthropic requires organization/country/industry attestation for every
+# Claude deployment on Foundry (modelProviderData, below) — not sensitive,
+# but real values, not placeholders: they're sent to Anthropic with every
+# request this app makes.
+variable "claude_organization_name" {
+  description = "Organization name surfaced via modelProviderData on every Claude deployment (Anthropic's Foundry attestation requirement)."
+  type        = string
+}
+
+variable "claude_country_code" {
+  description = "Two-letter ISO country code for the Claude deployments' modelProviderData."
+  type        = string
+  default     = "ES"
+}
+
+variable "claude_industry" {
+  description = "Industry for the Claude deployments' modelProviderData — must be lowercase to match the Foundry portal's dropdown values."
+  type        = string
+  default     = "technology"
+}

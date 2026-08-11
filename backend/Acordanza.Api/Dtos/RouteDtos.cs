@@ -55,7 +55,8 @@ public record RouteDetailDto(
     DateTimeOffset? DecidedAt,
     string? DecidedByName,
     string? RejectionReason,
-    bool CanValidate
+    bool CanValidate,
+    DateTimeOffset? EnrichedAt
 );
 
 public record UpsertRouteRequest(

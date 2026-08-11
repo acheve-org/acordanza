@@ -6,6 +6,15 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "5.0.1"
     }
+    # Used only by ai_foundry.tf: as of azurerm 5.0.1, azurerm_cognitive_account/
+    # azurerm_cognitive_deployment don't yet expose allowProjectManagement or
+    # modelProviderData, both required for an Anthropic-hosted Claude deployment
+    # (see hashicorp/terraform-provider-azurerm#31140) — azapi_resource talks to
+    # the same ARM API directly until that support lands.
+    azapi = {
+      source  = "azure/azapi"
+      version = "2.6.0"
+    }
     random = {
       source  = "hashicorp/random"
       version = "3.9.0"

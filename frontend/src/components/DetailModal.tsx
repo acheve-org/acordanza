@@ -1,5 +1,6 @@
 import { Fragment, useState, type ChangeEvent } from 'react';
 import { Button, ConfirmModal, GradePill, Modal, RemoveButton } from 'acordanza-design-system';
+import { ApiError } from '../api/client';
 import type { CreateTickInput, RouteDetail } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -19,6 +20,8 @@ interface Props {
   onAddTick: (input: CreateTickInput) => Promise<void>;
   onUploadTopo: (file: File) => Promise<void>;
   onDeleteTopo: (topoId: number) => Promise<void>;
+  /** Absent on pages that don't wire up enrichment yet — the button stays hidden either way. */
+  onEnrich?: (force: boolean) => Promise<void>;
 }
 
 const ACCEPTED_TOPO_TYPES = 'image/jpeg,image/png,image/webp';
@@ -34,6 +37,7 @@ export function DetailModal({
   onAddTick,
   onUploadTopo,
   onDeleteTopo,
+  onEnrich,
 }: Props) {
   const { hasPermission } = useAuth();
   const [uploading, setUploading] = useState(false);
@@ -41,6 +45,10 @@ export function DetailModal({
   const [addingTick, setAddingTick] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [rejecting, setRejecting] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichError, setEnrichError] = useState('');
+  const [enrichStarted, setEnrichStarted] = useState(false);
+  const [confirmingReEnrich, setConfirmingReEnrich] = useState(false);
 
   if (!route) return null;
 
@@ -59,6 +67,24 @@ export function DetailModal({
       setUploadError('No se pudo subir la imagen');
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleEnrich(force: boolean) {
+    if (!onEnrich) return;
+    setEnriching(true);
+    setEnrichError('');
+    try {
+      await onEnrich(force);
+      setEnrichStarted(true);
+    } catch (err) {
+      setEnrichError(
+        err instanceof ApiError && (err.status === 409 || err.status === 503)
+          ? err.message
+          : 'No se pudo iniciar la búsqueda, inténtalo de nuevo',
+      );
+    } finally {
+      setEnriching(false);
     }
   }
 
@@ -201,6 +227,29 @@ export function DetailModal({
           {uploadError && <p className="error-text">{uploadError}</p>}
         </div>
 
+        {onEnrich && hasPermission(Permissions.routeEnrich) && (
+          <div className="detail-section">
+            <h3>Búsqueda automática</h3>
+            <Button
+              variant="ghost"
+              small
+              disabled={enriching}
+              onClick={() => (route.enrichedAt ? setConfirmingReEnrich(true) : handleEnrich(false))}
+            >
+              {route.enrichedAt ? 'Volver a buscar' : 'Buscar enlaces y topo'}
+            </Button>
+            {route.enrichedAt && (
+              <p className="detail-fa">Última búsqueda: {new Date(route.enrichedAt).toLocaleDateString()}</p>
+            )}
+            {enrichStarted && (
+              <p className="detail-fa">
+                Buscando en la web. Los resultados aparecerán en unos minutos; recarga la vía para verlos.
+              </p>
+            )}
+            {enrichError && <p className="error-text">{enrichError}</p>}
+          </div>
+        )}
+
         {hasPermission(Permissions.tickCreate) && (
           <div className="detail-section">
             <Button variant="ghost" small onClick={() => setAddingTick(true)}>
@@ -221,6 +270,18 @@ export function DetailModal({
           danger
           onConfirm={onDelete}
           onClose={() => setConfirmingDelete(false)}
+        />
+      )}
+
+      {confirmingReEnrich && (
+        <ConfirmModal
+          message="¿Volver a buscar enlaces y topo para esta vía? Se sustituirá la búsqueda anterior."
+          confirmLabel="Volver a buscar"
+          onConfirm={async () => {
+            await handleEnrich(true);
+            setConfirmingReEnrich(false);
+          }}
+          onClose={() => setConfirmingReEnrich(false)}
         />
       )}
 

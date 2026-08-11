@@ -1,4 +1,5 @@
 using System.Data;
+using Azure;
 using Acordanza.Api.Authorization;
 using Acordanza.Api.Data;
 using Acordanza.Api.Dtos;
@@ -20,7 +21,8 @@ public class RoutesController(
     BlobStorageService blobStorage,
     MediaUploadService mediaUpload,
     AreaHierarchyService areaHierarchy,
-    AreaExpertAuthorizer areaExpertAuthorizer) : ControllerBase
+    AreaExpertAuthorizer areaExpertAuthorizer,
+    RouteEnrichmentQueue enrichmentQueue) : ControllerBase
 {
     private static readonly HashSet<string> AllowedOrientations =
         ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
@@ -252,7 +254,7 @@ public class RoutesController(
             hasTick,
             topoDtos,
             route.ValidationStatus.ToString().ToLowerInvariant(), route.DecidedAt, route.DecidedBy?.Name, route.RejectionReason,
-            canValidateArea(route.AreaId));
+            canValidateArea(route.AreaId), route.EnrichedAt);
     }
 
     [Authorize(Policy = Permissions.RouteCreate)]
@@ -289,7 +291,7 @@ public class RoutesController(
         var textLengthError = ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
         if (textLengthError is not null) return BadRequest(new { error = textLengthError });
 
-        var (links, linksError) = ResolveLinks(request.Links);
+        var (links, linksError) = LinkRules.Resolve(request.Links);
         if (linksError is not null) return BadRequest(new { error = linksError });
 
         var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
@@ -365,7 +367,7 @@ public class RoutesController(
         var textLengthError = ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
         if (textLengthError is not null) return BadRequest(new { error = textLengthError });
 
-        var (links, linksError) = ResolveLinks(request.Links);
+        var (links, linksError) = LinkRules.Resolve(request.Links);
         if (linksError is not null) return BadRequest(new { error = linksError });
 
         var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
@@ -563,6 +565,39 @@ public class RoutesController(
         return Ok(new { id = tick.Id });
     }
 
+    // Manually triggered, per route — never on create/edit (see plan 18). Admin-only
+    // (Permissions.RouteEnrich), because it spends money: a different question from
+    // editing a route, and route.edit is also granted dynamically to every linked
+    // first ascensionist, which would hand the spend button to a set of people that
+    // grows on its own.
+    [Authorize(Policy = Permissions.RouteEnrich)]
+    [HttpPost("{id:int}/enrich")]
+    public async Task<ActionResult> EnrichRoute(int id, [FromQuery] bool force = false)
+    {
+        var route = await db.Routes.FindAsync(id);
+        if (route is null) return NotFound(new { error = "No encontrado" });
+
+        if (route.EnrichedAt is not null && !force)
+        {
+            return Conflict(new { error = "Esta vía ya se ha enriquecido" });
+        }
+
+        try
+        {
+            await enrichmentQueue.EnqueueAsync(id, force);
+        }
+        catch (RequestFailedException)
+        {
+            // Nothing else happened in this request — a failed enqueue is not
+            // best-effort-and-swallow, unlike the (now-removed) create-time hook.
+            return StatusCode(503, new { error = "No se pudo iniciar la búsqueda, inténtalo de nuevo" });
+        }
+
+        // A JSON body (not truly empty) so the frontend's shared request() helper, which
+        // always parses a response body, doesn't need a 202-specific exception.
+        return Accepted(new { ok = true });
+    }
+
     private static string? ValidateOrientation(string? orientation) =>
         orientation is not null && !AllowedOrientations.Contains(orientation)
             ? "la orientación no es válida"
@@ -584,34 +619,6 @@ public class RoutesController(
 
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private const int MaxLinks = 10;
-    private const int MaxLinkLength = 2048;
-
-    private static (List<string>? Urls, string? Error) ResolveLinks(List<string>? links)
-    {
-        var trimmed = (links ?? []).Select(l => l.Trim()).Where(l => l.Length > 0).ToList();
-
-        if (trimmed.Count > MaxLinks)
-        {
-            return (null, "no puedes añadir más de 10 enlaces");
-        }
-
-        if (trimmed.Any(l => l.Length > MaxLinkLength))
-        {
-            return (null, "algún enlace es demasiado largo");
-        }
-
-        var invalid = trimmed.Any(l =>
-            !Uri.TryCreate(l, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps));
-        if (invalid)
-        {
-            return (null, "algún enlace no es válido: debe empezar por http:// o https://");
-        }
-
-        return (trimmed.Distinct().ToList(), null);
-    }
 
     private async Task<(List<FirstAscensionist>? FirstAscensionists, string? Error)> ResolveFirstAscensionistsAsync(List<int>? firstAscensionistIds)
     {

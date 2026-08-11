@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Respawn;
 using Testcontainers.Azurite;
@@ -65,6 +66,11 @@ public sealed class ApiFixture : IAsyncLifetime
             Environment.SetEnvironmentVariable("Storage__ConnectionString", _azurite.GetConnectionString());
             Environment.SetEnvironmentVariable("Storage__ContainerName", "topos");
             Environment.SetEnvironmentVariable("Storage__DataProtectionContainerName", "dataprotection-keys");
+            Environment.SetEnvironmentVariable("Storage__EnrichmentQueueName", "route-enrichment");
+            // No Anthropic:FoundryResource — the real Claude call is never exercised in CI
+            // (cost, auth, nondeterminism); Program.cs falls back to the no-op provider.
+            // RouteEnrichmentTests construct RouteEnrichmentService directly with a fake
+            // provider to exercise the write paths.
             Environment.SetEnvironmentVariable("Jwt__Key", "integration-test-signing-key-not-used-in-production-0123456789");
             Environment.SetEnvironmentVariable("Jwt__Issuer", "Acordanza.Api");
             Environment.SetEnvironmentVariable("Jwt__Audience", "Acordanza.Client");
@@ -102,7 +108,8 @@ public sealed class ApiFixture : IAsyncLifetime
     }
 
     // Called between tests (see IntegrationTestBase) to reset every app table back to
-    // empty, keeping the seeded roles.
+    // empty, keeping the seeded roles. Also clears the route-enrichment queue — Respawn
+    // only touches Postgres, and RouteEnrichmentTests asserts on exact queue lengths.
     public async Task ResetDatabaseAsync()
     {
         await EnsureStartedAsync();
@@ -110,6 +117,8 @@ public sealed class ApiFixture : IAsyncLifetime
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
         await _respawner.ResetAsync(connection);
+
+        await Factory.Services.GetRequiredService<Azure.Storage.Queues.QueueClient>().ClearMessagesAsync();
     }
 
     public async ValueTask DisposeAsync()

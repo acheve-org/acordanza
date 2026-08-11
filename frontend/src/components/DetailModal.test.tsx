@@ -1,6 +1,8 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../test/renderWithProviders';
 import { makeRouteDetail } from '../test/factories';
+import { ApiError } from '../api/client';
 import { Permissions } from '../api/permissions';
 import { DetailModal } from './DetailModal';
 
@@ -8,7 +10,11 @@ const noop = () => {};
 const noopAsync = async () => {};
 const noopRejectAsync = async (_reason: string) => {};
 
-function renderModal(permissions: string[], routeOverrides: Parameters<typeof makeRouteDetail>[0] = {}) {
+function renderModal(
+  permissions: string[],
+  routeOverrides: Parameters<typeof makeRouteDetail>[0] = {},
+  onEnrich?: (force: boolean) => Promise<void>,
+) {
   return renderWithProviders(
     <DetailModal
       route={makeRouteDetail(routeOverrides)}
@@ -20,6 +26,7 @@ function renderModal(permissions: string[], routeOverrides: Parameters<typeof ma
       onAddTick={noopAsync}
       onUploadTopo={noopAsync}
       onDeleteTopo={noopAsync}
+      onEnrich={onEnrich}
     />,
     { auth: { permissions } },
   );
@@ -121,5 +128,85 @@ describe('DetailModal new sections (plan 20)', () => {
     expect(screen.queryByText(/Material recomendado/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Material opcional/)).not.toBeInTheDocument();
     expect(screen.queryByText('Enlaces')).not.toBeInTheDocument();
+  });
+});
+
+// Plan 18 (route-enrichment-worker), issue #169.
+describe('DetailModal route enrichment', () => {
+  it('hides the button without route.enrich even when onEnrich is wired up', () => {
+    renderModal([], {}, noopAsync);
+    expect(screen.queryByRole('button', { name: /Buscar enlaces y topo/ })).not.toBeInTheDocument();
+  });
+
+  it('hides the button for a user who holds route.edit but not route.enrich', () => {
+    renderModal([Permissions.routeEdit], {}, noopAsync);
+    expect(screen.queryByRole('button', { name: /Buscar enlaces y topo/ })).not.toBeInTheDocument();
+  });
+
+  it('hides the button when the page has not wired up onEnrich, even with the permission', () => {
+    renderModal([Permissions.routeEnrich]);
+    expect(screen.queryByRole('button', { name: /Buscar enlaces y topo/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Volver a buscar/ })).not.toBeInTheDocument();
+  });
+
+  it('shows "Buscar enlaces y topo" when enrichedAt is null', () => {
+    renderModal([Permissions.routeEnrich], { enrichedAt: null }, noopAsync);
+    expect(screen.getByRole('button', { name: 'Buscar enlaces y topo' })).toBeInTheDocument();
+  });
+
+  it('shows "Volver a buscar" plus the last-search date once enrichedAt is set', () => {
+    renderModal([Permissions.routeEnrich], { enrichedAt: '2026-01-01T00:00:00Z' }, noopAsync);
+    expect(screen.getByRole('button', { name: 'Volver a buscar' })).toBeInTheDocument();
+    expect(screen.getByText(/Última búsqueda:/)).toBeInTheDocument();
+  });
+
+  it('posts once, disables the button, and shows the inline status note on click', async () => {
+    const user = userEvent.setup();
+    const onEnrich = vi.fn().mockResolvedValue(undefined);
+    renderModal([Permissions.routeEnrich], { enrichedAt: null }, onEnrich);
+
+    await user.click(screen.getByRole('button', { name: 'Buscar enlaces y topo' }));
+
+    expect(onEnrich).toHaveBeenCalledTimes(1);
+    expect(onEnrich).toHaveBeenCalledWith(false);
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Buscando en la web\. Los resultados aparecerán en unos minutos/),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it('re-running an already-enriched route asks for confirmation and sends force=true', async () => {
+    const user = userEvent.setup();
+    const onEnrich = vi.fn().mockResolvedValue(undefined);
+    renderModal([Permissions.routeEnrich], { enrichedAt: '2026-01-01T00:00:00Z' }, onEnrich);
+
+    await user.click(screen.getByRole('button', { name: 'Volver a buscar' }));
+    const confirmDialog = screen.getAllByRole('dialog').at(-1)!;
+    await user.click(within(confirmDialog).getByRole('button', { name: 'Volver a buscar' }));
+
+    await waitFor(() => expect(onEnrich).toHaveBeenCalledWith(true));
+  });
+
+  it('surfaces a 409 in the inline error slot', async () => {
+    const user = userEvent.setup();
+    const onEnrich = vi.fn().mockRejectedValue(new ApiError(409, 'Esta vía ya se ha enriquecido'));
+    renderModal([Permissions.routeEnrich], { enrichedAt: null }, onEnrich);
+
+    await user.click(screen.getByRole('button', { name: 'Buscar enlaces y topo' }));
+
+    await waitFor(() => expect(screen.getByText('Esta vía ya se ha enriquecido')).toBeInTheDocument());
+  });
+
+  it('surfaces a 503 in the inline error slot', async () => {
+    const user = userEvent.setup();
+    const onEnrich = vi.fn().mockRejectedValue(new ApiError(503, 'No se pudo iniciar la búsqueda, inténtalo de nuevo'));
+    renderModal([Permissions.routeEnrich], { enrichedAt: null }, onEnrich);
+
+    await user.click(screen.getByRole('button', { name: 'Buscar enlaces y topo' }));
+
+    await waitFor(() =>
+      expect(screen.getByText('No se pudo iniciar la búsqueda, inténtalo de nuevo')).toBeInTheDocument(),
+    );
   });
 });

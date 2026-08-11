@@ -52,6 +52,10 @@ output "topos_storage_account_name" {
   value = azurerm_storage_account.topos.name
 }
 
+output "container_app_job_enrichment_name" {
+  value = azurerm_container_app_job.enrichment.name
+}
+
 output "static_web_app_name" {
   value = azurerm_static_web_app.landing.name
 }

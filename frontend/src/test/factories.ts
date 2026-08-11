@@ -151,6 +151,7 @@ export const makeRouteDetail = (o: Partial<RouteDetailDto> = {}): RouteDetailDto
   decidedByName: null,
   rejectionReason: null,
   canValidate: false,
+  enrichedAt: null,
   ...o,
 });
 

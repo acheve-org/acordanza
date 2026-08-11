@@ -287,6 +287,9 @@ namespace Acordanza.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTimeOffset?>("EnrichedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Gear")
                         .HasColumnType("text");
 

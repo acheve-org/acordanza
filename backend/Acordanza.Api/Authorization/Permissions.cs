@@ -11,6 +11,13 @@ public static class Permissions
     public const string RouteEdit = "route.edit";
     public const string RouteValidate = "route.validate";
     public const string RouteDelete = "route.delete";
+    // Admin-only by construction: added to All (below) but not to DynamicPermissions'
+    // FirstAscensionistLinkGrant nor to RolePermissions' user/moderator sets, so it lands
+    // only in AdminPermissions ([.. Permissions.All]). Deliberately not folded into
+    // RouteEdit — spending money on a web search is a different question from editing a
+    // route, and RouteEdit is also granted dynamically to every linked first ascensionist,
+    // which would hand the spend button to a set of people that grows on its own.
+    public const string RouteEnrich = "route.enrich";
 
     public const string TickCreate = "tick.create";
     public const string TickEdit = "tick.edit";
@@ -34,7 +41,7 @@ public static class Permissions
     public static readonly IReadOnlyList<string> All =
     [
         AreaCreate, AreaEdit, AreaValidate, AreaDelete,
-        RouteCreate, RouteEdit, RouteValidate, RouteDelete,
+        RouteCreate, RouteEdit, RouteValidate, RouteDelete, RouteEnrich,
         TickCreate, TickEdit, TickValidate, TickDelete,
         FirstAscensionistCreate, FirstAscensionistEdit, FirstAscensionistValidate, FirstAscensionistDelete,
         UserManage, UserInvite,

@@ -76,6 +76,10 @@ export function RouteDetailOverlay() {
     onError: (err) => setActionError(errorMessage(err, 'No se pudo eliminar el topo')),
   });
 
+  const enrichRouteMutation = useMutation({
+    mutationFn: ({ id, force }: { id: number; force: boolean }) => routesApi.enrichRoute(id, force),
+  });
+
   async function handleDeleteRoute() {
     if (!route) return;
     setActionError('');
@@ -111,6 +115,12 @@ export function RouteDetailOverlay() {
     await rejectRouteMutation.mutateAsync({ id: route.id, reason });
   }
 
+  async function handleEnrichRoute(force: boolean) {
+    if (!route) return;
+    // DetailModal shows its own status/error locally, so let the rejection propagate.
+    await enrichRouteMutation.mutateAsync({ id: route.id, force });
+  }
+
   return (
     <DetailModal
       route={route ?? null}
@@ -125,6 +135,7 @@ export function RouteDetailOverlay() {
       onAddTick={handleAddTick}
       onUploadTopo={handleUploadTopo}
       onDeleteTopo={handleDeleteTopo}
+      onEnrich={handleEnrichRoute}
     />
   );
 }
