@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Route, Routes } from 'react-router';
+import { Route, Routes, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
@@ -8,19 +8,33 @@ import { renderWithProviders } from '../test/renderWithProviders';
 import { makeArea, makeRouteDetail } from '../test/factories';
 import { RouteFormPage } from './RouteFormPage';
 
-function renderCreateForm() {
+// The save handler always follows up its POST/PUT with a GET /routes/{id} to learn the
+// generated/regenerated slug (neither response echoes it) before navigating — every test
+// that submits the form needs this mocked too, even ones not asserting on navigation.
+function mockSavedRouteDetail(id: number, overrides: Parameters<typeof makeRouteDetail>[0] = {}) {
+  server.use(http.get(`${API_URL}/routes/${id}`, () => HttpResponse.json(makeRouteDetail({ id, ...overrides }))));
+}
+
+function LocationProbe({ onLocation }: { onLocation: (pathname: string) => void }) {
+  onLocation(useLocation().pathname);
+  return null;
+}
+
+function renderCreateForm(onLocation: (pathname: string) => void = () => {}) {
   return renderWithProviders(
     <Routes>
       <Route path="/routes/new" element={<RouteFormPage />} />
+      <Route path="*" element={<LocationProbe onLocation={onLocation} />} />
     </Routes>,
     { initialEntries: ['/routes/new'] },
   );
 }
 
-function renderEditForm(routeId: number) {
+function renderEditForm(routeId: number, onLocation: (pathname: string) => void = () => {}) {
   return renderWithProviders(
     <Routes>
       <Route path="/routes/:id/edit" element={<RouteFormPage />} />
+      <Route path="*" element={<LocationProbe onLocation={onLocation} />} />
     </Routes>,
     { initialEntries: [`/routes/${routeId}/edit`] },
   );
@@ -56,6 +70,7 @@ describe('RouteFormPage', () => {
         return HttpResponse.json({ id: 1 });
       }),
     );
+    mockSavedRouteDetail(1);
 
     renderCreateForm();
 
@@ -91,6 +106,7 @@ describe('RouteFormPage', () => {
         return HttpResponse.json({ id: 1 });
       }),
     );
+    mockSavedRouteDetail(1);
 
     renderCreateForm();
 
@@ -118,6 +134,7 @@ describe('RouteFormPage', () => {
         return HttpResponse.json({ id: 1 });
       }),
     );
+    mockSavedRouteDetail(1);
 
     renderCreateForm();
 
@@ -139,6 +156,55 @@ describe('RouteFormPage', () => {
 
     await waitFor(() => expect(postedBody).toBeDefined());
     expect(postedBody!.links).toEqual(['https://example.com/b']);
+  });
+
+  it('creating a route navigates to its own detail URL, not the plain list', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      ),
+      http.post(`${API_URL}/routes`, () => HttpResponse.json({ id: 1 })),
+    );
+    mockSavedRouteDetail(1, { areaSlugPath: 'pena-rua', slug: 'travesia-del-gato' });
+
+    let pathname = '';
+    renderCreateForm((p) => {
+      pathname = p;
+    });
+
+    await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
+    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
+    await user.clear(screen.getByLabelText(/Longitud/));
+    await user.type(screen.getByLabelText(/Longitud/), '30');
+    await selectArea(user, 'Peña Rúa');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar vía' }));
+
+    await waitFor(() => expect(pathname).toBe('/routes/pena-rua/travesia-del-gato'));
+  });
+
+  it('editing a route navigates to its (possibly regenerated) detail URL, not the plain list', async () => {
+    const routeDetail = makeRouteDetail({ id: 7, areaId: 1, areaSlugPath: 'pena-rua', slug: 'travesia-renombrada' });
+    server.use(
+      http.get(`${API_URL}/routes/7`, () => HttpResponse.json(routeDetail)),
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
+      ),
+      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(routeDetail.firstAscensionists)),
+      http.put(`${API_URL}/routes/7`, () => HttpResponse.json({ ok: true })),
+    );
+
+    let pathname = '';
+    renderEditForm(7, (p) => {
+      pathname = p;
+    });
+
+    const user = userEvent.setup();
+    await screen.findByDisplayValue(routeDetail.name);
+    await user.click(screen.getByRole('button', { name: 'Guardar vía' }));
+
+    await waitFor(() => expect(pathname).toBe('/routes/pena-rua/travesia-renombrada'));
   });
 
   it('seeds every new field from GET /routes/{id} when editing', async () => {
@@ -212,6 +278,7 @@ describe('RouteFormPage', () => {
         return HttpResponse.json({ id: 1 });
       }),
     );
+    mockSavedRouteDetail(1);
 
     renderCreateForm();
 

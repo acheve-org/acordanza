@@ -127,12 +127,18 @@ export function RouteFormPage() {
       orientation: form.orientation || null,
       gear: form.gear || null,
     };
+    // Neither response echoes the generated/regenerated slug, so a follow-up GET is the
+    // cheapest way to land on the route's own detail URL (plan 21) rather than the plain
+    // list — no backend DTO change needed just for this redirect.
+    let savedId: number;
     if (route) {
       await routesApi.updateRoute(route.id, input);
+      savedId = route.id;
     } else {
-      await routesApi.createRoute(input);
+      savedId = (await routesApi.createRoute(input)).id;
     }
-    navigate('/routes');
+    const saved = await routesApi.getRoute(savedId);
+    navigate(routesApi.routeDetailPath(saved));
   }
 
   return (

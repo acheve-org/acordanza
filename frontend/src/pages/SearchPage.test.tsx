@@ -1,11 +1,17 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { Route, Routes, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeRoute, makeRouteDetail } from '../test/factories';
-import { Permissions } from '../api/permissions';
+import { makeRoute } from '../test/factories';
 import { SearchPage } from './SearchPage';
+
+function LocationProbe({ onLocation }: { onLocation: (pathname: string, hasBackgroundLocation: boolean) => void }) {
+  const location = useLocation();
+  onLocation(location.pathname, Boolean((location.state as { backgroundLocation?: unknown } | null)?.backgroundLocation));
+  return null;
+}
 
 function mockGrades(grades: string[] = []) {
   server.use(http.get(`${API_URL}/routes/grades`, () => HttpResponse.json(grades)));
@@ -86,37 +92,64 @@ describe('SearchPage', () => {
     }
   });
 
-  it('invalidates and refetches the list after deleting a route, matching the ["routes"] prefix key', async () => {
+  it('clicking a route card navigates to its detail URL, carrying the current location as backgroundLocation', async () => {
     mockGrades();
-    const route = makeRoute({ id: 7, name: 'Travesía del Gato' });
-    let listCallCount = 0;
-    let deleteCalled = false;
-    server.use(
-      http.get(`${API_URL}/routes`, () => {
-        listCallCount++;
-        return HttpResponse.json(deleteCalled ? [] : [route]);
-      }),
-      http.get(`${API_URL}/routes/7`, () => HttpResponse.json(makeRouteDetail({ id: 7, name: 'Travesía del Gato' }))),
-      http.delete(`${API_URL}/routes/7`, () => {
-        deleteCalled = true;
-        return HttpResponse.json({ ok: true });
-      }),
-    );
+    const route = makeRoute({ id: 7, name: 'Travesía del Gato', slug: 'travesia-del-gato', areaSlugPath: 'pena-rua' });
+    server.use(http.get(`${API_URL}/routes`, () => HttpResponse.json([route])));
 
-    renderWithProviders(<SearchPage />, { auth: { permissions: [Permissions.routeDelete] } });
+    let pathname = '';
+    let hasBackgroundLocation = false;
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/routes"
+          element={<SearchPage />}
+        />
+        <Route
+          path="*"
+          element={
+            <LocationProbe
+              onLocation={(p, hasBg) => {
+                pathname = p;
+                hasBackgroundLocation = hasBg;
+              }}
+            />
+          }
+        />
+      </Routes>,
+      { initialEntries: ['/routes'] },
+    );
 
     const card = await screen.findByText('Travesía del Gato');
     act(() => card.click());
 
-    const deleteButton = await screen.findByRole('button', { name: 'Eliminar' });
-    act(() => deleteButton.click());
+    await waitFor(() => expect(pathname).toBe('/routes/pena-rua/travesia-del-gato'));
+    expect(hasBackgroundLocation).toBe(true);
+  });
 
-    const confirmButton = await screen.findAllByRole('button', { name: 'Eliminar' });
-    act(() => confirmButton[confirmButton.length - 1]!.click());
+  it('a fresh visit to a route detail URL synthesizes backgroundLocation state pointing at /routes', async () => {
+    mockGrades();
+    server.use(http.get(`${API_URL}/routes`, () => HttpResponse.json([])));
 
-    await waitFor(() => expect(deleteCalled).toBe(true));
-    await waitFor(() => expect(listCallCount).toBe(2));
-    await waitFor(() => expect(screen.queryByText('Travesía del Gato')).not.toBeInTheDocument());
+    let pathname = '';
+    let backgroundLocation: { pathname?: string } | undefined;
+    function StateProbe() {
+      const location = useLocation();
+      pathname = location.pathname;
+      backgroundLocation = (location.state as { backgroundLocation?: { pathname?: string } } | null)
+        ?.backgroundLocation;
+      return <SearchPage />;
+    }
+
+    renderWithProviders(
+      <Routes>
+        <Route path="routes/*" element={<StateProbe />} />
+      </Routes>,
+      { initialEntries: ['/routes/pena-rua/travesia-del-gato'] },
+    );
+
+    await waitFor(() => expect(backgroundLocation).toEqual({ pathname: '/routes' }));
+    expect(pathname).toBe('/routes/pena-rua/travesia-del-gato');
   });
 
   it('renders the backend Spanish error message when the list fails to load', async () => {

@@ -107,7 +107,7 @@ public class RoutesController(
             .ToListAsync()).ToHashSet();
 
         var dtos = routes.Select(r => new RouteDto(
-            r.Id, r.Name, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId),
+            r.Id, r.Name, r.Slug, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId), areas.SlugPath(r.AreaId),
             r.Grade, r.Orientation, r.Gear, r.Description,
             r.Length, r.ObligatoryGrade, r.RecommendedGear, r.OptionalGear,
             r.Links.Select(l => l.Url).ToList(),
@@ -155,7 +155,8 @@ public class RoutesController(
 
         return Ok(pending
             .Where(r => canValidateArea(r.AreaId))
-            .Select(r => new RoutePendingDto(r.Id, r.Name, areas.NamePath(r.AreaId), r.Grade, r.CreatedAt, r.AddedBy.Name))
+            .Select(r => new RoutePendingDto(
+                r.Id, r.Name, r.Slug, areas.NamePath(r.AreaId), areas.SlugPath(r.AreaId), r.Grade, r.CreatedAt, r.AddedBy.Name))
             .ToList());
     }
 
@@ -178,6 +179,54 @@ public class RoutesController(
 
         if (route is null) return NotFound(new { error = "No encontrado" });
 
+        return Ok(await BuildRouteDetailDtoAsync(route));
+    }
+
+    // Resolves a route by its full shareable path — {area-slug-path}/{route-slug}, e.g.
+    // "riglos/pena-amarillo/fisura-del-diablo" — splitting the trailing segment off as
+    // the route slug candidate and the rest as the area path (AreaHierarchy.ResolveSlugPath,
+    // the same walk AreasController's own by-slug-path action uses). Alongside, not
+    // replacing, GET /routes/{id} — RouteFormPage's edit route keeps using the numeric id.
+    [HttpGet("by-slug-path/{*path}")]
+    public async Task<ActionResult<RouteDetailDto>> GetRouteBySlugPath(string path)
+    {
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length < 2)
+        {
+            return NotFound(new { error = "No encontrado" });
+        }
+
+        var routeSlug = segments[^1];
+        var areaSegments = segments[..^1];
+
+        var hierarchy = await areaHierarchy.GetAsync();
+        var area = hierarchy.ResolveSlugPath(areaSegments);
+        if (area is null)
+        {
+            return NotFound(new { error = "No encontrado" });
+        }
+
+        ClimbingRoute? route;
+        await using (var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead))
+        {
+            route = await db.Routes
+                .Include(r => r.AddedBy)
+                .Include(r => r.DecidedBy)
+                .Include(r => r.FirstAscensionists).ThenInclude(o => o.User)
+                .Include(r => r.Topos).ThenInclude(t => t.UploadedBy)
+                .Include(r => r.Links)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(r => r.AreaId == area.Id && r.Slug == routeSlug);
+            await transaction.CommitAsync();
+        }
+
+        if (route is null) return NotFound(new { error = "No encontrado" });
+
+        return Ok(await BuildRouteDetailDtoAsync(route));
+    }
+
+    private async Task<RouteDetailDto> BuildRouteDetailDtoAsync(ClimbingRoute route)
+    {
         var areas = await areaHierarchy.GetAsync();
 
         var topoDtos = new List<TopoDto>();
@@ -192,8 +241,9 @@ public class RoutesController(
         var userId = userManager.GetUserId(User)!;
         var hasTick = await db.Ticks.AnyAsync(t => t.RouteId == route.Id && t.ClimberUserId == userId);
 
-        var dto = new RouteDetailDto(
-            route.Id, route.Name, route.AreaId, areas[route.AreaId].Name, areas.NamePath(route.AreaId),
+        return new RouteDetailDto(
+            route.Id, route.Name, route.Slug, route.AreaId, areas[route.AreaId].Name, areas.NamePath(route.AreaId),
+            areas.SlugPath(route.AreaId),
             route.Grade, route.Orientation, route.Gear, route.Description,
             route.Length, route.ObligatoryGrade, route.RecommendedGear, route.OptionalGear,
             route.Links.Select(l => l.Url).ToList(),
@@ -203,8 +253,6 @@ public class RoutesController(
             topoDtos,
             route.ValidationStatus.ToString().ToLowerInvariant(), route.DecidedAt, route.DecidedBy?.Name, route.RejectionReason,
             canValidateArea(route.AreaId));
-
-        return Ok(dto);
     }
 
     [Authorize(Policy = Permissions.RouteCreate)]
@@ -248,9 +296,11 @@ public class RoutesController(
         if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
         var userId = userManager.GetUserId(User)!;
+        var slug = await GenerateUniqueRouteSlugAsync(request.AreaId, request.Name);
         var route = new ClimbingRoute
         {
             Name = request.Name,
+            Slug = slug,
             AreaId = request.AreaId,
             Grade = GradeValidator.Normalize(request.Grade),
             Orientation = request.Orientation,
@@ -336,6 +386,15 @@ public class RoutesController(
             (route.OptionalGear ?? "") != (optionalGear ?? "") ||
             !route.Links.Select(l => l.Url).ToHashSet().SetEquals(newLinkUrls) ||
             !route.FirstAscensionists.Select(fa => fa.Id).ToHashSet().SetEquals(newFirstAscensionistIds);
+
+        // Regenerated against the *new* area's sibling set whenever the name or the area
+        // itself changes — a route moved into an area that happens to already have a
+        // same-named route still needs the "-2" suffix. A no-op re-save (excludeId guard
+        // inside GenerateUniqueRouteSlugAsync) keeps the existing slug.
+        if (route.Name != request.Name || route.AreaId != request.AreaId)
+        {
+            route.Slug = await GenerateUniqueRouteSlugAsync(request.AreaId, request.Name, route.Id);
+        }
 
         route.Name = request.Name;
         route.AreaId = request.AreaId;
@@ -569,4 +628,23 @@ public class RoutesController(
     }
 
     private static FirstAscensionistDto ToFirstAscensionistDto(FirstAscensionist o) => new(o.Id, o.Name, o.UserId, o.User?.Name);
+
+    // Route.Name has no uniqueness constraint at all (unlike Area, which enforces it per
+    // sibling), so this "-2"/"-3" suffix loop is the primary disambiguator, not just a
+    // diacritics fallback — two "Directa"s in the same area get directa and directa-2.
+    // Scoped to AreaId, not global, mirroring AreasController.GenerateUniqueAreaSlugAsync
+    // (per-parent) rather than FirstAscensionistsController's flat version — see
+    // ClimbingRoute.Slug. excludeId lets an unchanged name/area keep its slug on update.
+    private async Task<string> GenerateUniqueRouteSlugAsync(int areaId, string name, int? excludeId = null)
+    {
+        var baseSlug = Slugify.ToSlug(name);
+        var slug = baseSlug;
+        var suffix = 2;
+        while (await db.Routes.AnyAsync(r => r.AreaId == areaId && r.Slug == slug && r.Id != excludeId))
+        {
+            slug = $"{baseSlug}-{suffix}";
+            suffix++;
+        }
+        return slug;
+    }
 }

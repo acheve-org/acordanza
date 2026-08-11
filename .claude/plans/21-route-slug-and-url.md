@@ -1,6 +1,6 @@
 # A shareable, per-area-scoped route URL
 
-Status: planned (not started)
+Status: done
 Issue: not filed yet — file one and link it here before the `plan:` commit
 Depends on: nothing. Independent of [20](20-route-display-revamp.md) (the card/modal visual revamp) — either can ship first, in either order; nothing here requires §1–§3 of that plan, and nothing there requires a route to have a slug. Backend: one new `ClimbingRoute.Slug` column + migration + a `by-slug-path` endpoint, mirroring [13](13-first-ascensionist-slug.md)'s `FirstAscensionist.Slug` generation mechanics but `Area`'s per-parent scoping. Frontend: a routing change that consolidates **six** pages' separately-wired detail-modal logic into one shared, URL-addressable overlay.
 

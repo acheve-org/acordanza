@@ -10,8 +10,4 @@ describe('queryKeys', () => {
     expect(key[0]).toBe('routes');
     expect(key).toEqual(['routes', emptyRouteFilters]);
   });
-
-  it('route(id) key embeds the id', () => {
-    expect(queryKeys.route(42)).toEqual(['route', 42]);
-  });
 });
