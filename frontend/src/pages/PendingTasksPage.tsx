@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
@@ -16,6 +17,7 @@ type Tab = 'routes' | 'areas' | 'firstAscensionists' | 'areaExperts' | 'firstAsc
 export function PendingTasksPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const {
     pendingRoutes,
     pendingAreas,
@@ -28,11 +30,44 @@ export function PendingTasksPage() {
     showAreaExperts,
     showFirstAscensionistLinks,
     showFirstAscensionists,
-    refresh,
   } = usePendingTasks();
 
   const [rejectingArea, setRejectingArea] = useState<AreaPending | null>(null);
   const [rejectingFirstAscensionist, setRejectingFirstAscensionist] = useState<FirstAscensionistPending | null>(null);
+
+  function invalidateAreaExperts() {
+    queryClient.invalidateQueries({ queryKey: ['area-experts'] });
+  }
+
+  function invalidateFirstAscensionistLinks() {
+    queryClient.invalidateQueries({ queryKey: ['first-ascensionist-links'] });
+  }
+
+  const validateAreaMutation = useMutation({
+    mutationFn: (id: number) => areasApi.validateArea(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['areas'] }),
+  });
+
+  const rejectAreaMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => areasApi.rejectArea(id, reason),
+    onSuccess: () => {
+      setRejectingArea(null);
+      queryClient.invalidateQueries({ queryKey: ['areas'] });
+    },
+  });
+
+  const validateFirstAscensionistMutation = useMutation({
+    mutationFn: (id: number) => firstAscensionistsApi.validateFirstAscensionist(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['first-ascensionists'] }),
+  });
+
+  const rejectFirstAscensionistMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => firstAscensionistsApi.rejectFirstAscensionist(id, reason),
+    onSuccess: () => {
+      setRejectingFirstAscensionist(null);
+      queryClient.invalidateQueries({ queryKey: ['first-ascensionists'] });
+    },
+  });
 
   function handleSelectRoute(route: RoutePending) {
     navigate(routesApi.routeDetailPath(route), { state: { backgroundLocation: location } });
@@ -64,28 +99,16 @@ export function PendingTasksPage() {
 
   if (!visible) return <Navigate to="/" replace />;
 
-  async function handleValidateArea(id: number) {
-    await areasApi.validateArea(id);
-    refresh();
-  }
-
   async function handleRejectArea(reason: string) {
     if (!rejectingArea) return;
-    await areasApi.rejectArea(rejectingArea.id, reason);
-    setRejectingArea(null);
-    refresh();
-  }
-
-  async function handleValidateFirstAscensionist(id: number) {
-    await firstAscensionistsApi.validateFirstAscensionist(id);
-    refresh();
+    // RejectReasonModal shows its own error locally, so let the rejection propagate.
+    await rejectAreaMutation.mutateAsync({ id: rejectingArea.id, reason });
   }
 
   async function handleRejectFirstAscensionist(reason: string) {
     if (!rejectingFirstAscensionist) return;
-    await firstAscensionistsApi.rejectFirstAscensionist(rejectingFirstAscensionist.id, reason);
-    setRejectingFirstAscensionist(null);
-    refresh();
+    // RejectReasonModal shows its own error locally, so let the rejection propagate.
+    await rejectFirstAscensionistMutation.mutateAsync({ id: rejectingFirstAscensionist.id, reason });
   }
 
   return (
@@ -157,7 +180,7 @@ export function PendingTasksPage() {
                   }
                   trailing={
                     <>
-                      <Button variant="ghost" small type="button" onClick={() => handleValidateArea(a.id)}>
+                      <Button variant="ghost" small type="button" onClick={() => validateAreaMutation.mutate(a.id)}>
                         Validar
                       </Button>
                       <Button variant="ghost" small danger type="button" onClick={() => setRejectingArea(a)}>
@@ -174,13 +197,16 @@ export function PendingTasksPage() {
 
       {activeTab === 'areaExperts' && (
         <section className="settings-section">
-          <PendingAreaExpertRequests items={pendingAreaExperts} onChange={refresh} />
+          <PendingAreaExpertRequests items={pendingAreaExperts} onChange={invalidateAreaExperts} />
         </section>
       )}
 
       {activeTab === 'firstAscensionistLinks' && (
         <section className="settings-section">
-          <PendingFirstAscensionistLinkRequests items={pendingFirstAscensionistLinks} onChange={refresh} />
+          <PendingFirstAscensionistLinkRequests
+            items={pendingFirstAscensionistLinks}
+            onChange={invalidateFirstAscensionistLinks}
+          />
         </section>
       )}
 
@@ -201,7 +227,12 @@ export function PendingTasksPage() {
                   }
                   trailing={
                     <>
-                      <Button variant="ghost" small type="button" onClick={() => handleValidateFirstAscensionist(o.id)}>
+                      <Button
+                        variant="ghost"
+                        small
+                        type="button"
+                        onClick={() => validateFirstAscensionistMutation.mutate(o.id)}
+                      >
                         Validar
                       </Button>
                       <Button variant="ghost" small danger type="button" onClick={() => setRejectingFirstAscensionist(o)}>

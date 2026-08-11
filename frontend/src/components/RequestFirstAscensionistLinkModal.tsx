@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button, EmptyState, List, ListRow, Modal } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
-import type { FirstAscensionistSummary } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 interface Props {
   onClose: () => void;
@@ -12,38 +14,28 @@ interface Props {
 
 export function RequestFirstAscensionistLinkModal({ onClose, onRequested }: Props) {
   const [q, setQ] = useState('');
-  const [firstAscensionists, setFirstAscensionists] = useState<FirstAscensionistSummary[]>([]);
-  const [error, setError] = useState('');
+  const [requestError, setRequestError] = useState('');
   const [requestingId, setRequestingId] = useState<number | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const handle = setTimeout(() => {
-      firstAscensionistsApi
-        .listFirstAscensionists(q)
-        .then((results) => {
-          if (!cancelled) setFirstAscensionists(results);
-        })
-        .catch((err) => {
-          if (!cancelled) setError(errorMessage(err, 'No se pudieron cargar los aperturistas'));
-        });
-    }, 250);
-    return () => {
-      cancelled = true;
-      clearTimeout(handle);
-    };
-  }, [q]);
+  const debouncedQ = useDebouncedValue(q);
+
+  const { data: firstAscensionists = [], error: fetchError } = useQuery({
+    queryKey: queryKeys.firstAscensionistLinkCandidates(debouncedQ),
+    queryFn: () => firstAscensionistsApi.listFirstAscensionists(debouncedQ),
+  });
 
   const available = firstAscensionists.filter((fa) => !fa.linkedUserName);
 
+  const error = requestError || (fetchError ? errorMessage(fetchError, 'No se pudieron cargar los aperturistas') : '');
+
   async function handleRequest(id: number) {
-    setError('');
+    setRequestError('');
     setRequestingId(id);
     try {
       await firstAscensionistLinksApi.requestFirstAscensionistLink(id);
       onRequested();
     } catch (err) {
-      setError(errorMessage(err, 'No se pudo solicitar el vínculo'));
+      setRequestError(errorMessage(err, 'No se pudo solicitar el vínculo'));
       setRequestingId(null);
     }
   }

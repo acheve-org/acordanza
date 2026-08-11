@@ -79,8 +79,7 @@ describe('PendingTasksContext', () => {
     expect(screen.getByTestId('total')).toHaveTextContent('6');
   });
 
-  it("one category's failure leaves the other four counts intact, thanks to Promise.allSettled", async () => {
-    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it("one category's failure leaves the other four counts intact, since each category is its own query", async () => {
     server.use(
       http.get(`${API_URL}/routes/pending`, () => HttpResponse.json([makeRoutePending({ id: 1 })])),
       http.get(`${API_URL}/areas/pending`, () => HttpResponse.json([makeAreaPending({ id: 1 })])),
@@ -96,9 +95,6 @@ describe('PendingTasksContext', () => {
     await waitFor(() => expect(screen.getByTestId('loading')).toHaveTextContent('done'));
     // routes(1) + areas(1) + areaExperts(0, failed) + faLinks(1) + firstAscensionists(0) = 3 — the failure didn't blank the rest.
     expect(screen.getByTestId('total')).toHaveTextContent('3');
-    expect(errorSpy).toHaveBeenCalled();
-
-    errorSpy.mockRestore();
   });
 
   it('fetches nothing when the user has none of the five validate/approve permissions', async () => {

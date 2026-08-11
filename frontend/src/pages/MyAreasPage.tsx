@@ -1,39 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
-import type { AreaExpert } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
 import { reviewStatusLabels } from '../api/types';
 import { errorMessage } from '../api/errorMessage';
 import { RequestAreaExpertModal } from '../components/RequestAreaExpertModal';
 
 export function MyAreasPage() {
-  const [mine, setMine] = useState<AreaExpert[]>([]);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const [requesting, setRequesting] = useState(false);
 
-  function refresh() {
-    areaExpertsApi
-      .listMyAreaExperts()
-      .then(setMine)
-      .catch((err) => setError(errorMessage(err, 'No se pudieron cargar tus sectores')));
-  }
+  const { data: mine = [], error } = useQuery({
+    queryKey: queryKeys.myAreaExperts(),
+    queryFn: () => areaExpertsApi.listMyAreaExperts(),
+  });
 
-  useEffect(refresh, []);
+  const withdrawMutation = useMutation({
+    mutationFn: (id: number) => areaExpertsApi.cancelAreaExpert(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['area-experts'] }),
+  });
 
   const activeRequestAreaIds = mine.filter((e) => e.status !== 'rejected').map((e) => e.areaId);
 
-  async function handleWithdraw(id: number) {
-    try {
-      await areaExpertsApi.cancelAreaExpert(id);
-    } catch (err) {
-      setError(errorMessage(err, 'No se pudo retirar la solicitud'));
-    }
-    refresh();
-  }
-
   function handleRequested() {
     setRequesting(false);
-    refresh();
+    queryClient.invalidateQueries({ queryKey: ['area-experts'] });
   }
 
   return (
@@ -50,7 +42,10 @@ export function MyAreasPage() {
         vía.
       </p>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text">{errorMessage(error, 'No se pudieron cargar tus sectores')}</p>}
+      {withdrawMutation.isError && (
+        <p className="error-text">{errorMessage(withdrawMutation.error, 'No se pudo retirar la solicitud')}</p>
+      )}
 
       {mine.length === 0 ? (
         <EmptyState>Todavía no eres experto de ningún sector</EmptyState>
@@ -69,7 +64,7 @@ export function MyAreasPage() {
               }
               trailing={
                 e.status === 'pending' && (
-                  <RemoveButton label="Retirar solicitud" onClick={() => handleWithdraw(e.id)} />
+                  <RemoveButton label="Retirar solicitud" onClick={() => withdrawMutation.mutate(e.id)} />
                 )
               }
             />

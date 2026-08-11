@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { MapContainer, Polygon, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet-draw';
@@ -6,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
+import { queryKeys } from '../api/queryKeys';
 import type { AreaSummary, GeoPoint } from '../api/types';
 import { errorMessage } from '../api/errorMessage';
 
@@ -70,48 +72,46 @@ interface Props {
 }
 
 export function AreaPolygonModal({ areaId, areaName, parentAreaId, onClose, onSaved }: Props) {
-  // Vertex data is only worth fetching once this modal is open — it's the only screen that
-  // draws polygons, so the area tree behind it deliberately doesn't carry any.
-  const [polygon, setPolygon] = useState<GeoPoint[] | null>(null);
-  const [parentPolygon, setParentPolygon] = useState<GeoPoint[] | null>(null);
+  const queryClient = useQueryClient();
   const [drawing, setDrawing] = useState(false);
   const [pendingPolygon, setPendingPolygon] = useState<GeoPoint[] | null>(null);
-  const [error, setError] = useState('');
+  const [saveError, setSaveError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    areasApi
-      .listAreas(undefined, true)
-      .then((areas) => {
-        if (cancelled) return;
-        const byId = new Map<number, AreaSummary>(areas.map((a) => [a.id, a]));
-        setPolygon(byId.get(areaId)?.polygon ?? []);
-        setParentPolygon(parentAreaId !== null ? byId.get(parentAreaId)?.polygon ?? null : null);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        // Fall back to a polygon-less area so drawing — the only entry point for creating
-        // a boundary — stays usable instead of the modal being stuck on "Cargando…".
-        setPolygon([]);
-        setError('No se pudieron cargar los polígonos existentes');
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [areaId, parentAreaId]);
+  // Vertex data is only worth fetching once this modal is open — it's the only screen that
+  // draws polygons, so the area tree behind it deliberately doesn't carry any.
+  const { data: byId, error: fetchError } = useQuery({
+    queryKey: queryKeys.areaPolygons(),
+    queryFn: async () => {
+      const areas = await areasApi.listAreas(undefined, true);
+      return new Map<number, AreaSummary>(areas.map((a) => [a.id, a]));
+    },
+  });
+
+  // Fall back to a polygon-less area on failure so drawing — the only entry point for
+  // creating a boundary — stays usable instead of the modal being stuck on "Cargando…".
+  const polygon = fetchError ? [] : (byId ? (byId.get(areaId)?.polygon ?? []) : null);
+  const parentPolygon = fetchError
+    ? null
+    : byId && parentAreaId !== null
+      ? (byId.get(parentAreaId)?.polygon ?? null)
+      : null;
+
+  const error =
+    saveError || (fetchError ? 'No se pudieron cargar los polígonos existentes' : '');
 
   const hasPolygon = polygon !== null && polygon.length > 0;
 
   async function handleSave() {
     if (!pendingPolygon) return;
     setSaving(true);
-    setError('');
+    setSaveError('');
     try {
       await areasApi.updateAreaCoordinates(areaId, pendingPolygon);
+      queryClient.invalidateQueries({ queryKey: queryKeys.areaPolygons() });
       onSaved();
     } catch (err) {
-      setError(errorMessage(err, 'No se pudo guardar el polígono'));
+      setSaveError(errorMessage(err, 'No se pudo guardar el polígono'));
     } finally {
       setSaving(false);
     }

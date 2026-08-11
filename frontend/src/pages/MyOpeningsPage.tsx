@@ -1,20 +1,22 @@
-import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { RoutesList } from '../components/RoutesList';
 import * as routesApi from '../api/routes';
+import { queryKeys } from '../api/queryKeys';
 import type { RouteSummary } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 
 export function MyOpeningsPage() {
   const { isFirstAscensionist } = useAuth();
-  const [routes, setRoutes] = useState<RouteSummary[]>([]);
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    routesApi.listMyOpenings().then(setRoutes);
-  }, []);
+  const { data: routes = [] } = useQuery({
+    queryKey: queryKeys.myOpenings(),
+    queryFn: () => routesApi.listMyOpenings(),
+    enabled: isFirstAscensionist,
+  });
 
   if (!isFirstAscensionist) return <Navigate to="/my-acordanza" replace />;
 

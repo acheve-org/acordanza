@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { Route, Routes, useLocation } from 'react-router';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
@@ -68,5 +68,62 @@ describe('AreaPage', () => {
     );
 
     expect(await screen.findByText('Este sector no existe.')).toBeInTheDocument();
+  });
+
+  it('refetches the area after uploading a photo, showing the new media', async () => {
+    let uploaded = false;
+    server.use(
+      http.get(`${API_URL}/areas/by-slug-path/pena-rua`, () =>
+        HttpResponse.json(
+          makeAreaDetail({
+            id: 1,
+            name: 'Peña Rúa',
+            slug: 'pena-rua',
+            canManageMedia: true,
+            media: uploaded
+              ? [
+                  {
+                    id: 1,
+                    url: 'https://example.com/photo.jpg',
+                    fileName: 'photo.jpg',
+                    createdAt: '2026-01-01T00:00:00Z',
+                    uploadedBy: 'Hugo',
+                  },
+                ]
+              : [],
+          }),
+        ),
+      ),
+      http.get(`${API_URL}/routes`, () => HttpResponse.json([])),
+      http.post(`${API_URL}/areas/1/media`, () => {
+        uploaded = true;
+        return HttpResponse.json({
+          id: 1,
+          url: 'https://example.com/photo.jpg',
+          fileName: 'photo.jpg',
+          createdAt: '2026-01-01T00:00:00Z',
+          uploadedBy: 'Hugo',
+        });
+      }),
+    );
+
+    renderWithProviders(
+      <Routes>
+        <Route path="/areas/*" element={<AreaPage />} />
+      </Routes>,
+      { initialEntries: ['/areas/pena-rua'] },
+    );
+
+    await waitFor(() => expect(screen.getByText('Este sector todavía no tiene fotos.')).toBeInTheDocument());
+
+    const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
+
+    await waitFor(() =>
+      expect(screen.queryByText('Este sector todavía no tiene fotos.')).not.toBeInTheDocument(),
+    );
   });
 });

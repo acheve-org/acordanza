@@ -1,9 +1,12 @@
-import { Fragment, useEffect, useState, type ChangeEvent } from 'react';
+import { Fragment, type ChangeEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import * as routesApi from '../api/routes';
-import type { AreaDetail, RouteSummary } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
+import { ApiError } from '../api/client';
+import type { RouteSummary } from '../api/types';
 import { emptyRouteFilters } from '../api/types';
 import { formatDate } from '../format';
 import { RoutesList } from '../components/RoutesList';
@@ -15,68 +18,53 @@ export function AreaPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const path = params['*'] ?? '';
+  const queryClient = useQueryClient();
 
-  const [area, setArea] = useState<AreaDetail | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [routes, setRoutes] = useState<RouteSummary[]>([]);
+  const { data: area, error } = useQuery({
+    queryKey: queryKeys.areaBySlugPath(path),
+    queryFn: () => areasApi.getAreaBySlugPath(path),
+  });
 
-  const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [mediaError, setMediaError] = useState('');
+  const { data: routes = [] } = useQuery({
+    queryKey: queryKeys.routesByArea(area?.id ?? 0),
+    queryFn: () => routesApi.listRoutes({ ...emptyRouteFilters, areaId: String(area!.id) }, true),
+    enabled: !!area,
+  });
 
-  function refreshArea() {
-    areasApi
-      .getAreaBySlugPath(path)
-      .then((a) => {
-        setArea(a);
-        setNotFound(false);
-      })
-      .catch(() => setNotFound(true));
+  function invalidateArea() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.areaBySlugPath(path) });
   }
 
-  function refreshRoutes(areaId: number) {
-    routesApi.listRoutes({ ...emptyRouteFilters, areaId: String(areaId) }, true).then(setRoutes);
-  }
+  const uploadMediaMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      for (const file of files) {
+        await areasApi.uploadAreaMedia(area!.id, file);
+      }
+    },
+    onSuccess: invalidateArea,
+  });
 
-  useEffect(() => {
-    setArea(null);
-    setNotFound(false);
-    refreshArea();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [path]);
-
-  useEffect(() => {
-    if (area) refreshRoutes(area.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [area?.id]);
+  const deleteMediaMutation = useMutation({
+    mutationFn: (mediaId: number) => areasApi.deleteAreaMedia(mediaId),
+    onSuccess: invalidateArea,
+  });
 
   function handleSelectRoute(route: RouteSummary) {
     navigate(routesApi.routeDetailPath(route), { state: { backgroundLocation: location } });
   }
 
   async function handleMediaFilesSelected(e: ChangeEvent<HTMLInputElement>) {
-    if (!area) return;
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
     if (files.length === 0) return;
-
-    setUploadingMedia(true);
-    setMediaError('');
-    try {
-      for (const file of files) {
-        await areasApi.uploadAreaMedia(area.id, file);
-      }
-      refreshArea();
-    } catch {
-      setMediaError('No se pudo subir la imagen');
-    } finally {
-      setUploadingMedia(false);
-    }
+    await uploadMediaMutation.mutateAsync(files).catch(() => {});
   }
 
-  async function handleDeleteMedia(mediaId: number) {
-    await areasApi.deleteAreaMedia(mediaId);
-    refreshArea();
+  function handleDeleteMedia(mediaId: number) {
+    deleteMediaMutation.mutate(mediaId);
   }
+
+  const notFound = error instanceof ApiError && error.status === 404;
 
   if (notFound) {
     return (
@@ -162,18 +150,18 @@ export function AreaPage() {
         {area.media.length === 0 && <EmptyState>Este sector todavía no tiene fotos.</EmptyState>}
         {area.canManageMedia && (
           <Button as="label" variant="ghost" small className="topo-upload">
-            {uploadingMedia ? 'Subiendo…' : '+ Añadir foto'}
+            {uploadMediaMutation.isPending ? 'Subiendo…' : '+ Añadir foto'}
             <input
               type="file"
               accept={ACCEPTED_MEDIA_TYPES}
               multiple
-              disabled={uploadingMedia}
+              disabled={uploadMediaMutation.isPending}
               onChange={handleMediaFilesSelected}
               className="hidden"
             />
           </Button>
         )}
-        {mediaError && <p className="error-text">{mediaError}</p>}
+        {uploadMediaMutation.isError && <p className="error-text">No se pudo subir la imagen</p>}
       </section>
     </main>
   );

@@ -6,6 +6,7 @@ import { RoutesList } from '../components/RoutesList';
 import * as routesApi from '../api/routes';
 import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import type { BackgroundLocationState } from '../api/backgroundLocation';
 import type { RouteFilters, RouteSummary } from '../api/types';
 import { emptyRouteFilters } from '../api/types';
@@ -15,7 +16,7 @@ export function SearchPage() {
   const location = useLocation();
   const splat = useParams()['*'];
   const [filters, setFilters] = useState<RouteFilters>(emptyRouteFilters);
-  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+  const debouncedFilters = useDebouncedValue(filters);
 
   // Fresh-visit fallback (plan 21): a pasted /routes/{area-slug-path}/{route-slug}
   // link, or a reload on one, has no backgroundLocation in router state — this route
@@ -28,11 +29,6 @@ export function SearchPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [splat]);
-
-  useEffect(() => {
-    const handle = setTimeout(() => setDebouncedFilters(filters), 250);
-    return () => clearTimeout(handle);
-  }, [filters]);
 
   const { data: routes = [], error: routesError } = useQuery({
     queryKey: queryKeys.routes(debouncedFilters),

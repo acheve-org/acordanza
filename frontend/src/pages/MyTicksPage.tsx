@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { EmptyState } from 'acordanza-design-system';
 import { AreaPicker } from '../components/AreaPicker';
 import { TickedRouteCard } from '../components/TickedRouteCard';
 import * as ticksApi from '../api/ticks';
 import * as routesApi from '../api/routes';
+import { queryKeys } from '../api/queryKeys';
 import { gearLabels } from '../api/types';
 import type { TickedRoute, TickFilters } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const emptyFilters: TickFilters = { q: '', areaId: '', gear: '' };
 const PAGE_SIZE = 20;
@@ -17,54 +20,36 @@ export function MyTicksPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<TickFilters>(emptyFilters);
-  const [items, setItems] = useState<TickedRoute[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  // Bumped on every request fired below; a response is only committed if it's
-  // still the most recent one requested, so out-of-order network replies
-  // (e.g. a fast retyped filter racing a slower earlier one) can't clobber
-  // newer results.
-  const requestIdRef = useRef(0);
 
   function set<K extends keyof TickFilters>(key: K, value: TickFilters[K]) {
     setFilters((f) => ({ ...f, [key]: value }));
   }
 
-  useEffect(() => {
-    const handle = setTimeout(() => {
-      const requestId = ++requestIdRef.current;
-      setLoading(true);
-      ticksApi.listMyTicks(filters, 1, PAGE_SIZE).then((res) => {
-        if (requestIdRef.current !== requestId) return;
-        setItems(res.items);
-        setTotalCount(res.totalCount);
-        setPage(1);
-        setLoading(false);
-      });
-    }, 250);
-    return () => clearTimeout(handle);
-  }, [filters]);
+  const debouncedFilters = useDebouncedValue(filters);
 
-  const hasMore = items.length < totalCount;
+  const { data, isFetching, hasNextPage, isFetchingNextPage, fetchNextPage } = useInfiniteQuery({
+    queryKey: queryKeys.myTicks(debouncedFilters),
+    queryFn: ({ pageParam }) => ticksApi.listMyTicks(debouncedFilters, pageParam, PAGE_SIZE),
+    initialPageParam: 1,
+    getNextPageParam: (_lastPage, allPages) => {
+      const loaded = allPages.reduce((sum, p) => sum + p.items.length, 0);
+      const totalCount = allPages[0]?.totalCount ?? 0;
+      return loaded < totalCount ? allPages.length + 1 : undefined;
+    },
+  });
+
+  const items = data?.pages.flatMap((p) => p.items) ?? [];
+  const totalCount = data?.pages[0]?.totalCount ?? 0;
+  const loading = isFetching && !isFetchingNextPage;
 
   const loadMore = useCallback(() => {
-    if (loading || !hasMore) return;
-    const nextPage = page + 1;
-    const requestId = ++requestIdRef.current;
-    setLoading(true);
-    ticksApi.listMyTicks(filters, nextPage, PAGE_SIZE).then((res) => {
-      if (requestIdRef.current !== requestId) return;
-      setItems((prev) => [...prev, ...res.items]);
-      setTotalCount(res.totalCount);
-      setPage(nextPage);
-      setLoading(false);
-    });
-  }, [filters, page, loading, hasMore]);
+    if (isFetchingNextPage || !hasNextPage) return;
+    fetchNextPage();
+  }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   useEffect(() => {
     const el = sentinelRef.current;
@@ -76,20 +61,10 @@ export function MyTicksPage() {
     return () => observer.disconnect();
   }, [loadMore]);
 
-  function refreshList() {
-    const requestId = ++requestIdRef.current;
-    ticksApi.listMyTicks(filters, 1, PAGE_SIZE).then((res) => {
-      if (requestIdRef.current !== requestId) return;
-      setItems(res.items);
-      setTotalCount(res.totalCount);
-      setPage(1);
-    });
-  }
-
-  async function handleDeleteTickRow(tickId: number) {
-    await routesApi.deleteTick(tickId);
-    refreshList();
-  }
+  const deleteTickMutation = useMutation({
+    mutationFn: (tickId: number) => routesApi.deleteTick(tickId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ticks', 'mine'] }),
+  });
 
   function handleSelectTick(tick: TickedRoute) {
     navigate(`/routes/${tick.areaSlugPath}/${tick.routeSlug}`, { state: { backgroundLocation: location } });
@@ -134,7 +109,9 @@ export function MyTicksPage() {
               key={t.tickId}
               tick={t}
               onSelect={() => handleSelectTick(t)}
-              onDelete={hasPermission(Permissions.tickDelete) ? () => handleDeleteTickRow(t.tickId) : undefined}
+              onDelete={
+                hasPermission(Permissions.tickDelete) ? () => deleteTickMutation.mutate(t.tickId) : undefined
+              }
             />
           ))}
         </div>

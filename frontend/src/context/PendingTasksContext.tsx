@@ -1,9 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
 import * as areaExpertsApi from '../api/areaExperts';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
+import { queryKeys } from '../api/queryKeys';
 import type {
   AreaExpert,
   AreaPending,
@@ -28,13 +30,12 @@ interface PendingTasksValue {
   showFirstAscensionistLinks: boolean;
   showFirstAscensionists: boolean;
   loading: boolean;
-  refresh: () => void;
 }
 
 const PendingTasksContext = createContext<PendingTasksValue | null>(null);
 
 export function PendingTasksProvider({ children }: { children: ReactNode }) {
-  const { username, hasPermission, isAreaExpert } = useAuth();
+  const { hasPermission, isAreaExpert } = useAuth();
 
   const showRoutes = hasPermission(Permissions.routeValidate) || isAreaExpert;
   const showAreas = hasPermission(Permissions.areaValidate);
@@ -43,58 +44,41 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
   const showFirstAscensionists = hasPermission(Permissions.firstAscensionistValidate);
   const visible = showRoutes || showAreas || showAreaExperts || showFirstAscensionistLinks || showFirstAscensionists;
 
-  const [pendingRoutes, setPendingRoutes] = useState<RoutePending[]>([]);
-  const [pendingAreas, setPendingAreas] = useState<AreaPending[]>([]);
-  const [pendingAreaExperts, setPendingAreaExperts] = useState<AreaExpert[]>([]);
-  const [pendingFirstAscensionistLinks, setPendingFirstAscensionistLinks] = useState<
-    FirstAscensionistLinkRequestSummary[]
-  >([]);
-  const [pendingFirstAscensionists, setPendingFirstAscensionists] = useState<FirstAscensionistPending[]>([]);
-  const [loading, setLoading] = useState(false);
+  const routesQuery = useQuery({
+    queryKey: queryKeys.pendingRoutes(),
+    queryFn: () => routesApi.listPendingRoutes(),
+    enabled: showRoutes,
+  });
+  const areasQuery = useQuery({
+    queryKey: queryKeys.pendingAreas(),
+    queryFn: () => areasApi.listPendingAreas(),
+    enabled: showAreas,
+  });
+  const areaExpertsQuery = useQuery({
+    queryKey: queryKeys.pendingAreaExperts(),
+    queryFn: () => areaExpertsApi.listPendingAreaExperts(),
+    enabled: showAreaExperts,
+  });
+  const firstAscensionistLinksQuery = useQuery({
+    queryKey: queryKeys.pendingFirstAscensionistLinks(),
+    queryFn: () => firstAscensionistLinksApi.listPendingFirstAscensionistLinks(),
+    enabled: showFirstAscensionistLinks,
+  });
+  const firstAscensionistsQuery = useQuery({
+    queryKey: queryKeys.pendingFirstAscensionists(),
+    queryFn: () => firstAscensionistsApi.listPendingFirstAscensionists(),
+    enabled: showFirstAscensionists,
+  });
 
-  const refresh = useCallback(() => {
-    if (!username || !visible) {
-      setPendingRoutes([]);
-      setPendingAreas([]);
-      setPendingAreaExperts([]);
-      setPendingFirstAscensionistLinks([]);
-      setPendingFirstAscensionists([]);
-      return;
-    }
+  const pendingRoutes = routesQuery.data ?? [];
+  const pendingAreas = areasQuery.data ?? [];
+  const pendingAreaExperts = areaExpertsQuery.data ?? [];
+  const pendingFirstAscensionistLinks = firstAscensionistLinksQuery.data ?? [];
+  const pendingFirstAscensionists = firstAscensionistsQuery.data ?? [];
 
-    setLoading(true);
-    // allSettled, not all: one category failing (e.g. a transient network error on
-    // /area-experts/pending) shouldn't wipe out the others' already-fetched results,
-    // and a rejection reaching Promise.all unhandled would otherwise surface as an
-    // uncaught rejection instead of just leaving that category's count stale.
-    Promise.allSettled([
-      showRoutes ? routesApi.listPendingRoutes() : Promise.resolve<RoutePending[]>([]),
-      showAreas ? areasApi.listPendingAreas() : Promise.resolve<AreaPending[]>([]),
-      showAreaExperts ? areaExpertsApi.listPendingAreaExperts() : Promise.resolve<AreaExpert[]>([]),
-      showFirstAscensionistLinks
-        ? firstAscensionistLinksApi.listPendingFirstAscensionistLinks()
-        : Promise.resolve<FirstAscensionistLinkRequestSummary[]>([]),
-      showFirstAscensionists
-        ? firstAscensionistsApi.listPendingFirstAscensionists()
-        : Promise.resolve<FirstAscensionistPending[]>([]),
-    ])
-      .then(([routes, areas, areaExperts, firstAscensionistLinks, firstAscensionists]) => {
-        if (routes.status === 'fulfilled') setPendingRoutes(routes.value);
-        else console.error('No se pudieron cargar las vías pendientes', routes.reason);
-        if (areas.status === 'fulfilled') setPendingAreas(areas.value);
-        else console.error('No se pudieron cargar los sectores pendientes', areas.reason);
-        if (areaExperts.status === 'fulfilled') setPendingAreaExperts(areaExperts.value);
-        else console.error('No se pudieron cargar las solicitudes de expertos de sector', areaExperts.reason);
-        if (firstAscensionistLinks.status === 'fulfilled') setPendingFirstAscensionistLinks(firstAscensionistLinks.value);
-        else console.error('No se pudieron cargar las solicitudes de vínculo de aperturista', firstAscensionistLinks.reason);
-        if (firstAscensionists.status === 'fulfilled') setPendingFirstAscensionists(firstAscensionists.value);
-        else console.error('No se pudieron cargar los aperturistas pendientes', firstAscensionists.reason);
-      })
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username, visible, showRoutes, showAreas, showAreaExperts, showFirstAscensionistLinks, showFirstAscensionists]);
-
-  useEffect(refresh, [refresh]);
+  const loading = [routesQuery, areasQuery, areaExpertsQuery, firstAscensionistLinksQuery, firstAscensionistsQuery].some(
+    (q) => q.isLoading,
+  );
 
   const total =
     pendingRoutes.length +
@@ -119,7 +103,6 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
         showFirstAscensionistLinks,
         showFirstAscensionists,
         loading,
-        refresh,
       }}
     >
       {children}

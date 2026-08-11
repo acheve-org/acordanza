@@ -1,6 +1,6 @@
 # Finish the react-query migration (and delete four hand-rolled race guards)
 
-Status: not started
+Status: done
 Depends on: nothing hard. Frontend only — no backend change, no DTO change, no OpenAPI regeneration. Overlaps [24](24-shared-presentation-helpers.md) in a few files (both touch error handling); land 24 first if both are queued, so the converted `useQuery` error branches are written with `errorMessage()` from the start rather than converted twice.
 
 ## Problem
