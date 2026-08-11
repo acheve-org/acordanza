@@ -27,8 +27,18 @@ resource "azurerm_container_app_job" "enrichment" {
   }
 
   secret {
+    name  = "jwt-key"
+    value = var.jwt_key
+  }
+
+  secret {
     name  = "db-connection-string"
     value = local.db_connection_string
+  }
+
+  secret {
+    name  = "resend-api-key"
+    value = var.resend_api_key
   }
 
   secret {
