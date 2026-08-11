@@ -254,7 +254,7 @@ export function AreaTree({ canCreate, canEdit, canDelete }: Props) {
         </ul>
       )}
 
-      <Pagination page={page} pageCount={totalPages} onPageChange={setPage} />
+      <Pagination page={page} totalCount={result.totalCount} pageSize={result.pageSize} onPageChange={setPage} />
 
       {createModal && (
         <AreaNameModal

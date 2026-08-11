@@ -97,4 +97,18 @@ describe('UsersPage', () => {
 
     await waitFor(() => expect(screen.getByText('despues@example.com')).toBeInTheDocument());
   });
+
+  it('renders no pagination when everything fits on one page', async () => {
+    mockUsers([
+      makeUserAccount({ id: 'a', name: 'Ana', email: 'ana@example.com' }),
+      makeUserAccount({ id: 'b', name: 'Bea', email: 'bea@example.com' }),
+      makeUserAccount({ id: 'c', name: 'Cris', email: 'cris@example.com' }),
+    ]);
+
+    renderWithProviders(<UsersPage />, { auth: { permissions: [Permissions.userManage] } });
+
+    await waitFor(() => expect(screen.getByText('ana@example.com')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Siguiente' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Anterior' })).not.toBeInTheDocument();
+  });
 });

@@ -3,11 +3,15 @@ import './Pagination.css'
 
 export interface PaginationProps {
   page: number
-  pageCount: number
+  totalCount: number
+  pageSize: number
   onPageChange: (page: number) => void
 }
 
-export function Pagination({ page, pageCount, onPageChange }: PaginationProps) {
+export function Pagination({ page, totalCount, pageSize, onPageChange }: PaginationProps) {
+  const pageCount = Math.max(1, Math.ceil(totalCount / pageSize))
+  if (pageCount <= 1) return null
+
   return (
     <div className="pagination">
       <Button variant="ghost" small type="button" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
