@@ -17,7 +17,10 @@
 # cost/complexity trade-offs already documented for Postgres' backups and
 # ACR's Basic tier in infra/README.md's Checkov section — topo photos for a
 # handful of friends don't warrant enterprise-grade redundancy/encryption
-# tooling. Storage Analytics logging is skipped for the same reason.
+# tooling. Storage Analytics logging is skipped for the same reason — for
+# both blob (AVD-AZU-0057/0058/0060/0061) and, since this account also holds
+# the route-enrichment queue (plan 18), queue services (AVD-AZU-0009).
+#trivy:ignore:AVD-AZU-0009
 #trivy:ignore:AVD-AZU-0012
 #trivy:ignore:AVD-AZU-0057
 #trivy:ignore:AVD-AZU-0058
