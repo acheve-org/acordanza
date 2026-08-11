@@ -88,7 +88,10 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
 
         var response = await _client.Messages.Create(new MessageCreateParams
         {
-            Model = "claude-sonnet-5",
+            // TEMPORARY: claude-sonnet-4-5, not claude-sonnet-5 — matches the Foundry
+            // deployment name pinned in infra/terraform/ai_foundry.tf due to a 0 TPM
+            // quota on claude-sonnet-5 in this subscription. Revert both together.
+            Model = "claude-sonnet-4-5",
             MaxTokens = 4096,
             // Not optional: omitted, the API defaults to "high", and 5-family models think by
             // default — for a search-and-extract job that quietly buys the deepest (and most
