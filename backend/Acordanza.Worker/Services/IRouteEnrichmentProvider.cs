@@ -43,6 +43,40 @@ public class NoOpTopoVerificationProvider : ITopoVerificationProvider
         Task.FromResult(false);
 }
 
+// Both Claude providers below reach Foundry the same way — one construction, in one place,
+// because getting either half of it wrong fails only at the first real call, in production,
+// and both halves once were wrong:
+//
+//   - Scopes must be non-empty. AnthropicFoundryIdentityTokenCredentials' scopes parameter
+//     defaults to null and only *then* does the SDK substitute Foundry's audience; an empty
+//     array is stored verbatim, so the credential asks for a token with no scopes and MSAL
+//     throws "Value cannot be null. (Parameter 'resource')" on every enrichment. Passing the
+//     audience explicitly (rather than relying on the null default) also makes it assertable
+//     from a test — see WorkerConfigurationTests.
+//   - The managed identity's client id is not optional in production. The Container Apps Job
+//     carries a user-assigned identity only (infra/terraform/container_app_job.tf), so without
+//     the client id ManagedIdentityCredential asks IMDS for a system-assigned identity that
+//     doesn't exist. It's absent locally, where DefaultAzureCredential falls through to the
+//     contributor's own az login session — which is why it's read, not required.
+public static class FoundryClient
+{
+    // The audience Foundry's Anthropic endpoint issues tokens for — the same value the SDK
+    // would default to, written here so it can't silently become the empty set again.
+    public static readonly string[] Scopes = ["https://ai.azure.com/.default"];
+
+    public static IAnthropicClient Create(IConfiguration configuration)
+    {
+        var resource = configuration["Anthropic:FoundryResource"]
+            ?? throw new InvalidOperationException("Missing Anthropic:FoundryResource configuration");
+        var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+        {
+            ManagedIdentityClientId = configuration["Anthropic:ManagedIdentityClientId"]
+        });
+        return new AnthropicFoundryClient(
+            new AnthropicFoundryIdentityTokenCredentials(credential, resource, Scopes));
+    }
+}
+
 // Search-and-extract: one Messages API call with the server-side web search tool and
 // structured outputs, reached through Azure AI Foundry (Hosted on Anthropic — structured
 // outputs and server-side tools 400 on Azure-hosted deployments) so the worker
@@ -68,10 +102,7 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
     public ClaudeRouteEnrichmentProvider(IConfiguration configuration, ILogger<ClaudeRouteEnrichmentProvider> logger)
     {
         _logger = logger;
-        var resource = configuration["Anthropic:FoundryResource"]
-            ?? throw new InvalidOperationException("Missing Anthropic:FoundryResource configuration");
-        var credentials = new AnthropicFoundryIdentityTokenCredentials(new DefaultAzureCredential(), resource, []);
-        _client = new AnthropicFoundryClient(credentials);
+        _client = FoundryClient.Create(configuration);
     }
 
     public async Task<EnrichmentResult> FindAsync(RouteEnrichmentContext context, CancellationToken cancellationToken)
@@ -153,10 +184,7 @@ public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
     public ClaudeTopoVerificationProvider(IConfiguration configuration, ILogger<ClaudeTopoVerificationProvider> logger)
     {
         _logger = logger;
-        var resource = configuration["Anthropic:FoundryResource"]
-            ?? throw new InvalidOperationException("Missing Anthropic:FoundryResource configuration");
-        var credentials = new AnthropicFoundryIdentityTokenCredentials(new DefaultAzureCredential(), resource, []);
-        _client = new AnthropicFoundryClient(credentials);
+        _client = FoundryClient.Create(configuration);
     }
 
     public async Task<bool> IsTopoAsync(TopoVerificationContext context, CancellationToken cancellationToken)
