@@ -759,6 +759,13 @@ input:focus, select:focus, textarea:focus {
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
+.area-map-placeholder {
+  height: 65vh;
+  min-height: 420px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  background: var(--bg-card-hover);
+}
 .area-map-editor {
   display: flex;
   flex-wrap: wrap;
@@ -893,6 +900,7 @@ input:focus, select:focus, textarea:focus {
   /* Map height: min-height alone would push page content below the fold on short phones. */
   .area-map { height: 50vh; min-height: 240px; }
   .modal-wide .area-map { height: 50vh; min-height: 220px; }
+  .area-map-placeholder { height: 50vh; min-height: 240px; }
 
   /* 44x44 tap targets (iOS/Android guidance); icons stay 20px. */
   .notif-bell, .user-menu-trigger { width: 44px; height: 44px; }

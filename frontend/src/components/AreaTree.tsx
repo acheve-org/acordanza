@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Button, ConfirmModal, EmptyState, Pagination } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import type { AreaNode, PagedAreaNodes } from '../api/types';
 import { ApiError } from '../api/client';
 import { AreaNameModal } from './AreaNameModal';
-import { AreaPolygonModal } from './AreaPolygonModal';
+
+const AreaPolygonModal = lazy(() => import('./AreaPolygonModal').then((m) => ({ default: m.AreaPolygonModal })));
 
 const PAGE_SIZE = 10;
 
@@ -156,17 +157,19 @@ function AreaTreeNode({
       )}
 
       {polygonModal && (
-        <AreaPolygonModal
-          areaId={node.id}
-          areaName={node.name}
-          parentAreaId={parentAreaId}
-          onClose={() => setPolygonModal(false)}
-          onSaved={() => {
-            setPolygonModal(false);
-            // Refreshes this level's nodes so the row's draw/edit-polygon label follows the save.
-            onListChanged();
-          }}
-        />
+        <Suspense fallback={null}>
+          <AreaPolygonModal
+            areaId={node.id}
+            areaName={node.name}
+            parentAreaId={parentAreaId}
+            onClose={() => setPolygonModal(false)}
+            onSaved={() => {
+              setPolygonModal(false);
+              // Refreshes this level's nodes so the row's draw/edit-polygon label follows the save.
+              onListChanged();
+            }}
+          />
+        </Suspense>
       )}
 
       {confirmingDelete && (

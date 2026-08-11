@@ -1,6 +1,6 @@
 # Code-split Leaflet out of the initial bundle
 
-Status: not started
+Status: done
 Depends on: nothing. Frontend only — no backend change, no DTO change, no OpenAPI regeneration, no visual change on any page.
 
 ## Problem
