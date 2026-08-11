@@ -1,5 +1,6 @@
 import type { components } from '../api/generated';
 import type {
+  AreaDetail,
   AreaSummary,
   Contribution,
   FirstAscensionistProfile,
@@ -37,14 +38,17 @@ type UserAccountDto = components['schemas']['UserAccountDto'];
 // Like makeRoute/makeArea, off the narrowed app type so a result is directly assignable
 // where validationStatus is the closed RequestStatus set.
 type ContributionDto = Contribution;
+type AreaDetailDto = AreaDetail;
 
 export const makeTickedRoute = (o: Partial<TickedRoute> = {}): TickedRoute => ({
   tickId: 1,
   routeId: 1,
   routeName: 'Travesía del Gato',
+  routeSlug: 'travesia-del-gato',
   areaId: 1,
   areaName: 'Peña Rúa',
   areaPath: 'Peña Rúa',
+  areaSlugPath: 'pena-rua',
   grade: '6a',
   orientation: 'south',
   gear: 'bolted',
@@ -93,9 +97,11 @@ export const makeTopo = (o: Partial<TopoDto> = {}): TopoDto => ({
 export const makeRoute = (o: Partial<RouteDto> = {}): RouteDto => ({
   id: 1,
   name: 'Travesía del Gato',
+  slug: 'travesia-del-gato',
   areaId: 1,
   areaName: 'Peña Rúa',
   areaPath: 'Peña Rúa',
+  areaSlugPath: 'pena-rua',
   grade: '6a',
   orientation: 'south',
   gear: 'bolted',
@@ -121,9 +127,11 @@ export const makeRoute = (o: Partial<RouteDto> = {}): RouteDto => ({
 export const makeRouteDetail = (o: Partial<RouteDetailDto> = {}): RouteDetailDto => ({
   id: 1,
   name: 'Travesía del Gato',
+  slug: 'travesia-del-gato',
   areaId: 1,
   areaName: 'Peña Rúa',
   areaPath: 'Peña Rúa',
+  areaSlugPath: 'pena-rua',
   grade: '6a',
   orientation: 'south',
   gear: 'bolted',
@@ -162,10 +170,28 @@ export const makeArea = (o: Partial<AreaDto> = {}): AreaDto => ({
   ...o,
 });
 
+export const makeAreaDetail = (o: Partial<AreaDetailDto> = {}): AreaDetailDto => ({
+  id: 1,
+  name: 'Peña Rúa',
+  slug: 'pena-rua',
+  parentAreaId: null,
+  ancestors: [],
+  children: [],
+  validationStatus: 'approved',
+  decidedAt: null,
+  decidedByName: null,
+  rejectionReason: null,
+  canManageMedia: false,
+  media: [],
+  ...o,
+});
+
 export const makeRoutePending = (o: Partial<RoutePendingDto> = {}): RoutePendingDto => ({
   id: 1,
   name: 'Travesía del Gato',
+  slug: 'travesia-del-gato',
   areaPath: 'Peña Rúa',
+  areaSlugPath: 'pena-rua',
   grade: '6a',
   createdAt: '2026-01-01T00:00:00Z',
   addedByName: 'Alex',

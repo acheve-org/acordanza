@@ -123,6 +123,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.HasIndex(r => r.Grade);
             entity.HasIndex(r => r.AreaId);
 
+            entity.Property(r => r.Slug).HasMaxLength(280).HasDefaultValue("");
+            // Backs GET /routes/by-slug-path/{*path} and stops two routes in the same
+            // area from colliding onto the same URL — see ClimbingRoute.Slug. Scoped to
+            // AreaId, not global, mirroring Area's own (ParentAreaId, Slug) index rather
+            // than FirstAscensionist's flat one.
+            entity.HasIndex(r => new { r.AreaId, r.Slug }).IsUnique();
+
             entity.Property(r => r.ValidationStatus).HasConversion<string>().HasMaxLength(20);
             entity.Property(r => r.ObligatoryGrade).HasMaxLength(20);
             entity.Property(r => r.RecommendedGear).HasMaxLength(500);

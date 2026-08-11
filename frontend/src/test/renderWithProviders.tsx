@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
 import { render, type RenderOptions } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, type InitialEntry } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthContext, AuthProvider, type AuthContextValue } from '../context/AuthContext';
 
@@ -45,7 +45,9 @@ export function createTestQueryClient(): QueryClient {
 }
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
-  initialEntries?: string[];
+  /** Plain paths, or `{ pathname, state, ... }` objects when a route needs router state
+   * (e.g. the background-location pattern's `backgroundLocation`) already attached. */
+  initialEntries?: InitialEntry[];
   queryClient?: QueryClient;
   /** Auth context value overrides, applied over a logged-in-as-plain-user default. Ignored when `useRealAuthProvider` is set. */
   auth?: Partial<AuthContextValue>;

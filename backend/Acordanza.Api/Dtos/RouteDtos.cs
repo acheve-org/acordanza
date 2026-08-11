@@ -3,9 +3,11 @@ namespace Acordanza.Api.Dtos;
 public record RouteDto(
     int Id,
     string Name,
+    string Slug,
     int AreaId,
     string AreaName,
     string AreaPath,
+    string AreaSlugPath,
     string Grade,
     string? Orientation,
     string? Gear,
@@ -30,9 +32,11 @@ public record RouteDto(
 public record RouteDetailDto(
     int Id,
     string Name,
+    string Slug,
     int AreaId,
     string AreaName,
     string AreaPath,
+    string AreaSlugPath,
     string Grade,
     string? Orientation,
     string? Gear,
@@ -70,5 +74,8 @@ public record UpsertRouteRequest(
     List<int>? FirstAscensionistIds
 );
 
-// The review queue's view of a not-yet-decided route — GET /routes/pending.
-public record RoutePendingDto(int Id, string Name, string AreaPath, string Grade, DateTimeOffset CreatedAt, string AddedByName);
+// The review queue's view of a not-yet-decided route — GET /routes/pending. Slug/
+// AreaSlugPath let PendingTasksPage navigate straight to the shared route-detail
+// overlay (plan 21) without a second round-trip.
+public record RoutePendingDto(
+    int Id, string Name, string Slug, string AreaPath, string AreaSlugPath, string Grade, DateTimeOffset CreatedAt, string AddedByName);

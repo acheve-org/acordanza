@@ -52,6 +52,21 @@ export function getRoute(id: number): Promise<RouteDetail> {
   return api.get<RouteDetail>(`/routes/${id}`);
 }
 
+// Resolves a route by its full shareable path — {area-slug-path}/{route-slug} — the
+// data source for RouteDetailOverlay, the sole place a route's detail is ever fetched
+// from now on. `path` is not URL-encoded segment by segment since it already comes
+// from a route param carrying literal "/"-joined slugs, not user input.
+export function getRouteBySlugPath(path: string): Promise<RouteDetail> {
+  return api.get<RouteDetail>(`/routes/by-slug-path/${path}`);
+}
+
+// The shareable detail URL for a route, built client-side from its area slug path +
+// own slug — every list card/row carries both fields precisely so callers can build
+// this without a second round-trip. Shared by every page that opens the overlay.
+export function routeDetailPath(route: { areaSlugPath: string; slug: string }): string {
+  return `/routes/${route.areaSlugPath}/${route.slug}`;
+}
+
 export function createRoute(input: UpsertRouteInput): Promise<{ id: number }> {
   return api.post<{ id: number }>('/routes', input);
 }

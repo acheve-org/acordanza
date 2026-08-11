@@ -2526,6 +2526,45 @@
         }
       }
     },
+    "/api/routes/by-slug-path/{path}": {
+      "get": {
+        "tags": [
+          "Routes"
+        ],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteDetailDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteDetailDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteDetailDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/routes/{id}/validate": {
       "post": {
         "tags": [
@@ -4425,9 +4464,11 @@
           "tickId",
           "routeId",
           "routeName",
+          "routeSlug",
           "areaId",
           "areaName",
           "areaPath",
+          "areaSlugPath",
           "grade",
           "orientation",
           "gear",
@@ -4450,6 +4491,9 @@
           "routeName": {
             "type": "string"
           },
+          "routeSlug": {
+            "type": "string"
+          },
           "areaId": {
             "type": "integer",
             "format": "int32"
@@ -4458,6 +4502,9 @@
             "type": "string"
           },
           "areaPath": {
+            "type": "string"
+          },
+          "areaSlugPath": {
             "type": "string"
           },
           "grade": {
@@ -4805,9 +4852,11 @@
         "required": [
           "id",
           "name",
+          "slug",
           "areaId",
           "areaName",
           "areaPath",
+          "areaSlugPath",
           "grade",
           "orientation",
           "gear",
@@ -4838,6 +4887,9 @@
           "name": {
             "type": "string"
           },
+          "slug": {
+            "type": "string"
+          },
           "areaId": {
             "type": "integer",
             "format": "int32"
@@ -4846,6 +4898,9 @@
             "type": "string"
           },
           "areaPath": {
+            "type": "string"
+          },
+          "areaSlugPath": {
             "type": "string"
           },
           "grade": {
@@ -4954,9 +5009,11 @@
         "required": [
           "id",
           "name",
+          "slug",
           "areaId",
           "areaName",
           "areaPath",
+          "areaSlugPath",
           "grade",
           "orientation",
           "gear",
@@ -4986,6 +5043,9 @@
           "name": {
             "type": "string"
           },
+          "slug": {
+            "type": "string"
+          },
           "areaId": {
             "type": "integer",
             "format": "int32"
@@ -4994,6 +5054,9 @@
             "type": "string"
           },
           "areaPath": {
+            "type": "string"
+          },
+          "areaSlugPath": {
             "type": "string"
           },
           "grade": {
@@ -5092,7 +5155,9 @@
         "required": [
           "id",
           "name",
+          "slug",
           "areaPath",
+          "areaSlugPath",
           "grade",
           "createdAt",
           "addedByName"
@@ -5106,7 +5171,13 @@
           "name": {
             "type": "string"
           },
+          "slug": {
+            "type": "string"
+          },
           "areaPath": {
+            "type": "string"
+          },
+          "areaSlugPath": {
             "type": "string"
           },
           "grade": {

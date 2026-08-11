@@ -2268,6 +2268,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/routes/by-slug-path/{path}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    path: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["RouteDetailDto"];
+                        "application/json": components["schemas"]["RouteDetailDto"];
+                        "text/json": components["schemas"]["RouteDetailDto"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/routes/{id}/validate": {
         parameters: {
             query?: never;
@@ -3073,10 +3112,12 @@ export interface components {
             /** Format: int32 */
             routeId: number;
             routeName: string;
+            routeSlug: string;
             /** Format: int32 */
             areaId: number;
             areaName: string;
             areaPath: string;
+            areaSlugPath: string;
             grade: string;
             orientation: null | string;
             gear: null | string;
@@ -3183,10 +3224,12 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
+            slug: string;
             /** Format: int32 */
             areaId: number;
             areaName: string;
             areaPath: string;
+            areaSlugPath: string;
             grade: string;
             orientation: null | string;
             gear: null | string;
@@ -3216,10 +3259,12 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
+            slug: string;
             /** Format: int32 */
             areaId: number;
             areaName: string;
             areaPath: string;
+            areaSlugPath: string;
             grade: string;
             orientation: null | string;
             gear: null | string;
@@ -3247,7 +3292,9 @@ export interface components {
             /** Format: int32 */
             id: number;
             name: string;
+            slug: string;
             areaPath: string;
+            areaSlugPath: string;
             grade: string;
             /** Format: date-time */
             createdAt: string;

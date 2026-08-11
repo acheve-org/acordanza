@@ -4,6 +4,17 @@ public class ClimbingRoute : IValidatable
 {
     public int Id { get; set; }
     public required string Name { get; set; }
+
+    // ASCII, path-safe form of Name, unique per AreaId (not globally — Name has no
+    // uniqueness constraint at all, so a global namespace would hit collisions
+    // constantly on common route names). Backs the shareable /routes/{area-slug-path}/
+    // {slug} URL, alongside AreaHierarchy.SlugPath(AreaId) for the area segments — see
+    // RoutesController.GenerateUniqueRouteSlugAsync. Regenerated whenever Name or AreaId
+    // changes, like FirstAscensionist.Slug and unlike Area.Slug: nothing is keyed on this
+    // column (route topo blob names are computed fresh from Name at upload time, not from
+    // this), so a corrected name/area shouldn't leave a stale URL behind.
+    public string Slug { get; set; } = "";
+
     public int AreaId { get; set; }
     public Area Area { get; set; } = null!;
     public required string Grade { get; set; }

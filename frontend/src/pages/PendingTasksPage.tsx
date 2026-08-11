@@ -1,21 +1,20 @@
-import { useEffect, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router';
+import { useState } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router';
 import { Badge, Button, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
-import * as toposApi from '../api/topos';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import { usePendingTasks } from '../context/PendingTasksContext';
 import { PendingAreaExpertRequests } from '../components/PendingAreaExpertRequests';
 import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
-import { DetailModal } from '../components/DetailModal';
 import { RejectReasonModal } from '../components/RejectReasonModal';
-import type { AreaPending, CreateTickInput, FirstAscensionistPending, RouteDetail } from '../api/types';
+import type { AreaPending, FirstAscensionistPending, RoutePending } from '../api/types';
 
 type Tab = 'routes' | 'areas' | 'firstAscensionists' | 'areaExperts' | 'firstAscensionistLinks';
 
 export function PendingTasksPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     pendingRoutes,
     pendingAreas,
@@ -31,27 +30,11 @@ export function PendingTasksPage() {
     refresh,
   } = usePendingTasks();
 
-  const [detailRouteId, setDetailRouteId] = useState<number | null>(null);
-  const [detailRoute, setDetailRoute] = useState<RouteDetail | null>(null);
   const [rejectingArea, setRejectingArea] = useState<AreaPending | null>(null);
   const [rejectingFirstAscensionist, setRejectingFirstAscensionist] = useState<FirstAscensionistPending | null>(null);
 
-  useEffect(() => {
-    if (detailRouteId === null) {
-      setDetailRoute(null);
-      return;
-    }
-    let cancelled = false;
-    routesApi.getRoute(detailRouteId).then((route) => {
-      if (!cancelled) setDetailRoute(route);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [detailRouteId]);
-
-  function refreshDetail() {
-    if (detailRouteId !== null) routesApi.getRoute(detailRouteId).then(setDetailRoute);
+  function handleSelectRoute(route: RoutePending) {
+    navigate(routesApi.routeDetailPath(route), { state: { backgroundLocation: location } });
   }
 
   const tabs: { key: Tab; label: string; count: number }[] = [
@@ -79,50 +62,6 @@ export function PendingTasksPage() {
   const [activeTab, setActiveTab] = useState<Tab | null>(tabs[0]?.key ?? null);
 
   if (!visible) return <Navigate to="/" replace />;
-
-  async function handleValidateRoute() {
-    if (detailRouteId === null) return;
-    await routesApi.validateRoute(detailRouteId);
-    refreshDetail();
-    refresh();
-  }
-
-  async function handleRejectRoute(reason: string) {
-    if (detailRouteId === null) return;
-    await routesApi.rejectRoute(detailRouteId, reason);
-    refreshDetail();
-    refresh();
-  }
-
-  async function handleDeleteRoute() {
-    if (detailRouteId === null) return;
-    await routesApi.deleteRoute(detailRouteId);
-    setDetailRouteId(null);
-    refresh();
-  }
-
-  async function handleAddTick(input: CreateTickInput) {
-    if (detailRouteId === null) return;
-    await routesApi.createTick(detailRouteId, input);
-    refreshDetail();
-    refresh();
-  }
-
-  async function handleUploadTopo(file: File) {
-    if (detailRouteId === null) return;
-    await toposApi.uploadTopo(detailRouteId, file);
-    refreshDetail();
-  }
-
-  async function handleDeleteTopo(topoId: number) {
-    await toposApi.deleteTopo(topoId);
-    refreshDetail();
-  }
-
-  async function handleEnrichRoute(force: boolean) {
-    if (detailRouteId === null) return;
-    await routesApi.enrichRoute(detailRouteId, force);
-  }
 
   async function handleValidateArea(id: number) {
     await areasApi.validateArea(id);
@@ -177,7 +116,7 @@ export function PendingTasksPage() {
                   key={r.id}
                   title={r.name}
                   subtitle={`${r.areaPath} · ${r.grade}`}
-                  onClick={() => setDetailRouteId(r.id)}
+                  onClick={() => handleSelectRoute(r)}
                 />
               ))}
             </List>
@@ -275,21 +214,6 @@ export function PendingTasksPage() {
           )}
         </section>
       )}
-
-      <DetailModal
-        route={detailRoute}
-        onClose={() => setDetailRouteId(null)}
-        onEdit={() => {
-          if (detailRouteId !== null) navigate(`/routes/${detailRouteId}/edit`);
-        }}
-        onDelete={handleDeleteRoute}
-        onValidate={handleValidateRoute}
-        onReject={handleRejectRoute}
-        onAddTick={handleAddTick}
-        onUploadTopo={handleUploadTopo}
-        onDeleteTopo={handleDeleteTopo}
-        onEnrich={handleEnrichRoute}
-      />
 
       {rejectingArea && (
         <RejectReasonModal
