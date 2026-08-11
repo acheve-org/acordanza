@@ -242,6 +242,7 @@ jobs:
       container_app_name: ${{ steps.tf_outputs.outputs.container_app_name }}
       container_app_fqdn: ${{ steps.tf_outputs.outputs.container_app_fqdn }}
       container_app_frontend_name: ${{ steps.tf_outputs.outputs.container_app_frontend_name }}
+      container_app_job_enrichment_name: ${{ steps.tf_outputs.outputs.container_app_job_enrichment_name }}
       resource_group_name: ${{ steps.tf_outputs.outputs.resource_group_name }}
       backend_custom_domain: ${{ steps.tf_outputs.outputs.backend_custom_domain }}
       static_web_app_name: ${{ steps.tf_outputs.outputs.static_web_app_name }}
