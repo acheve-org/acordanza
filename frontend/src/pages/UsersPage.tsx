@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Navigate } from 'react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Chip, EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
+import { queryKeys } from '../api/queryKeys';
 import type { PagedUsers, UserAccount, UserFilters } from '../api/types';
 import { roleLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { errorMessage } from '../api/errorMessage';
 import { useAuth } from '../context/AuthContext';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { formatDate } from '../format';
 import { InviteUserModal } from '../components/InviteUserModal';
 
@@ -35,52 +38,26 @@ function inviteMeta(u: UserAccount): string | null {
 
 export function UsersPage() {
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
+  const canManage = hasPermission(Permissions.userManage);
   const [filters, setFilters] = useState<UserFilters>(emptyFilters);
-  const [result, setResult] = useState<PagedUsers>(emptyResult);
-  const [error, setError] = useState('');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteSuccess, setInviteSuccess] = useState(false);
 
-  function refreshUsers() {
-    usersApi
-      .listUsers(filters)
-      .then((users) => {
-        setResult(users);
-        setError('');
-      })
-      .catch((err) => {
-        setError(errorMessage(err, 'No se pudieron cargar los usuarios'));
-      });
-  }
+  const debouncedFilters = useDebouncedValue(filters);
 
-  useEffect(() => {
-    if (!hasPermission(Permissions.userManage)) return;
-    let active = true;
-    const handle = setTimeout(() => {
-      usersApi
-        .listUsers(filters)
-        .then((users) => {
-          if (!active) return;
-          setResult(users);
-          setError('');
-        })
-        .catch((err) => {
-          if (!active) return;
-          setError(errorMessage(err, 'No se pudieron cargar los usuarios'));
-        });
-    }, 250);
-    return () => {
-      active = false;
-      clearTimeout(handle);
-    };
-  }, [filters, hasPermission]);
+  const { data: result = emptyResult, error } = useQuery({
+    queryKey: queryKeys.users(debouncedFilters),
+    queryFn: () => usersApi.listUsers(debouncedFilters),
+    enabled: canManage,
+  });
 
-  if (!hasPermission(Permissions.userManage)) return <Navigate to="/" replace />;
+  if (!canManage) return <Navigate to="/" replace />;
 
   function handleInvited() {
     setInviteOpen(false);
     setInviteSuccess(true);
-    refreshUsers();
+    queryClient.invalidateQueries({ queryKey: ['users'] });
   }
 
   function set<K extends keyof UserFilters>(key: K, value: UserFilters[K]) {
@@ -126,7 +103,7 @@ export function UsersPage() {
         </select>
       </div>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text">{errorMessage(error, 'No se pudieron cargar los usuarios')}</p>}
 
       {result.items.length === 0 ? (
         <EmptyState>No se han encontrado usuarios</EmptyState>

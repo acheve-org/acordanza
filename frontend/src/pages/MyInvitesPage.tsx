@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Chip, EmptyState, List, ListRow } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
+import { queryKeys } from '../api/queryKeys';
 import type { MyInvitesResponse } from '../api/types';
 import { errorMessage } from '../api/errorMessage';
 import { InviteUserModal } from '../components/InviteUserModal';
@@ -8,27 +10,17 @@ import { InviteUserModal } from '../components/InviteUserModal';
 const emptyResult: MyInvitesResponse = { invites: [], invitesLeft: null, maxInvites: null };
 
 export function MyInvitesPage() {
-  const [result, setResult] = useState<MyInvitesResponse>(emptyResult);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const [inviteOpen, setInviteOpen] = useState(false);
 
-  function refreshInvites() {
-    usersApi
-      .getMyInvites()
-      .then((invites) => {
-        setResult(invites);
-        setError('');
-      })
-      .catch((err) => {
-        setError(errorMessage(err, 'No se pudieron cargar las invitaciones'));
-      });
-  }
-
-  useEffect(refreshInvites, []);
+  const { data: result = emptyResult, error } = useQuery({
+    queryKey: queryKeys.myInvites(),
+    queryFn: () => usersApi.getMyInvites(),
+  });
 
   function handleInvited() {
     setInviteOpen(false);
-    refreshInvites();
+    queryClient.invalidateQueries({ queryKey: ['users'] });
   }
 
   return (
@@ -46,7 +38,7 @@ export function MyInvitesPage() {
           : `Te quedan ${result.invitesLeft} de ${result.maxInvites} invitaciones.`}
       </p>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text">{errorMessage(error, 'No se pudieron cargar las invitaciones')}</p>}
 
       {result.invites.length === 0 ? (
         <EmptyState>Todavía no has invitado a nadie</EmptyState>

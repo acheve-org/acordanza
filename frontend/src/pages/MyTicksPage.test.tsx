@@ -27,6 +27,47 @@ describe('MyTicksPage', () => {
     );
   });
 
+  it('fetches the next page when the sentinel intersects', async () => {
+    let observedCallback: ((entries: { isIntersecting: boolean }[]) => void) | null = null;
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(cb: (entries: { isIntersecting: boolean }[]) => void) {
+          observedCallback = cb;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+
+    const pageOne = Array.from({ length: 20 }, (_, i) =>
+      makeTickedRoute({ tickId: i + 1, routeId: i + 1, routeName: `Vía ${i + 1}` }),
+    );
+    const pageTwo = [makeTickedRoute({ tickId: 21, routeId: 21, routeName: 'Vía 21' })];
+
+    server.use(
+      http.get(`${API_URL}/ticks/mine`, ({ request }) => {
+        const page = new URL(request.url).searchParams.get('page');
+        return HttpResponse.json({
+          items: page === '2' ? pageTwo : pageOne,
+          totalCount: 21,
+          page: page === '2' ? 2 : 1,
+          pageSize: 20,
+        });
+      }),
+    );
+
+    renderWithProviders(<MyTicksPage />);
+
+    await screen.findByText('Vía 1');
+    expect(screen.queryByText('Vía 21')).not.toBeInTheDocument();
+
+    act(() => observedCallback?.([{ isIntersecting: true }]));
+
+    await waitFor(() => expect(screen.getByText('Vía 21')).toBeInTheDocument());
+  });
+
   it('clicking a ticked route card navigates to its detail URL with the current location as backgroundLocation', async () => {
     server.use(
       http.get(`${API_URL}/ticks/mine`, () =>

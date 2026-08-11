@@ -1,7 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, ConfirmModal, EmptyState, Pagination } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
-import type { AreaNode, PagedAreaNodes } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
+import type { AreaNode } from '../api/types';
 import { errorMessage } from '../api/errorMessage';
 import { AreaNameModal } from './AreaNameModal';
 
@@ -20,9 +22,8 @@ interface AreaTreeNodeProps {
   canCreate: boolean;
   canEdit: boolean;
   canDelete: boolean;
-  onError: (message: string) => void;
   onRequestCreate: (parentAreaId: number, onCreated: () => void) => void;
-  // Reloads the node list at this level (this node's siblings) — needed after a delete
+  // Invalidates the node list at this level (this node's siblings) — needed after a delete
   // (the node disappears), a rename, or a polygon save, since `node` here is sourced from
   // that list and carries the name/hasPolygon the row renders.
   onListChanged: () => void;
@@ -34,45 +35,38 @@ function AreaTreeNode({
   canCreate,
   canEdit,
   canDelete,
-  onError,
   onRequestCreate,
   onListChanged,
 }: AreaTreeNodeProps) {
+  const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
-  const [children, setChildren] = useState<AreaNode[] | null>(null);
-  const [loadingChildren, setLoadingChildren] = useState(false);
-  const [hasChildren, setHasChildren] = useState(node.hasChildren);
   const [editModal, setEditModal] = useState(false);
   const [polygonModal, setPolygonModal] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  function loadChildren() {
-    setLoadingChildren(true);
-    areasApi
-      .listAreaChildren(node.id, true)
-      .then((items) => {
-        setChildren(items);
-        setHasChildren(items.length > 0);
-      })
-      .catch((err) => onError(errorMessage(err, 'No se pudieron cargar los subsectores')))
-      .finally(() => setLoadingChildren(false));
+  // Fetched once per node, on first expand — not refetched on collapse/re-expand
+  // (`staleTime: Infinity`), only on an explicit invalidation from a mutation below it.
+  const {
+    data: children,
+    isLoading: loadingChildren,
+    error: childrenError,
+  } = useQuery({
+    queryKey: queryKeys.areaChildren(node.id),
+    queryFn: () => areasApi.listAreaChildren(node.id, true),
+    enabled: expanded,
+    staleTime: Infinity,
+  });
+
+  const hasChildren = children ? children.length > 0 : node.hasChildren;
+
+  function invalidateOwnChildren() {
+    queryClient.invalidateQueries({ queryKey: queryKeys.areaChildren(node.id) });
   }
 
-  function toggleExpand() {
-    if (!expanded && children === null) {
-      loadChildren();
-    }
-    setExpanded((e) => !e);
-  }
-
-  async function handleDelete() {
-    try {
-      await areasApi.deleteArea(node.id);
-      onListChanged();
-    } catch (err) {
-      onError(errorMessage(err, 'No se pudo eliminar el sector'));
-    }
-  }
+  const deleteMutation = useMutation({
+    mutationFn: () => areasApi.deleteArea(node.id),
+    onSuccess: onListChanged,
+  });
 
   return (
     <li className="area-tree-node">
@@ -81,7 +75,7 @@ function AreaTreeNode({
           <button
             type="button"
             className="area-tree-toggle"
-            onClick={toggleExpand}
+            onClick={() => setExpanded((e) => !e)}
             aria-label={expanded ? 'Contraer' : 'Expandir'}
           >
             {expanded ? '▾' : '▸'}
@@ -98,7 +92,7 @@ function AreaTreeNode({
               type="button"
               onClick={() =>
                 onRequestCreate(node.id, () => {
-                  loadChildren();
+                  invalidateOwnChildren();
                   setExpanded(true);
                 })
               }
@@ -123,9 +117,17 @@ function AreaTreeNode({
           )}
         </div>
       </div>
+      {deleteMutation.isError && (
+        <p className="error-text">{errorMessage(deleteMutation.error, 'No se pudo eliminar el sector')}</p>
+      )}
       {expanded && (
         <ul className="area-tree-children">
           {loadingChildren && <li className="hint">Cargando…</li>}
+          {childrenError && (
+            <li className="hint error-text">
+              {errorMessage(childrenError, 'No se pudieron cargar los subsectores')}
+            </li>
+          )}
           {!loadingChildren && children?.length === 0 && <li className="hint">Sin subsectores</li>}
           {!loadingChildren &&
             children?.map((child) => (
@@ -136,9 +138,8 @@ function AreaTreeNode({
                 canCreate={canCreate}
                 canEdit={canEdit}
                 canDelete={canDelete}
-                onError={onError}
                 onRequestCreate={onRequestCreate}
-                onListChanged={loadChildren}
+                onListChanged={invalidateOwnChildren}
               />
             ))}
         </ul>
@@ -177,7 +178,7 @@ function AreaTreeNode({
           message={`¿Eliminar el sector "${node.name}" y todos sus subsectores?`}
           confirmLabel="Eliminar"
           danger
-          onConfirm={handleDelete}
+          onConfirm={() => deleteMutation.mutate()}
           onClose={() => setConfirmingDelete(false)}
         />
       )}
@@ -192,34 +193,28 @@ interface Props {
 }
 
 export function AreaTree({ canCreate, canEdit, canDelete }: Props) {
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
-  const [result, setResult] = useState<PagedAreaNodes>({ items: [], totalCount: 0, page: 1, pageSize: PAGE_SIZE });
-  const [error, setError] = useState('');
   const [createModal, setCreateModal] = useState<CreateModalState | null>(null);
 
-  function refreshRoots() {
-    areasApi
-      .listRootAreas(page, PAGE_SIZE, true)
-      .then((r) => {
-        const totalPages = Math.max(1, Math.ceil(r.totalCount / r.pageSize));
-        if (page > totalPages) {
-          setPage(totalPages);
-          return;
-        }
-        setResult(r);
-        setError('');
-      })
-      .catch((err) => setError(errorMessage(err, 'No se pudieron cargar los sectores')));
+  const { data: result = { items: [], totalCount: 0, page: 1, pageSize: PAGE_SIZE }, error } = useQuery({
+    queryKey: queryKeys.manageRootAreas(page),
+    queryFn: () => areasApi.listRootAreas(page, PAGE_SIZE, true),
+  });
+
+  const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
+
+  // A mutation at root level (e.g. deleting the last item on the last page) can leave `page`
+  // pointing past the new last page — settle back onto it rather than showing an empty page.
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  function invalidateRoots() {
+    queryClient.invalidateQueries({ queryKey: ['areas', 'roots', 'manage'] });
   }
 
-  useEffect(() => {
-    refreshRoots();
-    // Only meant to re-run when the page changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
-
   function openCreateModal(parentAreaId: number | null, onCreated: () => void) {
-    setError('');
     setCreateModal({ parentAreaId, onCreated });
   }
 
@@ -228,19 +223,17 @@ export function AreaTree({ canCreate, canEdit, canDelete }: Props) {
     setCreateModal(null);
   }
 
-  const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
-
   return (
     <div className="area-tree-wrap">
       <div className="area-tree-header">
         {canCreate && (
-          <Button type="button" onClick={() => openCreateModal(null, refreshRoots)}>
+          <Button type="button" onClick={() => openCreateModal(null, invalidateRoots)}>
             Añadir sector principal
           </Button>
         )}
       </div>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text">{errorMessage(error, 'No se pudieron cargar los sectores')}</p>}
 
       {result.items.length === 0 ? (
         <EmptyState>No hay sectores todavía</EmptyState>
@@ -254,9 +247,8 @@ export function AreaTree({ canCreate, canEdit, canDelete }: Props) {
               canCreate={canCreate}
               canEdit={canEdit}
               canDelete={canDelete}
-              onError={setError}
               onRequestCreate={openCreateModal}
-              onListChanged={refreshRoots}
+              onListChanged={invalidateRoots}
             />
           ))}
         </ul>
@@ -265,7 +257,11 @@ export function AreaTree({ canCreate, canEdit, canDelete }: Props) {
       <Pagination page={page} pageCount={totalPages} onPageChange={setPage} />
 
       {createModal && (
-        <AreaNameModal parentAreaId={createModal.parentAreaId} onClose={() => setCreateModal(null)} onSaved={handleCreated} />
+        <AreaNameModal
+          parentAreaId={createModal.parentAreaId}
+          onClose={() => setCreateModal(null)}
+          onSaved={handleCreated}
+        />
       )}
     </div>
   );

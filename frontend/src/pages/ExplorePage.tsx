@@ -1,8 +1,9 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
-import type { AreaNode } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
 
 const AreaMap = lazy(() => import('../components/AreaMap').then((m) => ({ default: m.AreaMap })));
 
@@ -10,18 +11,16 @@ const PAGE_SIZE = 10;
 
 export function ExplorePage() {
   const navigate = useNavigate();
-  const [zones, setZones] = useState<AreaNode[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    areasApi.listRootAreas(page, PAGE_SIZE).then((paged) => {
-      setZones(paged.items);
-      setTotalCount(paged.totalCount);
-    });
-  }, [page]);
+  const { data } = useQuery({
+    queryKey: queryKeys.rootAreas(page),
+    queryFn: () => areasApi.listRootAreas(page, PAGE_SIZE),
+    placeholderData: keepPreviousData,
+  });
 
-  const pageCount = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const zones = data?.items ?? [];
+  const pageCount = Math.max(1, Math.ceil((data?.totalCount ?? 0) / PAGE_SIZE));
 
   return (
     <main className="explore-page">

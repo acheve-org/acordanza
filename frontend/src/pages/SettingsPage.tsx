@@ -1,10 +1,11 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { create, type CredentialCreationOptionsJSON } from '@github/webauthn-json';
 import { Button, ConfirmModal, EmptyState, List, ListRow, ModalActions, RemoveButton } from 'acordanza-design-system';
 import * as accountApi from '../api/account';
 import * as passkeysApi from '../api/passkeys';
-import type { PasskeySummary } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import { formatDate } from '../format';
@@ -140,37 +141,40 @@ function PasswordSection() {
 }
 
 function PasskeysSection() {
-  const [passkeys, setPasskeys] = useState<PasskeySummary[]>([]);
+  const queryClient = useQueryClient();
   const [newPasskeyName, setNewPasskeyName] = useState('');
-  const [registering, setRegistering] = useState(false);
-  const [error, setError] = useState('');
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
 
-  useEffect(() => {
-    passkeysApi.listPasskeys().then(setPasskeys);
-  }, []);
+  const { data: passkeys = [] } = useQuery({
+    queryKey: queryKeys.passkeys(),
+    queryFn: () => passkeysApi.listPasskeys(),
+  });
 
-  async function handleRegister(e: FormEvent) {
-    e.preventDefault();
-    setError('');
-    setRegistering(true);
-    try {
-      const { sessionId, options } = await passkeysApi.getRegisterOptions(newPasskeyName.trim());
+  const registerMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { sessionId, options } = await passkeysApi.getRegisterOptions(name);
       const attestationResponse = await create({ publicKey: options } as CredentialCreationOptionsJSON);
       await passkeysApi.completeRegister(sessionId, attestationResponse);
+    },
+    onSuccess: () => {
       setNewPasskeyName('');
-      setPasskeys(await passkeysApi.listPasskeys());
-    } catch (err) {
-      setError(errorMessage(err, 'No se pudo registrar la llave de acceso'));
-    } finally {
-      setRegistering(false);
-    }
+      queryClient.invalidateQueries({ queryKey: queryKeys.passkeys() });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => passkeysApi.deletePasskey(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.passkeys() }),
+  });
+
+  function handleRegister(e: FormEvent) {
+    e.preventDefault();
+    registerMutation.mutate(newPasskeyName.trim());
   }
 
-  async function handleDelete(id: number) {
-    await passkeysApi.deletePasskey(id);
-    setPasskeys(await passkeysApi.listPasskeys());
-  }
+  const error = registerMutation.isError
+    ? errorMessage(registerMutation.error, 'No se pudo registrar la llave de acceso')
+    : '';
 
   return (
     <section className="settings-section">
@@ -202,7 +206,7 @@ function PasskeysSection() {
           message="¿Eliminar esta llave de acceso?"
           confirmLabel="Eliminar"
           danger
-          onConfirm={() => handleDelete(confirmingDeleteId)}
+          onConfirm={() => deleteMutation.mutate(confirmingDeleteId)}
           onClose={() => setConfirmingDeleteId(null)}
         />
       )}
@@ -218,8 +222,8 @@ function PasskeysSection() {
             onChange={(e) => setNewPasskeyName(e.target.value)}
           />
         </label>
-        <Button type="submit" disabled={registering}>
-          {registering ? 'Esperando confirmación…' : 'Añadir llave de acceso'}
+        <Button type="submit" disabled={registerMutation.isPending}>
+          {registerMutation.isPending ? 'Esperando confirmación…' : 'Añadir llave de acceso'}
         </Button>
         <p className="error-text">{error}</p>
       </form>

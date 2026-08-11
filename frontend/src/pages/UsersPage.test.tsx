@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
@@ -71,5 +71,30 @@ describe('UsersPage', () => {
     expect(within(cliRow).queryByText(/Invitado/)).not.toBeInTheDocument();
     expect(within(cliRow).queryByText(/Confirmado/)).not.toBeInTheDocument();
     expect(within(cliRow).queryByText('Sin confirmar')).not.toBeInTheDocument();
+  });
+
+  it('refetches the list after a successful invite', async () => {
+    const before = makeUserAccount({ id: 'before', name: 'Antes', email: 'antes@example.com' });
+    const after = makeUserAccount({ id: 'after', name: 'Después', email: 'despues@example.com' });
+    let invited = false;
+    server.use(
+      http.get(`${API_URL}/users`, () =>
+        HttpResponse.json({ items: [invited ? after : before], totalCount: 1, page: 1, pageSize: 10 }),
+      ),
+      http.post(`${API_URL}/users/invite`, () => {
+        invited = true;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+
+    renderWithProviders(<UsersPage />, { auth: { permissions: [Permissions.userManage] } });
+
+    await waitFor(() => expect(screen.getByText('antes@example.com')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('Invitar usuario'));
+    fireEvent.change(screen.getByPlaceholderText('alex@example.com'), { target: { value: 'nuevo@example.com' } });
+    fireEvent.click(screen.getByText('Enviar invitación'));
+
+    await waitFor(() => expect(screen.getByText('despues@example.com')).toBeInTheDocument());
   });
 });

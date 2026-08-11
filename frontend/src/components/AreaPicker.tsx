@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Combobox, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import { areaPath as pathFor } from '../api/areas';
+import { queryKeys } from '../api/queryKeys';
 import type { AreaSummary } from '../api/types';
 import { validationStatusLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
@@ -19,27 +21,22 @@ interface Props {
 
 export function AreaPicker({ value, onChange, allowCreate = false, allowClear = false, refreshToken }: Props) {
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const canCreate = allowCreate && hasPermission(Permissions.areaCreate);
-  const [areas, setAreas] = useState<AreaSummary[]>([]);
   const [query, setQuery] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [newParentId, setNewParentId] = useState('');
 
-  function refresh() {
-    areasApi.listAreas().then(setAreas);
-  }
-
-  // The dropdown refetches on open (`onOpen` below), so the only reason to fetch up front is
-  // to resolve a *preselected* area into its "Padre › Hijo" label. With nothing selected
-  // (route filters, a new route) the list isn't fetched at all until the picker is opened.
-  // Not keyed on `value`: selecting from the dropdown resolves against the list already
-  // loaded, so it must not trigger a second fetch.
-  useEffect(() => {
-    if (value === null) return;
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshToken]);
+  // The dropdown refetches on open (`onOpen` below, via `refetch`), so the only reason to
+  // fetch up front is to resolve a *preselected* area into its "Padre › Hijo" label. With
+  // nothing selected (route filters, a new route) the list isn't fetched at all until the
+  // picker is opened.
+  const { data: areas = [], refetch } = useQuery({
+    queryKey: queryKeys.areaList(refreshToken),
+    queryFn: () => areasApi.listAreas(),
+    enabled: value !== null,
+  });
 
   const byId = useMemo(() => new Map(areas.map((a) => [a.id, a])), [areas]);
   const selected = value !== null ? byId.get(value) : undefined;
@@ -62,7 +59,7 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
     const name = newName.trim();
     if (!name) return;
     const created = await areasApi.createArea(name, newParentId ? Number(newParentId) : null);
-    setAreas((prev) => [...prev, created]);
+    queryClient.invalidateQueries({ queryKey: ['areas'] });
     setNewName('');
     setNewParentId('');
     setShowCreate(false);
@@ -74,7 +71,7 @@ export function AreaPicker({ value, onChange, allowCreate = false, allowClear = 
       <Combobox
         placeholder="Buscar sector…"
         closedValue={selected ? pathFor(selected, byId) : ''}
-        onOpen={refresh}
+        onOpen={() => refetch()}
         onQueryChange={setQuery}
         options={matches.map((a) => ({ key: a.id, label: optionLabel(a) }))}
         onSelect={onChange}

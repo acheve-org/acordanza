@@ -1,53 +1,34 @@
-import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { Button, Chip, EmptyState } from 'acordanza-design-system';
 import { RoutesList } from '../components/RoutesList';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as routesApi from '../api/routes';
-import type { FirstAscensionistProfile, RouteSummary } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
+import { ApiError } from '../api/client';
+import type { RouteSummary } from '../api/types';
 
 export function FirstAscensionistPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const slug = useParams().slug!;
 
-  const [firstAscensionist, setFirstAscensionist] = useState<FirstAscensionistProfile | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [routes, setRoutes] = useState<RouteSummary[]>([]);
+  const { data: firstAscensionist, error } = useQuery({
+    queryKey: queryKeys.firstAscensionistBySlug(slug),
+    queryFn: () => firstAscensionistsApi.getFirstAscensionistBySlug(slug),
+  });
 
-  // Navigating straight from one aperturista to another keeps this component mounted, so a
-  // slow response for the one we just left can land after the new one's. Every setState off a
-  // fetch is gated on this still naming the aperturista on screen — same stale-response guard
-  // `AreaMap` uses for its bounds fetches.
-  const shownSlug = useRef(slug);
-
-  function refreshRoutes(forId: number) {
-    routesApi.listRoutesByFirstAscensionist(forId).then((result) => {
-      if (shownSlug.current === slug) setRoutes(result);
-    });
-  }
-
-  useEffect(() => {
-    shownSlug.current = slug;
-    setFirstAscensionist(null);
-    setNotFound(false);
-    setRoutes([]);
-    firstAscensionistsApi
-      .getFirstAscensionistBySlug(slug)
-      .then((fa) => {
-        if (shownSlug.current !== slug) return;
-        setFirstAscensionist(fa);
-        refreshRoutes(fa.id);
-      })
-      .catch(() => {
-        if (shownSlug.current === slug) setNotFound(true);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  const { data: routes = [] } = useQuery({
+    queryKey: queryKeys.routesByFirstAscensionist(firstAscensionist?.id ?? 0),
+    queryFn: () => routesApi.listRoutesByFirstAscensionist(firstAscensionist!.id),
+    enabled: !!firstAscensionist,
+  });
 
   function handleSelectRoute(route: RouteSummary) {
     navigate(routesApi.routeDetailPath(route), { state: { backgroundLocation: location } });
   }
+
+  const notFound = error instanceof ApiError && error.status === 404;
 
   if (notFound) {
     return (

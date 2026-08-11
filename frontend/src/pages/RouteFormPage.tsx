@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button, gradeBand, ModalActions, RemoveButton } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import { errorMessage } from '../api/errorMessage';
@@ -46,6 +47,7 @@ export function RouteFormPage() {
   const { id } = useParams();
   const editing = id !== undefined;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [route, setRoute] = useState<RouteDetail | null>(null);
   const [loadError, setLoadError] = useState('');
@@ -78,6 +80,26 @@ export function RouteFormPage() {
       });
   }, [id, editing]);
 
+  const saveMutation = useMutation({
+    mutationFn: async (input: UpsertRouteInput) => {
+      // Neither response echoes the generated/regenerated slug, so a follow-up GET is the
+      // cheapest way to land on the route's own detail URL (plan 21) rather than the plain
+      // list — no backend DTO change needed just for this redirect.
+      let savedId: number;
+      if (route) {
+        await routesApi.updateRoute(route.id, input);
+        savedId = route.id;
+      } else {
+        savedId = (await routesApi.createRoute(input)).id;
+      }
+      return routesApi.getRoute(savedId);
+    },
+    onSuccess: (saved) => {
+      queryClient.invalidateQueries({ queryKey: ['routes'] });
+      navigate(routesApi.routeDetailPath(saved));
+    },
+  });
+
   if (editing && loadError) {
     return (
       <main className="settings-page">
@@ -108,7 +130,7 @@ export function RouteFormPage() {
     setForm((f) => ({ ...f, links: f.links.filter((_, i) => i !== index) }));
   }
 
-  async function handleSubmit(e: FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (gradeBand(form.grade) === null) {
       setError('el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)');
@@ -127,18 +149,7 @@ export function RouteFormPage() {
       orientation: form.orientation || null,
       gear: form.gear || null,
     };
-    // Neither response echoes the generated/regenerated slug, so a follow-up GET is the
-    // cheapest way to land on the route's own detail URL (plan 21) rather than the plain
-    // list — no backend DTO change needed just for this redirect.
-    let savedId: number;
-    if (route) {
-      await routesApi.updateRoute(route.id, input);
-      savedId = route.id;
-    } else {
-      savedId = (await routesApi.createRoute(input)).id;
-    }
-    const saved = await routesApi.getRoute(savedId);
-    navigate(routesApi.routeDetailPath(saved));
+    saveMutation.mutate(input);
   }
 
   return (

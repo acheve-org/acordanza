@@ -1,39 +1,31 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
-import type { FirstAscensionistLinkRequestSummary } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
 import { reviewStatusLabels } from '../api/types';
 import { errorMessage } from '../api/errorMessage';
 import { RequestFirstAscensionistLinkModal } from '../components/RequestFirstAscensionistLinkModal';
 
 export function ClaimFirstAscensionistPage() {
-  const [mine, setMine] = useState<FirstAscensionistLinkRequestSummary[]>([]);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
   const [requesting, setRequesting] = useState(false);
 
-  function refresh() {
-    firstAscensionistLinksApi
-      .listMyFirstAscensionistLinks()
-      .then(setMine)
-      .catch((err) => setError(errorMessage(err, 'No se pudieron cargar tus solicitudes')));
-  }
+  const { data: mine = [], error } = useQuery({
+    queryKey: queryKeys.myFirstAscensionistLinks(),
+    queryFn: () => firstAscensionistLinksApi.listMyFirstAscensionistLinks(),
+  });
 
-  useEffect(refresh, []);
+  const cancelMutation = useMutation({
+    mutationFn: (id: number) => firstAscensionistLinksApi.cancelFirstAscensionistLink(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['first-ascensionist-links'] }),
+  });
 
   const activeClaim = mine.find((r) => r.status !== 'rejected');
 
-  async function handleCancel(id: number) {
-    try {
-      await firstAscensionistLinksApi.cancelFirstAscensionistLink(id);
-    } catch (err) {
-      setError(errorMessage(err, 'No se pudo retirar la solicitud'));
-    }
-    refresh();
-  }
-
   function handleRequested() {
     setRequesting(false);
-    refresh();
+    queryClient.invalidateQueries({ queryKey: ['first-ascensionist-links'] });
   }
 
   const intro =
@@ -54,7 +46,10 @@ export function ClaimFirstAscensionistPage() {
 
       <p>{intro}</p>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="error-text">{errorMessage(error, 'No se pudieron cargar tus solicitudes')}</p>}
+      {cancelMutation.isError && (
+        <p className="error-text">{errorMessage(cancelMutation.error, 'No se pudo retirar la solicitud')}</p>
+      )}
 
       {mine.length === 0 ? (
         <EmptyState>Todavía no has solicitado ningún vínculo</EmptyState>
@@ -73,7 +68,7 @@ export function ClaimFirstAscensionistPage() {
               }
               trailing={
                 r.status === 'pending' && (
-                  <RemoveButton label="Retirar solicitud" onClick={() => handleCancel(r.id)} />
+                  <RemoveButton label="Retirar solicitud" onClick={() => cancelMutation.mutate(r.id)} />
                 )
               }
             />

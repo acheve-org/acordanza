@@ -1,31 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { Chip, EmptyState } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
-import type { FirstAscensionistProfile } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 // How many of an aperturista's sectors fit on their card before it collapses into "+N".
 const MAX_AREA_CHIPS = 3;
 
 export function FirstAscensionistsDirectoryPage() {
   const [q, setQ] = useState('');
-  const [firstAscensionists, setFirstAscensionists] = useState<FirstAscensionistProfile[]>([]);
+  const debouncedQ = useDebouncedValue(q);
 
-  useEffect(() => {
-    // `active` guards against an earlier query's response landing after a later one's and
-    // leaving the list disagreeing with the search box — the debounce alone doesn't stop
-    // two requests from being in flight at once.
-    let active = true;
-    const handle = setTimeout(() => {
-      firstAscensionistsApi.listFirstAscensionistProfiles(q).then((result) => {
-        if (active) setFirstAscensionists(result);
-      });
-    }, 250);
-    return () => {
-      active = false;
-      clearTimeout(handle);
-    };
-  }, [q]);
+  const { data: firstAscensionists = [] } = useQuery({
+    queryKey: queryKeys.firstAscensionistProfiles(debouncedQ),
+    queryFn: () => firstAscensionistsApi.listFirstAscensionistProfiles(debouncedQ),
+  });
 
   return (
     <main className="fa-page">

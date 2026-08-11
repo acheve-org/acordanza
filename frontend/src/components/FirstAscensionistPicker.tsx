@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Chip, Combobox, ModalActions } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
+import { queryKeys } from '../api/queryKeys';
 import type { FirstAscensionistSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../context/AuthContext';
@@ -12,24 +14,20 @@ interface Props {
 
 export function FirstAscensionistPicker({ value, onChange }: Props) {
   const { hasPermission } = useAuth();
+  const queryClient = useQueryClient();
   const canCreate = hasPermission(Permissions.firstAscensionistCreate);
-  const [firstAscensionists, setFirstAscensionists] = useState<FirstAscensionistSummary[]>([]);
   const [query, setQuery] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
 
-  function refresh() {
-    firstAscensionistsApi.listFirstAscensionists().then(setFirstAscensionists);
-  }
-
-  // Same rule as AreaPicker: the dropdown refetches on open, so the up-front fetch only
-  // happens when there's already a selection whose chips need names (editing a route).
-  // On /routes/new nothing is fetched until the picker is opened.
-  useEffect(() => {
-    if (value.length === 0) return;
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Same rule as AreaPicker: the dropdown refetches on open (via `refetch`), so the up-front
+  // fetch only happens when there's already a selection whose chips need names (editing a
+  // route). On /routes/new nothing is fetched until the picker is opened.
+  const { data: firstAscensionists = [], refetch } = useQuery({
+    queryKey: queryKeys.firstAscensionistList(),
+    queryFn: () => firstAscensionistsApi.listFirstAscensionists(),
+    enabled: value.length > 0,
+  });
 
   const byId = useMemo(() => new Map(firstAscensionists.map((o) => [o.id, o])), [firstAscensionists]);
   const selected = value.map((id) => byId.get(id)).filter((o): o is FirstAscensionistSummary => o !== undefined);
@@ -51,7 +49,7 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
     const name = newName.trim();
     if (!name) return;
     const created = await firstAscensionistsApi.createFirstAscensionist(name);
-    setFirstAscensionists((prev) => [...prev, created]);
+    queryClient.invalidateQueries({ queryKey: ['first-ascensionists'] });
     setNewName('');
     setShowCreate(false);
     onChange([...value, created.id]);
@@ -71,7 +69,7 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
       )}
       <Combobox
         placeholder="Buscar aperturista…"
-        onOpen={refresh}
+        onOpen={() => refetch()}
         onQueryChange={setQuery}
         options={matches.map((o) => ({
           key: o.id,

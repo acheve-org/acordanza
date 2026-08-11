@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as areaExpertsApi from '../api/areaExperts';
 import * as areasApi from '../api/areas';
-import type { AreaSummary } from '../api/types';
+import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
 
 interface Props {
@@ -13,43 +14,32 @@ interface Props {
 }
 
 export function RequestAreaExpertModal({ excludedAreaIds, onClose, onRequested }: Props) {
-  const [areas, setAreas] = useState<AreaSummary[] | null>(null);
   const [areaId, setAreaId] = useState('');
-  const [error, setError] = useState('');
+  const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   // The area list is only needed to populate this picker, so it's fetched when the modal
   // opens rather than on the page behind it.
-  useEffect(() => {
-    let cancelled = false;
-    areasApi
-      .listAreas()
-      .then((result) => {
-        if (!cancelled) setAreas(result);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setAreas([]);
-        setError(errorMessage(err, 'No se pudieron cargar los sectores'));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: areas, isLoading, error: fetchError } = useQuery({
+    queryKey: queryKeys.areaList(),
+    queryFn: () => areasApi.listAreas(),
+  });
 
   const excluded = new Set(excludedAreaIds);
   const available = (areas ?? []).filter((a) => a.parentAreaId === null && !excluded.has(a.id));
 
+  const error = submitError || (fetchError ? errorMessage(fetchError, 'No se pudieron cargar los sectores') : '');
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!areaId) return;
-    setError('');
+    setSubmitError('');
     setSubmitting(true);
     try {
       await areaExpertsApi.requestAreaExpert(Number(areaId));
       onRequested();
     } catch (err) {
-      setError(errorMessage(err, 'No se pudo solicitar el acceso'));
+      setSubmitError(errorMessage(err, 'No se pudo solicitar el acceso'));
     } finally {
       setSubmitting(false);
     }
@@ -61,9 +51,9 @@ export function RequestAreaExpertModal({ excludedAreaIds, onClose, onRequested }
       <form onSubmit={handleSubmit}>
         <label>
           Sector
-          <select value={areaId} disabled={areas === null} onChange={(e) => setAreaId(e.target.value)}>
+          <select value={areaId} disabled={isLoading} onChange={(e) => setAreaId(e.target.value)}>
             <option value="">
-              {areas === null
+              {isLoading
                 ? 'Cargando sectores…'
                 : available.length === 0
                   ? 'No quedan sectores disponibles'

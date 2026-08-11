@@ -60,4 +60,27 @@ describe('MyAreasPage', () => {
     const error = await screen.findByText('No se pudieron cargar tus sectores');
     expect(error).toHaveClass('error-text');
   });
+
+  it('refetches the list after withdrawing a pending request', async () => {
+    let withdrawn = false;
+    server.use(
+      http.get(`${API_URL}/area-experts/mine`, () =>
+        HttpResponse.json(
+          withdrawn ? [] : [makeAreaExpert({ id: 1, areaName: 'Peña Rúa', status: 'pending' })],
+        ),
+      ),
+      http.delete(`${API_URL}/area-experts/1`, () => {
+        withdrawn = true;
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+
+    renderWithProviders(<MyAreasPage />);
+
+    await waitFor(() => expect(screen.getByText('Peña Rúa')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retirar solicitud' }));
+
+    await waitFor(() => expect(screen.getByText('Todavía no eres experto de ningún sector')).toBeInTheDocument());
+  });
 });
