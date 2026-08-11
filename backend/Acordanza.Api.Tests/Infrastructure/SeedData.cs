@@ -68,6 +68,11 @@ public static class SeedData
         var route = new ClimbingRoute
         {
             Name = name,
+            // Guid-suffixed rather than a plain Slugify.ToSlug(name) — routes are
+            // frequently seeded with the same default name in the same area across many
+            // tests, and Route.Slug is unique per (AreaId, Slug); tests exercising the
+            // slug-generation logic itself go through RoutesController, not this helper.
+            Slug = $"{Acordanza.Api.Services.Slugify.ToSlug(name)}-{Guid.NewGuid():N}",
             AreaId = area.Id,
             Grade = grade,
             Orientation = orientation,

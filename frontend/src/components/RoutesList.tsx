@@ -4,7 +4,7 @@ import { RouteCard } from './RouteCard';
 
 interface Props {
   routes: RouteSummary[];
-  onSelect: (id: number) => void;
+  onSelect: (route: RouteSummary) => void;
 }
 
 export function RoutesList({ routes, onSelect }: Props) {
@@ -15,7 +15,7 @@ export function RoutesList({ routes, onSelect }: Props) {
       </div>
       <div className="routes-list">
         {routes.map((r) => (
-          <RouteCard key={r.id} route={r} onClick={() => onSelect(r.id)} />
+          <RouteCard key={r.id} route={r} onClick={() => onSelect(r)} />
         ))}
       </div>
       {routes.length === 0 && (

@@ -6,6 +6,5 @@ import type { RouteFilters } from './types';
 // converts rather than inlining key arrays at the call site.
 export const queryKeys = {
   routes: (filters: RouteFilters) => ['routes', filters] as const,
-  route: (id: number) => ['route', id] as const,
   contributions: (kind: ContributionKind, page: number) => ['contributions', kind, page] as const,
 };
