@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import type { CreateTickInput } from '../api/types';
-import { errorMessage } from '../api/errorMessage';
+import { useSubmit } from '../hooks/useSubmit';
 
 interface Props {
   routeName: string;
@@ -13,21 +13,11 @@ export function AddTickModal({ routeName, onClose, onSubmit }: Props) {
   const [date, setDate] = useState('');
   const [rating, setRating] = useState('');
   const [notes, setNotes] = useState('');
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const { error, submitting, submit } = useSubmit('No se pudo registrar el ascenso');
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    setSubmitting(true);
-    try {
-      await onSubmit({ date, rating: rating ? Number(rating) : null, notes: notes.trim() });
-      onClose();
-    } catch (err) {
-      setError(errorMessage(err, 'No se pudo registrar el ascenso'));
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(() => onSubmit({ date, rating: rating ? Number(rating) : null, notes: notes.trim() }), onClose);
   }
 
   return (

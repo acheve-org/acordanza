@@ -1,6 +1,6 @@
 # Cover the form modals with tests, then extract their submit boilerplate
 
-Status: not started
+Status: done
 Depends on: [24](24-shared-presentation-helpers.md) for `errorMessage()` — the hook in §3 wraps exactly the expression 24 standardises, so landing 24 first makes this a smaller diff. Otherwise nothing. Frontend only.
 
 ## Problem

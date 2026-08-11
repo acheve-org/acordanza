@@ -9,7 +9,7 @@ import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import { queryKeys } from '../api/queryKeys';
 import type { AreaSummary, GeoPoint } from '../api/types';
-import { errorMessage } from '../api/errorMessage';
+import { useSubmit } from '../hooks/useSubmit';
 
 const SPAIN_CENTER: [number, number] = [40.4168, -3.7038];
 const SPAIN_ZOOM = 6;
@@ -75,8 +75,7 @@ export function AreaPolygonModal({ areaId, areaName, parentAreaId, onClose, onSa
   const queryClient = useQueryClient();
   const [drawing, setDrawing] = useState(false);
   const [pendingPolygon, setPendingPolygon] = useState<GeoPoint[] | null>(null);
-  const [saveError, setSaveError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const { error: saveError, submitting, submit } = useSubmit('No se pudo guardar el polígono');
 
   // Vertex data is only worth fetching once this modal is open — it's the only screen that
   // draws polygons, so the area tree behind it deliberately doesn't carry any.
@@ -104,17 +103,10 @@ export function AreaPolygonModal({ areaId, areaName, parentAreaId, onClose, onSa
 
   async function handleSave() {
     if (!pendingPolygon) return;
-    setSaving(true);
-    setSaveError('');
-    try {
-      await areasApi.updateAreaCoordinates(areaId, pendingPolygon);
+    await submit(() => areasApi.updateAreaCoordinates(areaId, pendingPolygon), () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.areaPolygons() });
       onSaved();
-    } catch (err) {
-      setSaveError(errorMessage(err, 'No se pudo guardar el polígono'));
-    } finally {
-      setSaving(false);
-    }
+    });
   }
 
   return (
@@ -139,8 +131,8 @@ export function AreaPolygonModal({ areaId, areaName, parentAreaId, onClose, onSa
                 <Button variant="ghost" small type="button" onClick={() => setPendingPolygon(null)}>
                   Cancelar
                 </Button>
-                <Button type="button" disabled={saving} onClick={handleSave}>
-                  {saving ? 'Guardando…' : 'Guardar polígono'}
+                <Button type="button" disabled={submitting} onClick={handleSave}>
+                  {submitting ? 'Guardando…' : 'Guardar polígono'}
                 </Button>
               </ModalActions>
             )}

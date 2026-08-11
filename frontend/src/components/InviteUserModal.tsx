@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
 import { roleLabels } from '../api/types';
-import { errorMessage } from '../api/errorMessage';
+import { useSubmit } from '../hooks/useSubmit';
 
 interface Props {
   onClose: () => void;
@@ -14,21 +14,11 @@ interface Props {
 export function InviteUserModal({ onClose, onInvited, allowRoleSelection = true }: Props) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('user');
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const { error, submitting, submit } = useSubmit('No se pudo enviar la invitación');
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    setSubmitting(true);
-    try {
-      await usersApi.inviteUser({ email: email.trim(), role });
-      onInvited();
-    } catch (err) {
-      setError(errorMessage(err, 'No se pudo enviar la invitación'));
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(() => usersApi.inviteUser({ email: email.trim(), role }), onInvited);
   }
 
   return (

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
-import { errorMessage } from '../api/errorMessage';
+import { useSubmit } from '../hooks/useSubmit';
 
 interface Props {
   title: string;
@@ -10,20 +10,12 @@ interface Props {
 
 export function RejectReasonModal({ title, onClose, onReject }: Props) {
   const [reason, setReason] = useState('');
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const { error, submitting, submit } = useSubmit('No se pudo rechazar la solicitud');
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!reason.trim()) return;
-    setError('');
-    setSubmitting(true);
-    try {
-      await onReject(reason.trim());
-    } catch (err) {
-      setError(errorMessage(err, 'No se pudo rechazar la solicitud'));
-      setSubmitting(false);
-    }
+    await submit(() => onReject(reason.trim()));
   }
 
   return (
