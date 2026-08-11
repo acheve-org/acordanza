@@ -6,6 +6,7 @@ import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { useSubmit } from '../hooks/useSubmit';
 
 interface Props {
   onClose: () => void;
@@ -14,8 +15,7 @@ interface Props {
 
 export function RequestFirstAscensionistLinkModal({ onClose, onRequested }: Props) {
   const [q, setQ] = useState('');
-  const [requestError, setRequestError] = useState('');
-  const [requestingId, setRequestingId] = useState<number | null>(null);
+  const { error: requestError, submitting, submit } = useSubmit('No se pudo solicitar el vínculo');
 
   const debouncedQ = useDebouncedValue(q);
 
@@ -29,15 +29,7 @@ export function RequestFirstAscensionistLinkModal({ onClose, onRequested }: Prop
   const error = requestError || (fetchError ? errorMessage(fetchError, 'No se pudieron cargar los aperturistas') : '');
 
   async function handleRequest(id: number) {
-    setRequestError('');
-    setRequestingId(id);
-    try {
-      await firstAscensionistLinksApi.requestFirstAscensionistLink(id);
-      onRequested();
-    } catch (err) {
-      setRequestError(errorMessage(err, 'No se pudo solicitar el vínculo'));
-      setRequestingId(null);
-    }
+    await submit(() => firstAscensionistLinksApi.requestFirstAscensionistLink(id), onRequested);
   }
 
   return (
@@ -63,7 +55,7 @@ export function RequestFirstAscensionistLinkModal({ onClose, onRequested }: Prop
                   variant="ghost"
                   small
                   type="button"
-                  disabled={requestingId !== null}
+                  disabled={submitting}
                   onClick={() => handleRequest(fa.id)}
                 >
                   Solicitar

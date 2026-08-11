@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Button, Modal, ModalActions } from 'acordanza-design-system';
 import * as accountApi from '../api/account';
-import { errorMessage } from '../api/errorMessage';
+import { useSubmit } from '../hooks/useSubmit';
 
 interface Props {
   onClose: () => void;
@@ -13,21 +13,11 @@ export function ChangeEmailModal({ onClose }: Props) {
   const [step, setStep] = useState<Step>('info');
   const [newEmail, setNewEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
-  const [error, setError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const { error, submitting, submit } = useSubmit('No se pudo solicitar el cambio de correo');
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError('');
-    setSubmitting(true);
-    try {
-      await accountApi.requestEmailChange(newEmail.trim(), currentPassword);
-      setStep('sent');
-    } catch (err) {
-      setError(errorMessage(err, 'No se pudo solicitar el cambio de correo'));
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(() => accountApi.requestEmailChange(newEmail.trim(), currentPassword), () => setStep('sent'));
   }
 
   if (step === 'info') {

@@ -5,6 +5,7 @@ import * as areaExpertsApi from '../api/areaExperts';
 import * as areasApi from '../api/areas';
 import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
+import { useSubmit } from '../hooks/useSubmit';
 
 interface Props {
   // Areas the user already has a pending/approved request for — filtered out of the picker.
@@ -15,8 +16,7 @@ interface Props {
 
 export function RequestAreaExpertModal({ excludedAreaIds, onClose, onRequested }: Props) {
   const [areaId, setAreaId] = useState('');
-  const [submitError, setSubmitError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const { error: submitError, submitting, submit } = useSubmit('No se pudo solicitar el acceso');
 
   // The area list is only needed to populate this picker, so it's fetched when the modal
   // opens rather than on the page behind it.
@@ -33,16 +33,7 @@ export function RequestAreaExpertModal({ excludedAreaIds, onClose, onRequested }
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!areaId) return;
-    setSubmitError('');
-    setSubmitting(true);
-    try {
-      await areaExpertsApi.requestAreaExpert(Number(areaId));
-      onRequested();
-    } catch (err) {
-      setSubmitError(errorMessage(err, 'No se pudo solicitar el acceso'));
-    } finally {
-      setSubmitting(false);
-    }
+    await submit(() => areaExpertsApi.requestAreaExpert(Number(areaId)), onRequested);
   }
 
   return (
