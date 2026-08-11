@@ -1,7 +1,8 @@
 using System.Security.Claims;
-using Acordanza.Api.Data;
-using Acordanza.Api.Models;
+using Acordanza.Core.Data;
+using Acordanza.Core.Models;
 using Acordanza.Api.Services;
+using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 

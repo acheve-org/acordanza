@@ -113,9 +113,9 @@ resource "azapi_resource" "claude_haiku" {
 # Grants the container app's managed identity (used by both the API and the
 # enrichment Container Apps Job — see container_app_job.tf) the least-privilege
 # inference role: Microsoft.CognitiveServices/accounts/MaaS/* data actions,
-# nothing else. This is also the role each contributor running
-# `dotnet run -- process-enrichment` locally needs on their own `az login`
-# identity — see backend/CLAUDE.md's local-dev Foundry RBAC prerequisite.
+# nothing else. This is also the role each contributor running the worker
+# (`dotnet run` from backend/Acordanza.Worker/) locally needs on their own
+# `az login` identity — see backend/CLAUDE.md's local-dev Foundry RBAC prerequisite.
 resource "azurerm_role_assignment" "foundry_cognitive_services_user" {
   scope                = azapi_resource.ai_foundry.id
   role_definition_name = "Cognitive Services User"

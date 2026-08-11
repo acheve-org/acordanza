@@ -1,9 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using Acordanza.Api.Authorization;
-using Acordanza.Api.Data;
+using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
-using Acordanza.Api.Models;
+using Acordanza.Core.Models;
 using Acordanza.Api.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;

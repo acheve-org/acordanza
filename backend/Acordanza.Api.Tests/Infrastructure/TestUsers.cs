@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Acordanza.Api.Authorization;
-using Acordanza.Api.Data;
+using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
-using Acordanza.Api.Models;
+using Acordanza.Core.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,5 @@
 using Acordanza.Api.Services;
+using Acordanza.Core.Services;
 using Shouldly;
 using Xunit;
 

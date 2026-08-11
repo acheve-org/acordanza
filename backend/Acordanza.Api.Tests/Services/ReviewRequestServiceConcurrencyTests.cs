@@ -1,7 +1,8 @@
 using Acordanza.Api.Authorization;
-using Acordanza.Api.Data;
-using Acordanza.Api.Models;
+using Acordanza.Core.Data;
+using Acordanza.Core.Models;
 using Acordanza.Api.Services;
+using Acordanza.Core.Services;
 using Acordanza.Api.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;

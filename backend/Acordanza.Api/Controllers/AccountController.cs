@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using Acordanza.Api.Dtos;
-using Acordanza.Api.Models;
+using Acordanza.Core.Models;
 using Acordanza.Api.Services;
+using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

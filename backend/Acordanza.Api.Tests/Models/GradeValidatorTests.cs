@@ -1,4 +1,4 @@
-using Acordanza.Api.Models;
+using Acordanza.Core.Models;
 using Shouldly;
 using Xunit;
 

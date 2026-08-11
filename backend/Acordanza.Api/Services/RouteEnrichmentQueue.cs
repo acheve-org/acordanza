@@ -1,9 +1,8 @@
 using System.Text.Json;
+using Acordanza.Core.Services;
 using Azure.Storage.Queues;
 
 namespace Acordanza.Api.Services;
-
-public record EnrichmentMessage(int RouteId, bool Force);
 
 // Owns the QueueClient and the enqueue side of route enrichment (POST /routes/{id}/enrich,
 // the enqueue-enrichment CLI branch). The drain side lives in EnrichmentQueueProcessor.

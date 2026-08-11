@@ -1,7 +1,7 @@
 using System.Text;
-using Acordanza.Api.Data;
+using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
-using Acordanza.Api.Models;
+using Acordanza.Core.Models;
 using Fido2NetLib;
 using Fido2NetLib.Objects;
 using Microsoft.AspNetCore.Authorization;

@@ -1,11 +1,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-COPY Acordanza.Api.csproj .
-RUN dotnet restore Acordanza.Api.csproj
+COPY Acordanza.Core/Acordanza.Core.csproj Acordanza.Core/
+COPY Acordanza.Api/Acordanza.Api.csproj Acordanza.Api/
+RUN dotnet restore Acordanza.Api/Acordanza.Api.csproj
 
-COPY . .
-RUN dotnet publish Acordanza.Api.csproj -c Release -o /app/publish --no-restore
+COPY Acordanza.Core/ Acordanza.Core/
+COPY Acordanza.Api/ Acordanza.Api/
+RUN dotnet publish Acordanza.Api/Acordanza.Api.csproj -c Release -o /app/publish --no-restore
 
 # Azure Linux "distroless" runtime: no shell, no package manager, non-root
 # user built in — smallest attack surface for a public-facing API.

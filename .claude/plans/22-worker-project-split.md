@@ -1,6 +1,6 @@
 # Split the enrichment worker into its own project and image
 
-Status: not started
+Status: completed
 Issue: [#176](https://github.com/acheve-org/acordanza/issues/176)
 Depends on: [18](18-route-enrichment-worker.md) — this reverses that plan's "an event-driven Container Apps Job reusing the API image, not a second project" decision, and nothing else about it. The queue, the message shape, the trigger endpoint, the permission, the button, the provider seam and every write path stay exactly as plan 18 built them. Backend + infra only: no schema change, no migration, no API surface change, no frontend change.
 
