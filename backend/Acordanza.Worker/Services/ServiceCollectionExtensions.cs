@@ -41,6 +41,7 @@ public static class ServiceCollectionExtensions
         services.AddOpenTelemetry()
             .WithTracing(tracing => tracing
                 .SetResourceBuilder(otelResource)
+                .AddSource("Acordanza.Worker.EnrichmentQueueProcessor")
                 .AddHttpClientInstrumentation()
                 .AddNpgsql()
                 .AddOtlpExporter())
