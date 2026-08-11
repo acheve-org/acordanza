@@ -13,7 +13,7 @@ terraform {
     # the same ARM API directly until that support lands.
     azapi = {
       source  = "azure/azapi"
-      version = "2.6.0"
+      version = "2.11.0"
     }
     random = {
       source  = "hashicorp/random"
