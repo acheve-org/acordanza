@@ -5,7 +5,7 @@ set -e
 # out root-owned on first creation; fix that up, then drop to the non-root
 # app user for the actual process. Requires the container to run as root
 # (see docker-compose.override.yml) despite the image's default USER.
-chown -R app:app /src/bin /src/obj
+chown -R app:app /src/Acordanza.Api/bin /src/Acordanza.Api/obj /src/Acordanza.Core/bin /src/Acordanza.Core/obj
 
 export HOME=/home/app
 exec setpriv --reuid=app --regid=app --init-groups "$@"

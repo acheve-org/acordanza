@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using Acordanza.Api.Authorization;
 using Acordanza.Api.Dtos;
-using Acordanza.Api.Models;
+using Acordanza.Core.Models;
 using Acordanza.Api.Tests.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;

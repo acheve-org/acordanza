@@ -1,5 +1,5 @@
-using Acordanza.Api.Data;
-using Acordanza.Api.Models;
+using Acordanza.Core.Data;
+using Acordanza.Core.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

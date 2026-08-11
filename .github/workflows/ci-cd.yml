@@ -35,6 +35,7 @@ env:
   TF_VAR_cors_allowed_origins: ${{ vars.CORS_ALLOWED_ORIGINS || '[]' }} # JSON array string, e.g. ["https://acordanza.example.com"]; empty is fine, see infra/terraform/variables.tf
   TF_VAR_claude_organization_name: ${{ vars.CLAUDE_ORGANIZATION_NAME }} # sent to Anthropic with every Claude deployment (modelProviderData) — not secret, but a real value is required, see infra/README.md
   ACR_IMAGE_NAME: acordanza-api
+  ACR_IMAGE_NAME_WORKER: acordanza-worker
   ACR_IMAGE_NAME_WEB: acordanza-web
 
 permissions:
@@ -327,11 +328,20 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name "${{ needs.terraform.outputs.acr_name }}"
 
-      - name: Build and push image
+      - name: Build and push API image
         env:
           IMAGE: ${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME }}:${{ github.sha }}
         run: |
-          docker build -t "$IMAGE" -f backend/Acordanza.Api/Dockerfile backend/Acordanza.Api
+          docker build -t "$IMAGE" -f backend/Acordanza.Api/Dockerfile backend
+          docker push "$IMAGE"
+
+      # A separate project/image from the API's (plan 22), sharing only Acordanza.Core —
+      # built from the same backend/ context so both stages see that shared project.
+      - name: Build and push worker image
+        env:
+          IMAGE: ${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME_WORKER }}:${{ github.sha }}
+        run: |
+          docker build -t "$IMAGE" -f backend/Acordanza.Worker/Dockerfile backend
           docker push "$IMAGE"
 
       - name: Deploy new image to Container App
@@ -341,15 +351,15 @@ jobs:
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
             --image "${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME }}:${{ github.sha }}"
 
-      # The enrichment worker (plan 18) runs the same image with different
-      # args (process-enrichment) — must be rolled together with the API or
-      # the two drift on EF models/migrations the next time either changes.
+      # The enrichment worker (plan 18) is its own image now (plan 22) — still rolled
+      # together with the API in this same job, since they share Acordanza.Core's EF
+      # models/migrations and must never run different models of the schema.
       - name: Deploy new image to enrichment Container Apps Job
         run: |
           az containerapp job update \
             --name "${{ needs.terraform.outputs.container_app_job_enrichment_name }}" \
             --resource-group "${{ needs.terraform.outputs.resource_group_name }}" \
-            --image "${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME }}:${{ github.sha }}"
+            --image "${{ needs.terraform.outputs.acr_login_server }}/${{ env.ACR_IMAGE_NAME_WORKER }}:${{ github.sha }}"
 
   build-and-deploy-frontend:
     name: Build frontend image & deploy

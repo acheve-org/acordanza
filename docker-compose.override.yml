@@ -7,8 +7,8 @@
 services:
   backend:
     build:
-      context: ./backend/Acordanza.Api
-      dockerfile: Dockerfile.dev
+      context: ./backend
+      dockerfile: Acordanza.Api/Dockerfile.dev
     container_name: acordanza-backend-dev
     restart: unless-stopped
     # Overrides the image's non-root USER: the bin/obj named volumes below are
@@ -30,9 +30,11 @@ services:
       # network, so the SAS URL handed back to it must say "localhost", not "azurite".
       Storage__PublicBlobEndpoint: http://localhost:10000
     volumes:
-      - ./backend/Acordanza.Api:/src
-      - acordanza-backend-bin:/src/bin
-      - acordanza-backend-obj:/src/obj
+      - ./backend:/src
+      - acordanza-backend-bin:/src/Acordanza.Api/bin
+      - acordanza-backend-obj:/src/Acordanza.Api/obj
+      - acordanza-core-bin:/src/Acordanza.Core/bin
+      - acordanza-core-obj:/src/Acordanza.Core/obj
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,3 +44,5 @@ services:
 volumes:
   acordanza-backend-bin:
   acordanza-backend-obj:
+  acordanza-core-bin:
+  acordanza-core-obj:

@@ -1,5 +1,5 @@
-using Acordanza.Api.Data;
-using Acordanza.Api.Models;
+using Acordanza.Core.Data;
+using Acordanza.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Acordanza.Api.Authorization;

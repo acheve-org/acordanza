@@ -1,8 +1,9 @@
 using Acordanza.Api.Authorization;
-using Acordanza.Api.Data;
+using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
-using Acordanza.Api.Models;
+using Acordanza.Core.Models;
 using Acordanza.Api.Services;
+using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -391,7 +392,7 @@ public class AreasController(
     [RequestSizeLimit(MediaUploadService.MaxImageBytes)]
     public async Task<ActionResult<TopoDto>> UploadAreaMedia(int id, IFormFile? file)
     {
-        var validationError = mediaUpload.ValidateImage(file);
+        var validationError = ImageValidation.ValidateImage(file);
         if (validationError is not null) return BadRequest(new { error = validationError.Message });
 
         var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == id);
@@ -420,7 +421,7 @@ public class AreasController(
             .Select(m => m.BlobName)
             .ToListAsync();
 
-        var blobName = await mediaUpload.UploadNumberedAsync(blobPrefix, extension, usedBlobNames, file);
+        var blobName = await mediaUpload.UploadNumberedAsync(blobPrefix, extension, usedBlobNames, file.OpenReadStream(), file.ContentType);
         if (blobName is null)
         {
             return Conflict(new { error = "no se pudo subir la imagen, inténtalo de nuevo" });

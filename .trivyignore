@@ -1,8 +1,9 @@
 # Accepted findings for the Trivy security scan (see "Security scanning" in
 # infra/README.md). Every entry needs a justification.
 
-# No Docker HEALTHCHECK in either Dockerfile: Azure Container Apps ignores
-# Docker HEALTHCHECK and runs its own HTTP probes against the ingress port,
-# and the API's distroless base image has no shell to run a check command
-# with anyway.
+# No Docker HEALTHCHECK in any of the three Dockerfiles (API, worker, frontend):
+# Azure Container Apps ignores Docker HEALTHCHECK and runs its own HTTP probes
+# against the ingress port (the enrichment worker isn't even probed — it's a
+# drain-and-exit job, not a long-running app), and the API's and worker's
+# distroless base images have no shell to run a check command with anyway.
 AVD-DS-0026

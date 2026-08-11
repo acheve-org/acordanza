@@ -1,5 +1,5 @@
-using Acordanza.Api.Data;
-using Acordanza.Api.Models;
+using Acordanza.Core.Data;
+using Acordanza.Core.Models;
 
 namespace Acordanza.Api.Tests.Infrastructure;
 
@@ -15,7 +15,7 @@ public static class SeedData
         var area = new Area
         {
             Name = name,
-            Slug = Acordanza.Api.Services.Slugify.ToSlug(name),
+            Slug = Acordanza.Core.Services.Slugify.ToSlug(name),
             ParentAreaId = parent?.Id
         };
         if (validated)
@@ -36,7 +36,7 @@ public static class SeedData
         var firstAscensionist = new FirstAscensionist
         {
             Name = name,
-            Slug = Acordanza.Api.Services.Slugify.ToSlug(name, "aperturista")
+            Slug = Acordanza.Core.Services.Slugify.ToSlug(name, "aperturista")
         };
         if (validated)
         {
@@ -72,7 +72,7 @@ public static class SeedData
             // frequently seeded with the same default name in the same area across many
             // tests, and Route.Slug is unique per (AreaId, Slug); tests exercising the
             // slug-generation logic itself go through RoutesController, not this helper.
-            Slug = $"{Acordanza.Api.Services.Slugify.ToSlug(name)}-{Guid.NewGuid():N}",
+            Slug = $"{Acordanza.Core.Services.Slugify.ToSlug(name)}-{Guid.NewGuid():N}",
             AreaId = area.Id,
             Grade = grade,
             Orientation = orientation,

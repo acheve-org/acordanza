@@ -2,9 +2,10 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Acordanza.Api.Authorization;
-using Acordanza.Api.Data;
-using Acordanza.Api.Models;
+using Acordanza.Core.Data;
+using Acordanza.Core.Models;
 using Acordanza.Api.Services;
+using Acordanza.Core.Services;
 using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
@@ -198,23 +199,6 @@ else
 
 builder.Services.AddSingleton(enrichmentQueueClient);
 builder.Services.AddSingleton<RouteEnrichmentQueue>();
-builder.Services.AddScoped<EnrichmentQueueProcessor>();
-builder.Services.AddScoped<RouteEnrichmentService>();
-builder.Services.AddHttpClient();
-
-// Without Anthropic:FoundryResource configured, enrichment is skipped rather than
-// failing (see IRouteEnrichmentProvider.cs) — the queue/endpoint/button stay
-// exercisable locally without an Azure AI Foundry resource or az login session.
-if (string.IsNullOrEmpty(builder.Configuration["Anthropic:FoundryResource"]))
-{
-    builder.Services.AddScoped<IRouteEnrichmentProvider, NoOpRouteEnrichmentProvider>();
-    builder.Services.AddScoped<ITopoVerificationProvider, NoOpTopoVerificationProvider>();
-}
-else
-{
-    builder.Services.AddScoped<IRouteEnrichmentProvider, ClaudeRouteEnrichmentProvider>();
-    builder.Services.AddScoped<ITopoVerificationProvider, ClaudeTopoVerificationProvider>();
-}
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
@@ -369,21 +353,6 @@ if (args.Length > 0 && args[0] == "create-user")
     }
 
     Console.WriteLine($"Created user '{args[1]}' with role '{role}'.");
-    return 0;
-}
-
-// --- `dotnet run -- process-enrichment` drains the route-enrichment queue and exits. ---
-// The Container Apps Job (event-driven, scale-from-zero via KEDA) runs this exact args
-// list against the same image the API deploys — see infra/terraform/container_app_job.tf.
-if (args.Length > 0 && args[0] == "process-enrichment")
-{
-    await using var workerApp = builder.Build();
-    using var scope = workerApp.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-
-    var processor = scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>();
-    await processor.RunAsync();
     return 0;
 }
 

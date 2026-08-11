@@ -1,12 +1,14 @@
 using System.Net;
 using System.Net.Http;
 using Acordanza.Api.Authorization;
-using Acordanza.Api.Data;
-using Acordanza.Api.Models;
-using Acordanza.Api.Services;
+using Acordanza.Core.Data;
+using Acordanza.Core.Models;
+using Acordanza.Core.Services;
+using Acordanza.Worker.Services;
 using Acordanza.Api.Tests.Infrastructure;
 using Azure.Storage.Queues;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
@@ -168,13 +170,27 @@ public class RouteEnrichmentTests(ApiFixture fixture) : IntegrationTestBase(fixt
         public HttpClient CreateClient(string name) => new(handler);
     }
 
+    // A second service provider over the *same* configuration ApiFixture already put in
+    // the process environment — never a second configuration. The API host no longer
+    // registers anything enrichment-related (that's the whole point of the split), so
+    // exercising RouteEnrichmentService/EnrichmentQueueProcessor here means standing up
+    // the worker's own DI graph via the exact registration function Program.cs uses.
+    private static ServiceProvider BuildWorkerServices()
+    {
+        var configuration = new ConfigurationBuilder().AddEnvironmentVariables().Build();
+        var services = new ServiceCollection();
+        services.AddEnrichmentWorker(configuration);
+        return services.BuildServiceProvider();
+    }
+
     private RouteEnrichmentService BuildService(
         AppDbContext db, IRouteEnrichmentProvider provider, ITopoVerificationProvider? topoVerification = null,
         HttpMessageHandler? httpHandler = null)
     {
+        using var workerServices = BuildWorkerServices();
         var areaHierarchy = new AreaHierarchyService(db);
-        var mediaUpload = Factory.Services.GetRequiredService<MediaUploadService>();
-        var blobStorage = Factory.Services.GetRequiredService<BlobStorageService>();
+        var mediaUpload = workerServices.GetRequiredService<MediaUploadService>();
+        var blobStorage = workerServices.GetRequiredService<BlobStorageService>();
         var httpClientFactory = new StubHttpClientFactory(httpHandler ?? new StubHttpMessageHandler(HttpStatusCode.NotFound, null, null));
 
         return new RouteEnrichmentService(
@@ -332,7 +348,8 @@ public class RouteEnrichmentTests(ApiFixture fixture) : IntegrationTestBase(fixt
     {
         await QueueClient.SendMessageAsync("not json", TestContext.Current.CancellationToken);
 
-        using var scope = Factory.Services.CreateScope();
+        using var workerServices = BuildWorkerServices();
+        using var scope = workerServices.CreateScope();
         var processor = scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>();
         await processor.RunAsync(TestContext.Current.CancellationToken);
 

@@ -1,7 +1,8 @@
 using Acordanza.Api.Services;
+using Acordanza.Core.Services;
 using Shouldly;
 using Xunit;
-using Node = Acordanza.Api.Services.AreaHierarchy.Node;
+using Node = Acordanza.Core.Services.AreaHierarchy.Node;
 
 namespace Acordanza.Api.Tests.Services;
 

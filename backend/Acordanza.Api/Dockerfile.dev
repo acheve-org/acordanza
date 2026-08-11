@@ -3,10 +3,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0
 WORKDIR /src
 
-COPY Acordanza.Api.csproj .
-RUN dotnet restore Acordanza.Api.csproj
+COPY Acordanza.Core/Acordanza.Core.csproj Acordanza.Core/
+COPY Acordanza.Api/Acordanza.Api.csproj Acordanza.Api/
+RUN dotnet restore Acordanza.Api/Acordanza.Api.csproj
 
-COPY . .
+COPY Acordanza.Core/ Acordanza.Core/
+COPY Acordanza.Api/ Acordanza.Api/
 
 # Bind-mounted source can sit on a filesystem (macOS/Windows) where the SDK's
 # default inotify-based watcher misses change events.
@@ -14,7 +16,7 @@ ENV DOTNET_USE_POLLING_FILE_WATCHER=true
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
 
-COPY docker-entrypoint.dev.sh /usr/local/bin/docker-entrypoint.dev.sh
+COPY Acordanza.Api/docker-entrypoint.dev.sh /usr/local/bin/docker-entrypoint.dev.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.dev.sh
 
 # Non-root, matching the runtime image (Dockerfile). docker-compose.override.yml
@@ -22,4 +24,4 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.dev.sh
 # bin/obj volumes before dropping to this user for the actual process.
 USER $APP_UID
 
-ENTRYPOINT ["docker-entrypoint.dev.sh", "dotnet", "watch", "run", "--no-launch-profile", "--project", "Acordanza.Api.csproj"]
+ENTRYPOINT ["docker-entrypoint.dev.sh", "dotnet", "watch", "run", "--no-launch-profile", "--project", "Acordanza.Api/Acordanza.Api.csproj"]

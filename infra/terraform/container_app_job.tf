@@ -1,6 +1,6 @@
-# Event-driven Container Apps Job running the same ACR image as the API
-# (args = ["process-enrichment"]) — see Program.cs's process-enrichment CLI
-# branch. KEDA fires an execution when the route-enrichment queue has
+# Event-driven Container Apps Job running the dedicated acordanza-worker image
+# (Acordanza.Worker, plan 22 — a separate project/image from the API's, sharing
+# only Acordanza.Core). KEDA fires an execution when the route-enrichment queue has
 # messages; the execution drains it and exits, and the environment scales
 # back to zero — a worker that costs nothing while idle, which is the
 # decision plan 18 makes over a second, always-on process.
@@ -27,18 +27,8 @@ resource "azurerm_container_app_job" "enrichment" {
   }
 
   secret {
-    name  = "jwt-key"
-    value = var.jwt_key
-  }
-
-  secret {
     name  = "db-connection-string"
     value = local.db_connection_string
-  }
-
-  secret {
-    name  = "resend-api-key"
-    value = var.resend_api_key
   }
 
   secret {
@@ -93,7 +83,6 @@ resource "azurerm_container_app_job" "enrichment" {
       image  = var.worker_bootstrap_image
       cpu    = 0.5
       memory = "1.0Gi"
-      args   = ["process-enrichment"]
 
       env {
         name  = "ASPNETCORE_ENVIRONMENT"
@@ -113,11 +102,6 @@ resource "azurerm_container_app_job" "enrichment" {
       env {
         name  = "Storage__ContainerName"
         value = azurerm_storage_container.topos.name
-      }
-
-      env {
-        name  = "Storage__DataProtectionContainerName"
-        value = azurerm_storage_container.dataprotection.name
       }
 
       env {
@@ -153,9 +137,14 @@ resource "azurerm_container_app_job" "enrichment" {
         value = "http/protobuf"
       }
 
+      # No service.name here — Acordanza.Worker.Services.ServiceCollectionExtensions.
+      # AddEnrichmentWorker sets it in code (ResourceBuilder.AddService), which always
+      # wins over this env var's own service.name entry; setting both here would be a
+      # second, silently-losing place to write the name. See backend/CLAUDE.md's
+      # "Route enrichment" section (plan 22) for why this used to be the bug.
       env {
         name  = "OTEL_RESOURCE_ATTRIBUTES"
-        value = "deployment.environment=production,service.name=acordanza-enrichment-worker"
+        value = "deployment.environment=production"
       }
     }
   }

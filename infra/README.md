@@ -1,20 +1,23 @@
 # Deploying to Azure
 
 Terraform-managed infrastructure + a GitHub Actions pipeline that builds,
-tests, and deploys `backend/Acordanza.Api` and `frontend` to Azure Container
-Apps, and `landing` to an Azure Static Web App, on every push to `main`.
+tests, and deploys `backend/Acordanza.Api`, `backend/Acordanza.Worker`, and
+`frontend` to Azure Container Apps, and `landing` to an Azure Static Web App,
+on every push to `main`.
 
 ## Architecture
 
 ```
 Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
-├── Azure Container Registry (Basic)            — holds built API + web images
+├── Azure Container Registry (Basic)            — holds built API + worker + web images
 ├── Log Analytics workspace                     — Container Apps logs
 ├── Container Apps Environment
 │   ├── Container App (ca-acordanza-prod)       — the API, scale-to-zero
 │   ├── Container App (ca-acordanza-prod-web)   — the frontend (nginx), scale-to-zero
 │   └── Container Apps Job (caj-acordanza-prod-enrichment) — route enrichment worker,
-│       event-driven (KEDA azure-queue), same API image + "process-enrichment" args
+│       event-driven (KEDA azure-queue), its own acordanza-worker image
+│       (backend/Acordanza.Worker — a separate project/image from the API's, plan 22,
+│       sharing only backend/Acordanza.Core's EF models/migrations)
 │       └── shared user-assigned managed identity — AcrPull on the registry, Storage
 │           Blob/Queue Data Contributor, and Cognitive Services User on the Foundry resource
 ├── Static Web App (stapp-acordanza-prod-landing) — marketing landing page (landing/)
@@ -40,14 +43,17 @@ Terraform" below.
 
 Terraform manages the *infrastructure*; it does **not** manage which image
 tag either Container App (or the enrichment Container Apps Job) is running.
-CI builds and pushes a new image on every push to `main`, then updates the
-running revision directly with `az containerapp update --image ...` (and,
-for the job, `az containerapp job update --image ...` — same image, rolled
-in the same CI step, since the job shares the API's EF models/migrations
-and must never run a different schema version than the API). This avoids a
-chicken-and-egg problem (the Container App can't be created pointing at an
-image that doesn't exist yet in a registry that also doesn't exist yet) and
-means deploys aren't gated on a `terraform apply`.
+CI builds and pushes a new API image and a new worker image on every push to
+`main` (two separate `docker build`/`docker push` steps, same `backend/`
+build context — see `backend/CLAUDE.md`), then updates the running revisions
+directly with `az containerapp update --image ...` and, for the job,
+`az containerapp job update --image ...` with the worker's own image tag —
+both rolled in the same CI step from the same commit, since the two share
+`backend/Acordanza.Core`'s EF models/migrations and must never run different
+schema versions against the same database. This avoids a chicken-and-egg
+problem (the Container App can't be created pointing at an image that
+doesn't exist yet in a registry that also doesn't exist yet) and means
+deploys aren't gated on a `terraform apply`.
 
 The frontend is a static Vite build (`bun run build` → `dist/`) served by
 `nginx-unprivileged` inside its container — `VITE_API_URL` is baked into
@@ -78,17 +84,21 @@ certificates — see "Custom domains" below.
   token for an Azure access token on every run. Same reasoning applies to
   Terraform's state backend (`use_azuread_auth = true` in
   `infra/terraform/providers.tf`) — no storage account key either.
-- **Azure Container Registry**, not GHCR, so both Container Apps can pull
-  images using a shared user-assigned managed identity — no registry
-  credentials stored in GitHub Actions or anywhere else.
+- **Azure Container Registry**, not GHCR, so the API, worker, and frontend
+  Container Apps can all pull images using a shared user-assigned managed
+  identity — no registry credentials stored in GitHub Actions or anywhere
+  else.
 - **`mcr.microsoft.com/dotnet/aspnet:10.0-azurelinux3.0-distroless-extra`**
-  as the API's runtime base image (see `backend/Acordanza.Api/Dockerfile`).
-  No shell, no package manager, non-root by default — smallest attack
-  surface Microsoft ships for .NET. (Azure Linux's minimal variant is called
-  "distroless", not "chiseled" — chiseled is Ubuntu-specific naming; same
-  idea.) The `-extra` variant adds back ICU/tzdata/openssl so date and
-  culture handling behaves normally instead of falling back to invariant
-  globalization.
+  as the API's runtime base image (see `backend/Acordanza.Api/Dockerfile`);
+  the worker uses the lighter **`mcr.microsoft.com/dotnet/runtime:10.0-azurelinux3.0-distroless-extra`**
+  instead (see `backend/Acordanza.Worker/Dockerfile`) — plan 22 split it into
+  its own project specifically so it could drop the ASP.NET Core shared
+  framework it never used. Both: no shell, no package manager, non-root by
+  default — smallest attack surface Microsoft ships for .NET. (Azure Linux's
+  minimal variant is called "distroless", not "chiseled" — chiseled is
+  Ubuntu-specific naming; same idea.) The `-extra` variant adds back
+  ICU/tzdata/openssl so date and culture handling behaves normally instead
+  of falling back to invariant globalization.
 - **`nginxinc/nginx-unprivileged`** as the frontend's runtime base image
   (see `frontend/Dockerfile`) — serves the static Vite build. Non-root by
   default and listens on 8080 by default, matching the API's non-root/8080
@@ -320,19 +330,24 @@ ran it, ask them to grant you `Storage Blob Data Contributor` on the
    (typecheck + Vite build, as a compile sanity check — the artifact is
    discarded; the real build happens in the Docker build below with the
    real `VITE_API_URL`).
-3. **security-scan** — Trivy scans the Terraform config and both
-   Dockerfiles for misconfigurations plus the whole repo for leaked
-   secrets, and zizmor scans the workflows themselves; a finding fails
-   the pipeline. Runs on PRs too (it needs no Azure credentials). See
-   "Security scanning" below for how findings are suppressed and how to
-   run it locally.
+3. **security-scan** — Trivy scans the Terraform config and all three
+   Dockerfiles (API, worker, frontend) for misconfigurations plus the whole
+   repo for leaked secrets, and zizmor scans the workflows themselves; a
+   finding fails the pipeline. Runs on PRs too (it needs no Azure
+   credentials). See "Security scanning" below for how findings are
+   suppressed and how to run it locally.
 4. **terraform** — needs both build-test jobs and security-scan (so insecure
    infra config can never reach `apply`); OIDC login, `terraform plan`
    (always, including on PRs), `terraform apply` (only on push to `main`).
 5. **build-and-deploy-backend** / **build-and-deploy-frontend** — run in
-   parallel after `terraform`. Each builds its Docker image, pushes it to
-   ACR, then `az containerapp update`s its Container App to the new image
-   tag. The frontend build passes the API's custom domain as a
+   parallel after `terraform`. `build-and-deploy-backend` builds and pushes
+   *two* images — the API (`backend/Acordanza.Api/Dockerfile`) and the
+   worker (`backend/Acordanza.Worker/Dockerfile`), both from the same
+   `backend/` build context since they share `Acordanza.Core` — then
+   `az containerapp update`s the API's Container App and `az containerapp
+   job update`s the enrichment Job, each to its own new image tag from the
+   same commit. `build-and-deploy-frontend` builds and pushes its one image
+   the same way. The frontend build passes the API's custom domain as a
    `VITE_API_URL` Docker build arg. Only on push to `main`.
 6. **deploy-landing** — also runs after `terraform`, in parallel with the
    two jobs above. Static Web Apps' deploy action doesn't support the
@@ -358,8 +373,8 @@ plus [zizmor](https://docs.zizmor.sh) on every push and PR, and the
 `terraform` job depends on it — a finding blocks the deploy:
 
 - **`trivy config`** — misconfiguration scan of the Terraform files and
-  both Dockerfiles. (Trivy's config scanner has no GitHub Actions checks,
-  hence the separate scanner below.)
+  all three Dockerfiles (API, worker, frontend). (Trivy's config scanner has
+  no GitHub Actions checks, hence the separate scanner below.)
 - **`trivy fs --scanners secret`** — scans the checked-out repo for
   committed credentials.
 - **`zizmor`** — GitHub Actions security scan of `.github/workflows`:

@@ -1,6 +1,8 @@
 <Solution>
   <Folder Name="/backend/">
+    <Project Path="backend/Acordanza.Core/Acordanza.Core.csproj" />
     <Project Path="backend/Acordanza.Api/Acordanza.Api.csproj" />
+    <Project Path="backend/Acordanza.Worker/Acordanza.Worker.csproj" />
     <Project Path="backend/Acordanza.Api.Tests/Acordanza.Api.Tests.csproj" />
   </Folder>
 </Solution>

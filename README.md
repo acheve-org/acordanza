@@ -13,9 +13,11 @@ ASP.NET Core (.NET 10) Web API + PostgreSQL backend, React + Vite frontend.
 
 ## Architecture
 ```
-backend/Acordanza.Api/   — ASP.NET Core Web API: EF Core + Npgsql, ASP.NET Core Identity, JWT auth
-frontend/                — React + TypeScript, built with Vite, package-managed with Bun
-docker-compose.yml       — local PostgreSQL + Azurite (blob storage, route-enrichment queue)
+backend/Acordanza.Api/    — ASP.NET Core Web API: EF Core + Npgsql, ASP.NET Core Identity, JWT auth
+backend/Acordanza.Worker/ — drains the route-enrichment queue; its own project/image, no ASP.NET Core
+backend/Acordanza.Core/   — the class library both share: EF models, DbContext, migrations
+frontend/                 — React + TypeScript, built with Vite, package-managed with Bun
+docker-compose.yml        — local PostgreSQL + Azurite (blob storage, route-enrichment queue)
 ```
 
 ## Setup
@@ -67,8 +69,8 @@ bun dev
 Open `http://localhost:5173` in your browser and log in with an account created above.
 
 ## Deploying so friends can use it remotely
-- Both backend and frontend deploy together as two Azure Container Apps in the same environment, via a Terraform-managed pipeline in GitHub Actions — see `infra/README.md`. The frontend runs behind `nginx-unprivileged`, serving the Vite build with `VITE_API_URL` baked in at Docker build time from the API app's URL.
-- Not using Azure: backend needs any host that runs .NET 10 + Postgres (Railway, Render, Fly.io, a VPS) with `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, and `Cors:AllowedOrigins` set via environment variables. Frontend needs `bun run build` (outputs to `frontend/dist`) served as a static site (Netlify, Vercel, Cloudflare Pages, or behind the same reverse proxy as the API), with `VITE_API_URL` set to the deployed API's URL at build time.
+- The API and frontend deploy as two always-on Azure Container Apps, plus the route-enrichment worker as a separate, event-driven Container Apps Job (scales to zero, its own `acordanza-worker` image) — all three via a Terraform-managed pipeline in GitHub Actions, see `infra/README.md`. The frontend runs behind `nginx-unprivileged`, serving the Vite build with `VITE_API_URL` baked in at Docker build time from the API app's URL.
+- Not using Azure: backend needs any host that runs .NET 10 + Postgres (Railway, Render, Fly.io, a VPS) with `ConnectionStrings:Default`, `Jwt:Key`, `Jwt:Issuer`/`Jwt:Audience`, and `Cors:AllowedOrigins` set via environment variables — the enrichment worker (`backend/Acordanza.Worker/`) is optional and can be skipped entirely (route enrichment just stays unavailable) or run as a plain scheduled/cron process with `ConnectionStrings:Default` + `Storage:*` set. Frontend needs `bun run build` (outputs to `frontend/dist`) served as a static site (Netlify, Vercel, Cloudflare Pages, or behind the same reverse proxy as the API), with `VITE_API_URL` set to the deployed API's URL at build time.
 - A spare Raspberry Pi / home server also works — run both processes there and use [Tailscale](https://tailscale.com) to share access without exposing it to the public internet.
 
 ## Extending it

@@ -1,6 +1,6 @@
 using System.Net;
 using Acordanza.Api.Authorization;
-using Acordanza.Api.Data;
+using Acordanza.Core.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
