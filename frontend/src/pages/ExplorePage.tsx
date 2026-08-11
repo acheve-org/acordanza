@@ -20,7 +20,6 @@ export function ExplorePage() {
   });
 
   const zones = data?.items ?? [];
-  const pageCount = Math.max(1, Math.ceil((data?.totalCount ?? 0) / PAGE_SIZE));
 
   return (
     <main className="explore-page">
@@ -50,7 +49,7 @@ export function ExplorePage() {
                 />
               ))}
             </List>
-            {pageCount > 1 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />}
+            <Pagination page={page} totalCount={data?.totalCount ?? 0} pageSize={PAGE_SIZE} onPageChange={setPage} />
           </>
         )}
       </section>

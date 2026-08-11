@@ -194,7 +194,9 @@ zero-result states.
 next to a primary submit).
 
 **`Pagination`** — two ghost `Button`s ("Anterior"/"Siguiente") flanking a
-`{colors.ink-dim}` status label.
+`{colors.ink-dim}` status label. Takes `page`, `totalCount`, `pageSize`,
+`onPageChange` (not a precomputed page count — it derives that itself) and
+renders nothing when the result fits on one page.
 
 **`List`/`ListRow`** — a vertical stack of bordered `{rounded.md}` rows, each a
 title/subtitle pair on the left and optional trailing content (a `RemoveButton`, one

@@ -1,6 +1,6 @@
 # `Pagination` takes `totalCount`/`pageSize` and hides itself when there's one page
 
-Status: not started
+Status: done
 Depends on: nothing. `design-system/` + four frontend call sites. No backend change, no DTO change, no OpenAPI regeneration. The smallest plan in this batch — worth landing as a warm-up.
 
 ## Problem

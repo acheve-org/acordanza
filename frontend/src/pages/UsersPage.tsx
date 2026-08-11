@@ -73,8 +73,6 @@ export function UsersPage() {
     }));
   }
 
-  const totalPages = Math.max(1, Math.ceil(result.totalCount / result.pageSize));
-
   return (
     <>
       <div className="page-header">
@@ -145,7 +143,12 @@ export function UsersPage() {
         </>
       )}
 
-      <Pagination page={filters.page} pageCount={totalPages} onPageChange={(page) => set('page', page)} />
+      <Pagination
+        page={filters.page}
+        totalCount={result.totalCount}
+        pageSize={result.pageSize}
+        onPageChange={(page) => set('page', page)}
+      />
 
       {inviteOpen && (
         <InviteUserModal

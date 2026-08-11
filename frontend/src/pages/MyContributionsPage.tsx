@@ -36,7 +36,6 @@ export function MyContributionsPage() {
   });
 
   const items = data?.items ?? [];
-  const pageCount = Math.max(1, Math.ceil((data?.totalCount ?? 0) / PAGE_SIZE));
 
   return (
     <>
@@ -75,13 +74,12 @@ export function MyContributionsPage() {
                     } />
                   ))}
                 </List>
-                {pageCount > 1 && (
-                  <Pagination
-                    page={pages[activeTab]}
-                    pageCount={pageCount}
-                    onPageChange={(page) => setPages((prev) => ({ ...prev, [activeTab]: page }))}
-                  />
-                )}
+                <Pagination
+                  page={pages[activeTab]}
+                  totalCount={data?.totalCount ?? 0}
+                  pageSize={PAGE_SIZE}
+                  onPageChange={(page) => setPages((prev) => ({ ...prev, [activeTab]: page }))}
+                />
               </>
             )}
           </section>
