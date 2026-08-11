@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
-import { AreaMap } from '../components/AreaMap';
 import * as areasApi from '../api/areas';
 import type { AreaNode } from '../api/types';
+
+const AreaMap = lazy(() => import('../components/AreaMap').then((m) => ({ default: m.AreaMap })));
 
 const PAGE_SIZE = 10;
 
@@ -29,7 +30,9 @@ export function ExplorePage() {
         Encuentra zonas que no conoces en el mapa, y descubre los sectores que las componen.
       </p>
 
-      <AreaMap />
+      <Suspense fallback={<div className="area-map-placeholder" />}>
+        <AreaMap />
+      </Suspense>
       <p className="hint">Solo se muestran en el mapa los sectores que tienen información geográfica cargada.</p>
 
       <section className="settings-section">
