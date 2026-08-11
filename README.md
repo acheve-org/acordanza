@@ -15,7 +15,7 @@ ASP.NET Core (.NET 10) Web API + PostgreSQL backend, React + Vite frontend.
 ```
 backend/Acordanza.Api/   — ASP.NET Core Web API: EF Core + Npgsql, ASP.NET Core Identity, JWT auth
 frontend/                — React + TypeScript, built with Vite, package-managed with Bun
-docker-compose.yml       — local PostgreSQL container
+docker-compose.yml       — local PostgreSQL + Azurite (blob storage, route-enrichment queue)
 ```
 
 ## Setup

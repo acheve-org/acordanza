@@ -25,7 +25,7 @@ services:
       # Overrides appsettings.Development.json's 127.0.0.1 BlobEndpoint, which only
       # resolves from the host — inside this container, Azurite is reachable at its
       # compose service name instead (same reasoning as ConnectionStrings__Default above).
-      Storage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      Storage__ConnectionString: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;
       # The browser fetching a topo image runs on the host, not inside the compose
       # network, so the SAS URL handed back to it must say "localhost", not "azurite".
       Storage__PublicBlobEndpoint: http://localhost:10000

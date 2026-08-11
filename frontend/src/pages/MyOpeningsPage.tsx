@@ -77,6 +77,11 @@ export function MyOpeningsPage() {
     refreshRoutes();
   }
 
+  async function handleEnrichRoute(force: boolean) {
+    if (!detailRouteId) return;
+    await routesApi.enrichRoute(detailRouteId, force);
+  }
+
   return (
     <>
       <main className="layout">
@@ -95,6 +100,7 @@ export function MyOpeningsPage() {
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}
+        onEnrich={handleEnrichRoute}
       />
     </>
   );

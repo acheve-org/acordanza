@@ -119,6 +119,11 @@ export function PendingTasksPage() {
     refreshDetail();
   }
 
+  async function handleEnrichRoute(force: boolean) {
+    if (detailRouteId === null) return;
+    await routesApi.enrichRoute(detailRouteId, force);
+  }
+
   async function handleValidateArea(id: number) {
     await areasApi.validateArea(id);
     refresh();
@@ -283,6 +288,7 @@ export function PendingTasksPage() {
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}
+        onEnrich={handleEnrichRoute}
       />
 
       {rejectingArea && (

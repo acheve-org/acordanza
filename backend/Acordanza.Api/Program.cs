@@ -8,6 +8,7 @@ using Acordanza.Api.Services;
 using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Queues;
 using Fido2NetLib;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -170,6 +171,51 @@ builder.Services.AddDataProtection()
     .SetApplicationName("Acordanza")
     .PersistKeysToAzureBlobStorage(dataProtectionContainer.GetBlobClient("keys.xml"));
 
+// Route enrichment queue (Storage Queue on the same account topo images use). Same
+// dual-credential pattern as BlobStorageService: Azurite locally via a connection
+// string, the container app's managed identity in production.
+var enrichmentQueueName = storageSection["EnrichmentQueueName"]
+    ?? throw new InvalidOperationException("Missing Storage:EnrichmentQueueName configuration");
+var queueClientOptions = new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 };
+
+QueueClient enrichmentQueueClient;
+if (!string.IsNullOrEmpty(storageConnectionString))
+{
+    enrichmentQueueClient = new QueueClient(storageConnectionString, enrichmentQueueName, queueClientOptions);
+}
+else
+{
+    var accountName = storageSection["AccountName"]
+        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
+    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
+        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
+
+    var queueCredential = new DefaultAzureCredential(
+        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
+    enrichmentQueueClient = new QueueClient(
+        new Uri($"https://{accountName}.queue.core.windows.net/{enrichmentQueueName}"), queueCredential, queueClientOptions);
+}
+
+builder.Services.AddSingleton(enrichmentQueueClient);
+builder.Services.AddSingleton<RouteEnrichmentQueue>();
+builder.Services.AddScoped<EnrichmentQueueProcessor>();
+builder.Services.AddScoped<RouteEnrichmentService>();
+builder.Services.AddHttpClient();
+
+// Without Anthropic:FoundryResource configured, enrichment is skipped rather than
+// failing (see IRouteEnrichmentProvider.cs) — the queue/endpoint/button stay
+// exercisable locally without an Azure AI Foundry resource or az login session.
+if (string.IsNullOrEmpty(builder.Configuration["Anthropic:FoundryResource"]))
+{
+    builder.Services.AddScoped<IRouteEnrichmentProvider, NoOpRouteEnrichmentProvider>();
+    builder.Services.AddScoped<ITopoVerificationProvider, NoOpTopoVerificationProvider>();
+}
+else
+{
+    builder.Services.AddScoped<IRouteEnrichmentProvider, ClaudeRouteEnrichmentProvider>();
+    builder.Services.AddScoped<ITopoVerificationProvider, ClaudeTopoVerificationProvider>();
+}
+
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
@@ -326,6 +372,45 @@ if (args.Length > 0 && args[0] == "create-user")
     return 0;
 }
 
+// --- `dotnet run -- process-enrichment` drains the route-enrichment queue and exits. ---
+// The Container Apps Job (event-driven, scale-from-zero via KEDA) runs this exact args
+// list against the same image the API deploys — see infra/terraform/container_app_job.tf.
+if (args.Length > 0 && args[0] == "process-enrichment")
+{
+    await using var workerApp = builder.Build();
+    using var scope = workerApp.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    var processor = scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>();
+    await processor.RunAsync();
+    return 0;
+}
+
+// --- `dotnet run -- enqueue-enrichment <routeId> [--force]` — the local smoke-test path
+// and operator escape hatch, bypassing the HTTP endpoint and its permission check
+// (server/CLI access is a higher trust bar than route.enrich). No batch mode by design —
+// enriching a whole area in one command is the unbounded-spend shape the manual-trigger
+// decision exists to avoid.
+if (args.Length > 0 && args[0] == "enqueue-enrichment")
+{
+    if (args.Length is < 2 or > 3 || !int.TryParse(args[1], out var enqueueRouteId))
+    {
+        Console.WriteLine("Usage: dotnet run -- enqueue-enrichment <routeId> [--force]");
+        return 1;
+    }
+
+    var enqueueForce = args.Length == 3 && args[2] == "--force";
+
+    await using var cliApp = builder.Build();
+    using var scope = cliApp.Services.CreateScope();
+    var queue = scope.ServiceProvider.GetRequiredService<RouteEnrichmentQueue>();
+    await queue.EnqueueAsync(enqueueRouteId, enqueueForce);
+
+    Console.WriteLine($"Enqueued enrichment for route {enqueueRouteId} (force={enqueueForce}).");
+    return 0;
+}
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -347,6 +432,7 @@ using (var scope = app.Services.CreateScope())
     if (!string.IsNullOrEmpty(storageConnectionString))
     {
         await dataProtectionContainer.CreateIfNotExistsAsync(PublicAccessType.None);
+        await enrichmentQueueClient.CreateIfNotExistsAsync();
     }
 }
 

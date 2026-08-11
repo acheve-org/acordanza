@@ -144,6 +144,11 @@ export function MyTicksPage() {
     refreshList();
   }
 
+  async function handleEnrichRoute(force: boolean) {
+    if (!detailRouteId) return;
+    await routesApi.enrichRoute(detailRouteId, force);
+  }
+
   return (
     <>
       <main className="layout">
@@ -212,6 +217,7 @@ export function MyTicksPage() {
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}
+        onEnrich={handleEnrichRoute}
       />
     </>
   );

@@ -102,6 +102,11 @@ export function FirstAscensionistPage() {
     refreshRoutes(firstAscensionist!.id);
   }
 
+  async function handleEnrichRoute(force: boolean) {
+    if (!detailRouteId) return;
+    await routesApi.enrichRoute(detailRouteId, force);
+  }
+
   if (notFound) {
     return (
       <main className="fa-page">
@@ -152,6 +157,7 @@ export function FirstAscensionistPage() {
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}
+        onEnrich={handleEnrichRoute}
       />
     </>
   );

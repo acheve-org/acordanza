@@ -25,12 +25,15 @@ services:
     image: mcr.microsoft.com/azure-storage/azurite
     container_name: acordanza-azurite
     restart: unless-stopped
-    # --skipApiVersionCheck: the Azure.Storage.Blobs SDK version the backend
+    # --skipApiVersionCheck: the Azure.Storage.Blobs/Queues SDK version the backend
     # uses sends a newer x-ms-version header than this Azurite image knows
-    # about; Azurite otherwise rejects every request outright.
-    command: "azurite-blob --blobHost 0.0.0.0 --blobPort 10000 --skipApiVersionCheck"
+    # about; Azurite otherwise rejects every request outright. Queue service is for
+    # the route-enrichment queue (plan 18) — Azurite emulates it the same way it
+    # emulates blobs.
+    command: "azurite --blobHost 0.0.0.0 --blobPort 10000 --queueHost 0.0.0.0 --queuePort 10001 --skipApiVersionCheck"
     ports:
       - "${AZURITE_BLOB_PORT:-10000}:10000"
+      - "${AZURITE_QUEUE_PORT:-10001}:10001"
     volumes:
       - acordanza-azurite-data:/data
 

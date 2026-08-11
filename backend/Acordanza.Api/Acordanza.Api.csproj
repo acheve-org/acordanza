@@ -26,9 +26,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Anthropic.Foundry" Version="0.7.1" />
     <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.5.3" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
+    <PackageReference Include="Azure.Storage.Queues" Version="12.27.1" />
     <PackageReference Include="Fido2.AspNet" Version="4.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />

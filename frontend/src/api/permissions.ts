@@ -9,6 +9,7 @@ export const Permissions = {
   routeEdit: 'route.edit',
   routeValidate: 'route.validate',
   routeDelete: 'route.delete',
+  routeEnrich: 'route.enrich',
 
   tickCreate: 'tick.create',
   tickEdit: 'tick.edit',

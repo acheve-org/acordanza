@@ -72,6 +72,12 @@ export function rejectRoute(id: number, reason: string): Promise<{ ok: true }> {
   return api.post<{ ok: true }>(`/routes/${id}/reject`, { reason });
 }
 
+// Kicks off the enrichment worker (plan 18) for one route — async, no polling; the
+// caller reloads the route detail a few minutes later to see the results.
+export function enrichRoute(id: number, force = false): Promise<{ ok: true }> {
+  return api.post<{ ok: true }>(`/routes/${id}/enrich${force ? '?force=true' : ''}`);
+}
+
 export function createTick(routeId: number, input: CreateTickInput): Promise<{ id: number }> {
   return api.post<{ id: number }>(`/routes/${routeId}/ticks`, input);
 }

@@ -28,4 +28,9 @@ public class ClimbingRoute : IValidatable
     public List<Tick> Ticks { get; set; } = [];
     public List<Topo> Topos { get; set; } = [];
     public List<Link> Links { get; set; } = [];
+
+    // Set once the enrichment worker has processed this route (Services/RouteEnrichmentService) —
+    // the idempotency marker: a redelivered/duplicate queue message finds this set and skips
+    // reprocessing unless force is requested. Null means never enriched.
+    public DateTimeOffset? EnrichedAt { get; set; }
 }

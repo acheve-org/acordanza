@@ -12,13 +12,19 @@ Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
 ├── Log Analytics workspace                     — Container Apps logs
 ├── Container Apps Environment
 │   ├── Container App (ca-acordanza-prod)       — the API, scale-to-zero
-│   └── Container App (ca-acordanza-prod-web)   — the frontend (nginx), scale-to-zero
-│       └── shared user-assigned managed identity — AcrPull on the registry
+│   ├── Container App (ca-acordanza-prod-web)   — the frontend (nginx), scale-to-zero
+│   └── Container Apps Job (caj-acordanza-prod-enrichment) — route enrichment worker,
+│       event-driven (KEDA azure-queue), same API image + "process-enrichment" args
+│       └── shared user-assigned managed identity — AcrPull on the registry, Storage
+│           Blob/Queue Data Contributor, and Cognitive Services User on the Foundry resource
 ├── Static Web App (stapp-acordanza-prod-landing) — marketing landing page (landing/)
 ├── Postgres Flexible Server (Burstable B2s)
 │   └── database: acordanza
-└── Storage Account (stacordanzaprod<random>)     — topo images, private container
-    └── container: topos                          — read via backend-issued SAS URLs only
+├── Storage Account (stacordanzaprod<random>)     — topo images, private container
+│   ├── container: topos                          — read via backend-issued SAS URLs only
+│   └── queue: route-enrichment                    — drained by the Container Apps Job above
+└── AI Foundry resource (aif-acordanza-prod<random>) — two Claude deployments (claude-sonnet-5,
+    claude-haiku-4-5), Hosted on Anthropic, for route enrichment (plan 18)
 ```
 
 The landing page is a separate Azure primitive from the two Container Apps
@@ -33,12 +39,15 @@ Everything above except the resource group itself is created by Terraform
 Terraform" below.
 
 Terraform manages the *infrastructure*; it does **not** manage which image
-tag either Container App is running. CI builds and pushes a new image on
-every push to `main`, then updates the running revision directly with
-`az containerapp update --image ...`. This avoids a chicken-and-egg problem
-(the Container App can't be created pointing at an image that doesn't exist
-yet in a registry that also doesn't exist yet) and means deploys aren't
-gated on a `terraform apply`.
+tag either Container App (or the enrichment Container Apps Job) is running.
+CI builds and pushes a new image on every push to `main`, then updates the
+running revision directly with `az containerapp update --image ...` (and,
+for the job, `az containerapp job update --image ...` — same image, rolled
+in the same CI step, since the job shares the API's EF models/migrations
+and must never run a different schema version than the API). This avoids a
+chicken-and-egg problem (the Container App can't be created pointing at an
+image that doesn't exist yet in a registry that also doesn't exist yet) and
+means deploys aren't gated on a `terraform apply`.
 
 The frontend is a static Vite build (`bun run build` → `dist/`) served by
 `nginx-unprivileged` inside its container — `VITE_API_URL` is baked into
@@ -130,6 +139,13 @@ certificates — see "Custom domains" below.
      Connections → OpenTelemetry), e.g.
      `https://otlp-gateway-prod-xx-xxx.grafana.net/otlp`. Not secret — it's
      just an endpoint, the credential is the header below.
+   - `CLAUDE_ORGANIZATION_NAME` — your real organization name, sent to
+     Anthropic with every Claude deployment on the AI Foundry resource
+     (route enrichment, plan 18) as part of the required `modelProviderData`
+     attestation. No default — `terraform apply` fails without it. Review
+     [Anthropic's commercial terms](https://www.anthropic.com/legal/commercial-terms)
+     before setting this; applying the Terraform auto-accepts the Azure
+     Marketplace offer for the Claude models it deploys.
 
 3. **Set GitHub Actions repo secrets** (same page, Secrets tab):
    - `POSTGRES_ADMIN_PASSWORD` — a strong password (e.g.

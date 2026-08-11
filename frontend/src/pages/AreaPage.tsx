@@ -106,6 +106,11 @@ export function AreaPage() {
     refreshRoutes(area.id);
   }
 
+  async function handleEnrichRoute(force: boolean) {
+    if (!detailRouteId) return;
+    await routesApi.enrichRoute(detailRouteId, force);
+  }
+
   async function handleMediaFilesSelected(e: ChangeEvent<HTMLInputElement>) {
     if (!area) return;
     const files = Array.from(e.target.files ?? []);
@@ -243,6 +248,7 @@ export function AreaPage() {
         onAddTick={handleAddTick}
         onUploadTopo={handleUploadTopo}
         onDeleteTopo={handleDeleteTopo}
+        onEnrich={handleEnrichRoute}
       />
     </>
   );

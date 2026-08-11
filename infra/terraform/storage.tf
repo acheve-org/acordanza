@@ -63,3 +63,21 @@ resource "azurerm_role_assignment" "topos_blob_contributor" {
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_user_assigned_identity.container_app.principal_id
 }
+
+# Route enrichment queue (plan 18) — on the same storage account topo images
+# use, not a separate account: one new resource, no new Azurite-equivalent
+# infra to reason about.
+resource "azurerm_storage_queue" "route_enrichment" {
+  name               = "route-enrichment"
+  storage_account_id = azurerm_storage_account.topos.id
+}
+
+# The blob role above (Storage Blob Data Contributor) covers blobs only —
+# queues need their own data-plane role for the API (enqueue on
+# POST /routes/{id}/enrich) and the worker (dequeue/delete in
+# EnrichmentQueueProcessor) to operate without a stored connection string.
+resource "azurerm_role_assignment" "topos_queue_contributor" {
+  scope                = azurerm_storage_account.topos.id
+  role_definition_name = "Storage Queue Data Contributor"
+  principal_id         = azurerm_user_assigned_identity.container_app.principal_id
+}

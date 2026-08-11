@@ -2430,6 +2430,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/routes/{id}/enrich": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: {
+                    force?: boolean;
+                };
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/ticks/mine": {
         parameters: {
             query?: never;
@@ -3172,6 +3209,8 @@ export interface components {
             decidedByName: null | string;
             rejectionReason: null | string;
             canValidate: boolean;
+            /** Format: date-time */
+            enrichedAt: null | string;
         };
         RouteDto: {
             /** Format: int32 */
