@@ -46,9 +46,17 @@ resource "azapi_resource" "ai_foundry" {
 # structured outputs and the server-side web search tool 400 on
 # Azure-hosted deployments as of mid-2026 (see RouteEnrichmentService's
 # search call). model.format = "Anthropic" is what selects that hosting type.
+#
+# TEMPORARY: pinned to claude-sonnet-4-5, not claude-sonnet-5 — this
+# subscription has 0 default GlobalStandard TPM quota for claude-sonnet-5 in
+# every region checked (`az cognitiveservices usage list -l <region>`),
+# while claude-sonnet-4-5 already has 80. Revert to claude-sonnet-5 (and the
+# matching Model string in IRouteEnrichmentProvider.cs) once a quota
+# increase is approved — see infra/README.md's quota-request note (#172 CI
+# run) for the support-ticket details.
 resource "azapi_resource" "claude_sonnet" {
   type                      = "Microsoft.CognitiveServices/accounts/deployments@2025-10-01-preview"
-  name                      = "claude-sonnet-5"
+  name                      = "claude-sonnet-4-5"
   parent_id                 = azapi_resource.ai_foundry.id
   schema_validation_enabled = false # required to allow modelProviderData
 
@@ -60,7 +68,7 @@ resource "azapi_resource" "claude_sonnet" {
     properties = {
       model = {
         format = "Anthropic"
-        name   = "claude-sonnet-5"
+        name   = "claude-sonnet-4-5"
       }
       modelProviderData = {
         organizationName = var.claude_organization_name

@@ -132,6 +132,16 @@ az role assignment create --assignee "$SP_OBJECT_ID" --role "User Access Adminis
 echo "==> Granting Storage Blob Data Contributor on the state storage account (read/write Terraform state without a storage key)"
 az role assignment create --assignee "$SP_OBJECT_ID" --role "Storage Blob Data Contributor" --scope "$STATE_SA_ID" >/dev/null
 
+# Being subscription Owner/Contributor does *not* imply blob data-plane access
+# (those roles' dataActions are empty) — running Terraform locally with
+# use_azuread_auth needs this explicitly, same as the CI service principal
+# above, or `terraform init` fails listing blobs with
+# AuthorizationPermissionMismatch even though creating the container earlier
+# in this script worked fine under your control-plane rights.
+echo "==> Granting yourself Storage Blob Data Contributor on the state storage account (so 'terraform init' works locally)"
+CALLER_OBJECT_ID=$(az ad signed-in-user show --query id -o tsv)
+az role assignment create --assignee "$CALLER_OBJECT_ID" --role "Storage Blob Data Contributor" --scope "$STATE_SA_ID" >/dev/null
+
 cat <<EOF
 
 ==> Done. Set these in the GitHub repo (Settings > Secrets and variables > Actions):

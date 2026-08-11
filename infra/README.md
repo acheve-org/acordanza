@@ -302,8 +302,14 @@ terraform plan
 ```
 
 You'll need the same Azure role assignments as the CI service principal
-(or broader) for this to work — `az login` as yourself is enough if you're
-the one who ran the bootstrap script.
+(or broader) for this to work, including `Storage Blob Data Contributor` on
+the state storage account itself — being subscription Owner/Contributor
+does **not** imply blob data-plane access, since those roles' `dataActions`
+are empty; only a data-specific role like this one grants it. `az login` as
+yourself is enough if you're the one who ran the bootstrap script, which
+grants this to you as well as to the CI service principal; if someone else
+ran it, ask them to grant you `Storage Blob Data Contributor` on the
+`stacordanzatfstate` storage account.
 
 ## CI/CD pipeline (`.github/workflows/ci-cd.yml`)
 
