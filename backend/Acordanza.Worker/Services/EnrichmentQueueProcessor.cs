@@ -28,17 +28,22 @@ public class EnrichmentQueueProcessor(
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
+        logger.LogInformation("enrichment drain started, polling queue {QueueName}", queueClient.Name);
+        var totalProcessed = 0;
         while (true)
         {
             var response = await queueClient.ReceiveMessagesAsync(BatchSize, VisibilityTimeout, cancellationToken);
             var messages = response.Value;
+            logger.LogInformation("enrichment received {Count} message(s)", messages.Length);
             if (messages.Length == 0) break;
 
             foreach (var message in messages)
             {
                 await ProcessAsync(message, cancellationToken);
+                totalProcessed++;
             }
         }
+        logger.LogInformation("enrichment drain finished, processed {Count} message(s)", totalProcessed);
     }
 
     private async Task ProcessAsync(QueueMessage message, CancellationToken cancellationToken)
@@ -71,12 +76,16 @@ public class EnrichmentQueueProcessor(
         activity?.SetTag("acordanza.route_id", body.RouteId);
         activity?.SetTag("acordanza.force", body.Force);
 
+        logger.LogInformation("enrichment processing route {RouteId} (force={Force}, dequeueCount={Count})",
+            body.RouteId, body.Force, message.DequeueCount);
+
         try
         {
             using var scope = scopeFactory.CreateScope();
             var service = scope.ServiceProvider.GetRequiredService<RouteEnrichmentService>();
             await service.EnrichAsync(body.RouteId, body.Force, cancellationToken);
             await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken);
+            logger.LogInformation("enrichment message for route {RouteId} deleted from queue", body.RouteId);
         }
         catch (Exception ex)
         {
