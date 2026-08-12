@@ -83,6 +83,14 @@ public static class FoundryClient
 // authenticates with its managed identity instead of a stored API key.
 public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
 {
+    // TEMPORARY: claude-sonnet-4-5, not claude-sonnet-5 — matches the Foundry
+    // deployment name pinned in infra/terraform/ai_foundry.tf due to a 0 TPM
+    // quota on claude-sonnet-5 in this subscription. Revert both together.
+    // A named constant (rather than inlining the literal below) so
+    // ClaudeModelCapabilitiesTests can assert this exact model's effort
+    // support without duplicating the string.
+    internal const string Model = "claude-sonnet-4-5";
+
     private readonly IAnthropicClient _client;
     private readonly ILogger<ClaudeRouteEnrichmentProvider> _logger;
 
@@ -121,24 +129,7 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
         Message response;
         try
         {
-            response = await _client.Messages.Create(new MessageCreateParams
-            {
-                // TEMPORARY: claude-sonnet-4-5, not claude-sonnet-5 — matches the Foundry
-                // deployment name pinned in infra/terraform/ai_foundry.tf due to a 0 TPM
-                // quota on claude-sonnet-5 in this subscription. Revert both together.
-                Model = "claude-sonnet-4-5",
-                MaxTokens = 4096,
-                // Not optional: omitted, the API defaults to "high", and 5-family models think by
-                // default — for a search-and-extract job that quietly buys the deepest (and most
-                // expensive) reasoning tier. See the plan's cost decision.
-                OutputConfig = new OutputConfig
-                {
-                    Effort = Effort.Medium,
-                    Format = new JsonOutputFormat { Schema = ResultSchema }
-                },
-                Tools = [new WebSearchTool20260209 { MaxUses = 5 }],
-                Messages = [new MessageParam { Role = Role.User, Content = prompt }]
-            }, cancellationToken);
+            response = await _client.Messages.Create(BuildRequestParams(prompt), cancellationToken);
         }
         catch (Exception ex)
         {
@@ -163,6 +154,29 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
         return new EnrichmentResult(parsed?.Links ?? [], parsed?.TopoImageUrl);
     }
 
+    // Not optional: omitted, the API defaults to "high", and 5-family models think by
+    // default — for a search-and-extract job that quietly buys the deepest (and most
+    // expensive) reasoning tier. See the plan's cost decision. But `effort` 400s on a
+    // model that doesn't support it (see ClaudeModelCapabilities) — Model is currently
+    // pinned to one that doesn't, so this is conditional rather than always-on.
+    internal static MessageCreateParams BuildRequestParams(string prompt)
+    {
+        var outputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = ResultSchema } };
+        if (ClaudeModelCapabilities.SupportsEffort(Model))
+        {
+            outputConfig = outputConfig with { Effort = Effort.Medium };
+        }
+
+        return new MessageCreateParams
+        {
+            Model = Model,
+            MaxTokens = 4096,
+            OutputConfig = outputConfig,
+            Tools = [new WebSearchTool20260209 { MaxUses = 5 }],
+            Messages = [new MessageParam { Role = Role.User, Content = prompt }]
+        };
+    }
+
     private void LogUsage(Usage usage, string routeName) =>
         _logger.LogInformation(
             "enrichment usage route={RouteName} input={Input} output={Output} searches={Searches}",
@@ -179,6 +193,10 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
 // frontier model buys nothing — claude-haiku-4-5 answers in one field.
 public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
 {
+    // Named for the same reason as ClaudeRouteEnrichmentProvider.Model — lets
+    // ClaudeModelCapabilitiesTests assert this model's effort support directly.
+    internal const string Model = "claude-haiku-4-5";
+
     private readonly IAnthropicClient _client;
     private readonly ILogger<ClaudeTopoVerificationProvider> _logger;
 
@@ -220,17 +238,8 @@ public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
         Message response;
         try
         {
-            response = await _client.Messages.Create(new MessageCreateParams
-            {
-                Model = "claude-haiku-4-5",
-                MaxTokens = 256,
-                OutputConfig = new OutputConfig
-                {
-                    Effort = Effort.Low,
-                    Format = new JsonOutputFormat { Schema = ResultSchema }
-                },
-                Messages = [new MessageParam { Role = Role.User, Content = new List<ContentBlockParam> { imageBlock, textBlock } }]
-            }, cancellationToken);
+            response = await _client.Messages.Create(
+                BuildRequestParams(imageBlock, textBlock), cancellationToken);
         }
         catch (Exception ex)
         {
@@ -251,6 +260,23 @@ public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
 
         var parsed = JsonSerializer.Deserialize<TopoVerificationPayload>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         return parsed?.IsTopo ?? false;
+    }
+
+    internal static MessageCreateParams BuildRequestParams(ContentBlockParam imageBlock, ContentBlockParam textBlock)
+    {
+        var outputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = ResultSchema } };
+        if (ClaudeModelCapabilities.SupportsEffort(Model))
+        {
+            outputConfig = outputConfig with { Effort = Effort.Low };
+        }
+
+        return new MessageCreateParams
+        {
+            Model = Model,
+            MaxTokens = 256,
+            OutputConfig = outputConfig,
+            Messages = [new MessageParam { Role = Role.User, Content = new List<ContentBlockParam> { imageBlock, textBlock } }]
+        };
     }
 
     private sealed record TopoVerificationPayload([property: JsonPropertyName("isTopo")] bool IsTopo);
