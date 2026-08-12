@@ -117,24 +117,35 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
             route, return its direct image URL as topoImageUrl; otherwise null.
             """;
 
-        var response = await _client.Messages.Create(new MessageCreateParams
+        _logger.LogInformation("enrichment calling Messages.Create for route={RouteName}", context.Name);
+        Message response;
+        try
         {
-            // TEMPORARY: claude-sonnet-4-5, not claude-sonnet-5 — matches the Foundry
-            // deployment name pinned in infra/terraform/ai_foundry.tf due to a 0 TPM
-            // quota on claude-sonnet-5 in this subscription. Revert both together.
-            Model = "claude-sonnet-4-5",
-            MaxTokens = 4096,
-            // Not optional: omitted, the API defaults to "high", and 5-family models think by
-            // default — for a search-and-extract job that quietly buys the deepest (and most
-            // expensive) reasoning tier. See the plan's cost decision.
-            OutputConfig = new OutputConfig
+            response = await _client.Messages.Create(new MessageCreateParams
             {
-                Effort = Effort.Medium,
-                Format = new JsonOutputFormat { Schema = ResultSchema }
-            },
-            Tools = [new WebSearchTool20260209 { MaxUses = 5 }],
-            Messages = [new MessageParam { Role = Role.User, Content = prompt }]
-        }, cancellationToken);
+                // TEMPORARY: claude-sonnet-4-5, not claude-sonnet-5 — matches the Foundry
+                // deployment name pinned in infra/terraform/ai_foundry.tf due to a 0 TPM
+                // quota on claude-sonnet-5 in this subscription. Revert both together.
+                Model = "claude-sonnet-4-5",
+                MaxTokens = 4096,
+                // Not optional: omitted, the API defaults to "high", and 5-family models think by
+                // default — for a search-and-extract job that quietly buys the deepest (and most
+                // expensive) reasoning tier. See the plan's cost decision.
+                OutputConfig = new OutputConfig
+                {
+                    Effort = Effort.Medium,
+                    Format = new JsonOutputFormat { Schema = ResultSchema }
+                },
+                Tools = [new WebSearchTool20260209 { MaxUses = 5 }],
+                Messages = [new MessageParam { Role = Role.User, Content = prompt }]
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "enrichment Messages.Create failed for route={RouteName}", context.Name);
+            throw;
+        }
+        _logger.LogInformation("enrichment Messages.Create returned for route={RouteName}", context.Name);
 
         LogUsage(response.Usage, context.Name);
 
@@ -205,17 +216,27 @@ public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
         });
         var textBlock = new ContentBlockParam(new TextBlockParam { Text = prompt });
 
-        var response = await _client.Messages.Create(new MessageCreateParams
+        _logger.LogInformation("topo verification calling Messages.Create for route={RouteName}", context.Name);
+        Message response;
+        try
         {
-            Model = "claude-haiku-4-5",
-            MaxTokens = 256,
-            OutputConfig = new OutputConfig
+            response = await _client.Messages.Create(new MessageCreateParams
             {
-                Effort = Effort.Low,
-                Format = new JsonOutputFormat { Schema = ResultSchema }
-            },
-            Messages = [new MessageParam { Role = Role.User, Content = new List<ContentBlockParam> { imageBlock, textBlock } }]
-        }, cancellationToken);
+                Model = "claude-haiku-4-5",
+                MaxTokens = 256,
+                OutputConfig = new OutputConfig
+                {
+                    Effort = Effort.Low,
+                    Format = new JsonOutputFormat { Schema = ResultSchema }
+                },
+                Messages = [new MessageParam { Role = Role.User, Content = new List<ContentBlockParam> { imageBlock, textBlock } }]
+            }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "topo verification Messages.Create failed for route={RouteName}", context.Name);
+            throw;
+        }
 
         _logger.LogInformation(
             "topo verification usage route={RouteName} input={Input} output={Output}",

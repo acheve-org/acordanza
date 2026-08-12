@@ -14,6 +14,11 @@ using OpenTelemetry.Trace;
 
 namespace Acordanza.Worker.Services;
 
+// Cheapest way to confirm at startup which IRouteEnrichmentProvider actually got
+// registered, without ILoggerFactory being buildable yet inside AddEnrichmentWorker
+// itself — Program.cs logs this once the host is built.
+public record EnrichmentProviderConfig(bool FoundryResourceConfigured);
+
 // One definition of "what the enrichment worker is" — the DI graph an actual
 // process run (Program.cs) and the integration tests (RouteEnrichmentTests,
 // WorkerConfigurationTests) both build off, so they can never quietly diverge.
@@ -95,7 +100,8 @@ public static class ServiceCollectionExtensions
         // Without Anthropic:FoundryResource configured, enrichment is skipped rather
         // than failing (see IRouteEnrichmentProvider.cs) — the queue/worker stays
         // exercisable locally without an Azure AI Foundry resource or az login session.
-        if (string.IsNullOrEmpty(configuration["Anthropic:FoundryResource"]))
+        var foundryResourceConfigured = !string.IsNullOrEmpty(configuration["Anthropic:FoundryResource"]);
+        if (!foundryResourceConfigured)
         {
             services.AddScoped<IRouteEnrichmentProvider, NoOpRouteEnrichmentProvider>();
             services.AddScoped<ITopoVerificationProvider, NoOpTopoVerificationProvider>();
@@ -105,6 +111,8 @@ public static class ServiceCollectionExtensions
             services.AddScoped<IRouteEnrichmentProvider, ClaudeRouteEnrichmentProvider>();
             services.AddScoped<ITopoVerificationProvider, ClaudeTopoVerificationProvider>();
         }
+
+        services.AddSingleton(new EnrichmentProviderConfig(foundryResourceConfigured));
 
         return services;
     }

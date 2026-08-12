@@ -39,12 +39,17 @@ public class RouteEnrichmentService(
         if (route.EnrichedAt is not null && !force)
         {
             // Idempotency: a redelivered/duplicate message finds this already done.
+            logger.LogInformation("enrichment skipped: route {RouteId} already enriched at {EnrichedAt}", routeId, route.EnrichedAt);
             return;
         }
 
         var areas = await areaHierarchy.GetAsync();
         var context = new RouteEnrichmentContext(route.Name, route.Grade, areas.NamePath(route.AreaId));
+        logger.LogInformation("enrichment calling provider {Provider} for route {RouteId} ({RouteName})",
+            provider.GetType().Name, routeId, route.Name);
         var result = await provider.FindAsync(context, cancellationToken);
+        logger.LogInformation("enrichment provider returned {LinkCount} link(s), topoImageUrl={HasTopo} for route {RouteId}",
+            result.Links.Count, result.TopoImageUrl is not null, routeId);
 
         // LinkRules.Resolve validates a whole batch at once (all-or-nothing — right for
         // the human-entry form, where one bad link should surface as one error), so a
@@ -64,16 +69,19 @@ public class RouteEnrichmentService(
             .ToList();
         route.Links.AddRange(toAppend.Select(u => new Link { Url = u }));
 
+        var topoImported = false;
         if (result.TopoImageUrl is not null && route.Topos.Count == 0)
         {
-            await TryImportTopoAsync(route, areas.SlugPath(route.AreaId), result.TopoImageUrl, context, cancellationToken);
+            topoImported = await TryImportTopoAsync(route, areas.SlugPath(route.AreaId), result.TopoImageUrl, context, cancellationToken);
         }
 
         route.EnrichedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("enrichment completed for route {RouteId}: appended {AppendedCount} link(s), topoImported={TopoImported}",
+            routeId, toAppend.Count, topoImported);
     }
 
-    private async Task TryImportTopoAsync(
+    private async Task<bool> TryImportTopoAsync(
         ClimbingRoute route, string areaSlugPath, string topoImageUrl, RouteEnrichmentContext context, CancellationToken cancellationToken)
     {
         byte[] bytes;
@@ -87,20 +95,20 @@ public class RouteEnrichmentService(
             if (!response.IsSuccessStatusCode)
             {
                 logger.LogInformation("enrichment topo skipped: download failed ({Status}) for {Url}", response.StatusCode, topoImageUrl);
-                return;
+                return false;
             }
 
             contentType = response.Content.Headers.ContentType?.MediaType ?? "";
             if (!MediaUploadService.AllowedImageContentTypes.Contains(contentType))
             {
                 logger.LogInformation("enrichment topo skipped: unsupported content type {ContentType} for {Url}", contentType, topoImageUrl);
-                return;
+                return false;
             }
 
             if (response.Content.Headers.ContentLength is > MaxDownloadBytes)
             {
                 logger.LogInformation("enrichment topo skipped: too large for {Url}", topoImageUrl);
-                return;
+                return false;
             }
 
             await using var stream = new MemoryStream();
@@ -108,7 +116,7 @@ public class RouteEnrichmentService(
             if (stream.Length > MaxDownloadBytes)
             {
                 logger.LogInformation("enrichment topo skipped: too large for {Url}", topoImageUrl);
-                return;
+                return false;
             }
 
             bytes = stream.ToArray();
@@ -116,7 +124,7 @@ public class RouteEnrichmentService(
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
             logger.LogInformation(ex, "enrichment topo skipped: download error for {Url}", topoImageUrl);
-            return;
+            return false;
         }
 
         var isTopo = await topoVerification.IsTopoAsync(
@@ -127,7 +135,8 @@ public class RouteEnrichmentService(
             // The page it came from is still a fine link even when the image
             // itself doesn't clear the bar — but that's already in result.Links
             // if the model surfaced it, so there's nothing else to do here.
-            return;
+            logger.LogInformation("enrichment topo skipped: verification rejected image for route {RouteId} ({Url})", route.Id, topoImageUrl);
+            return false;
         }
 
         var extension = contentType switch
@@ -149,7 +158,7 @@ public class RouteEnrichmentService(
         if (blobName is null)
         {
             logger.LogWarning("enrichment topo skipped: no free blob name for route {RouteId}", route.Id);
-            return;
+            return false;
         }
 
         var topo = new Topo
@@ -173,5 +182,8 @@ public class RouteEnrichmentService(
             await blobStorage.DeleteAsync(blobName);
             throw;
         }
+
+        logger.LogInformation("enrichment topo imported for route {RouteId}: {BlobName}", route.Id, blobName);
+        return true;
     }
 }
