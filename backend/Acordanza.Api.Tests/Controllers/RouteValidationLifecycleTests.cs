@@ -10,12 +10,19 @@ using Xunit;
 
 namespace Acordanza.Api.Tests.Controllers;
 
-// A PUT that changes nothing must keep DecidedAt/DecidedByUserId; a change to any
-// individual field must clear them — Models/Validation.cs's shared lifecycle, applied
-// by RoutesController.UpdateRoute via Validation.InvalidateIfChanged. The
-// FirstAscensionistIds set is compared order-insensitively (SetEquals, see
-// RoutesController), which is the subtle case plan 08 slice 4 calls out — reordering
-// the same set of openers must NOT invalidate. See plan 03's original rule.
+// A PUT that changes nothing must keep DecidedAt/DecidedByUserId. A change to any
+// individual field re-runs the same auto-validate check CreateRoute applies: an editor
+// who can validate routes (route.validate — every holder of route.edit in this app,
+// since the two permissions always travel together, see RolePermissions/
+// DynamicPermissions) gets the route immediately re-approved rather than demoted to
+// Pending, so their own edit doesn't require a separate follow-up validate call. Only
+// an editor who can edit but not validate would see it clear to Pending
+// (Models/Validation.cs's InvalidateIfChanged) — no such role/grant combination exists
+// for routes today, so every scenario below uses a moderator and asserts the
+// re-approve path. The FirstAscensionistIds set is compared order-insensitively
+// (SetEquals, see RoutesController), which is the subtle case plan 08 slice 4 calls
+// out — reordering the same set of openers must NOT invalidate. See plan 03's original
+// rule.
 public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 {
     private sealed record Scenario(TestUser Moderator, int RouteId, int OtherAreaId, int Fa1Id, int Fa2Id, int Fa3Id) : IDisposable
@@ -76,32 +83,32 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
     }
 
     [Fact]
-    public async Task Changing_the_name_clears_validation()
+    public async Task Changing_the_name_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { Name = "Renamed Route" };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task Changing_the_area_clears_validation()
+    public async Task Changing_the_area_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var request = BaseRequest(s, s.OtherAreaId);
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task Changing_the_grade_clears_validation()
+    public async Task Changing_the_grade_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { Grade = "7a" };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     // Issue #152: grades are normalized on write (Models/GradeValidator), so a PUT that
@@ -118,73 +125,73 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
     }
 
     [Fact]
-    public async Task Changing_the_orientation_clears_validation()
+    public async Task Changing_the_orientation_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { Orientation = "south" };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task Changing_the_gear_clears_validation()
+    public async Task Changing_the_gear_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { Gear = "removable" };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task Changing_the_description_clears_validation()
+    public async Task Changing_the_description_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { Description = "a different description" };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task Changing_the_length_clears_validation()
+    public async Task Changing_the_length_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { Length = 50 };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task Changing_the_obligatory_grade_clears_validation()
+    public async Task Changing_the_obligatory_grade_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { ObligatoryGrade = "V+" };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task Changing_the_recommended_gear_clears_validation()
+    public async Task Changing_the_recommended_gear_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { RecommendedGear = "12 cintas" };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
-    public async Task Changing_the_links_clears_validation()
+    public async Task Changing_the_links_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { Links = ["https://example.com/topo"] };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
@@ -227,13 +234,13 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
     }
 
     [Fact]
-    public async Task Changing_the_first_ascensionist_set_clears_validation()
+    public async Task Changing_the_first_ascensionist_set_keeps_route_approved()
     {
         using var s = await SeedValidatedRouteAsync();
         var areaId = await AreaIdAsync(s);
         var request = BaseRequest(s, areaId) with { FirstAscensionistIds = [s.Fa1Id, s.Fa2Id, s.Fa3Id] };
 
-        (await PutAndGetValidatedAtAsync(s, request)).ShouldBeNull();
+        (await PutAndGetValidatedAtAsync(s, request)).ShouldNotBeNull();
     }
 
     [Fact]
@@ -333,6 +340,35 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         var detail = await expert.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
         detail!.ValidationStatus.ShouldBe("pending");
+    }
+
+    // Regression test for the reported bug: an admin (route.validate via role, unbounded)
+    // editing a real field on an already-approved route used to leave it demoted to
+    // Pending, requiring a separate POST /{id}/validate call to restore it — the same
+    // gap the Changing_the_*_keeps_route_approved tests above cover for moderators.
+    [Fact]
+    public async Task Admin_edit_of_an_approved_route_keeps_it_approved()
+    {
+        using var admin = await TestUsers.CreateAsync(Factory, Roles.Admin);
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
+        var route = await SeedData.CreateRouteAsync(
+            db, area, admin.UserId, name: "Admin's Route", grade: "6a");
+        route.ValidationStatus = ReviewStatus.Approved;
+        route.DecidedAt = DateTimeOffset.UtcNow;
+        route.DecidedByUserId = admin.UserId;
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var request = new UpsertRouteRequest("Admin's Route Renamed", area.Id, "6a", null, null, null, 100, null, null, null, null, []);
+        var putResponse = await admin.Client.PutAsJsonAsync(
+            $"/api/routes/{route.Id}", request, TestContext.Current.CancellationToken);
+        putResponse.EnsureSuccessStatusCode();
+
+        var detail = await admin.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{route.Id}", TestContext.Current.CancellationToken);
+        detail!.ValidationStatus.ShouldBe("approved");
+        detail.DecidedAt.ShouldNotBeNull();
     }
 
     private sealed record CreatedRouteResponse(int Id);

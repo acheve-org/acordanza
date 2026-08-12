@@ -229,7 +229,19 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             firstAscensionist.Slug = await GenerateUniqueSlugAsync(newName, firstAscensionist.Id);
         }
 
-        Validation.InvalidateIfChanged(firstAscensionist, changed);
+        // Same rule as CreateFirstAscensionist: an editor who could validate this record outright
+        // shouldn't have their own edit demote it to Pending just to immediately re-approve it.
+        if (changed)
+        {
+            if (User.HasClaim("permission", Permissions.FirstAscensionistValidate))
+            {
+                Validation.MarkValidated(firstAscensionist, userManager.GetUserId(User)!);
+            }
+            else
+            {
+                Validation.InvalidateIfChanged(firstAscensionist, changed);
+            }
+        }
 
         try
         {
