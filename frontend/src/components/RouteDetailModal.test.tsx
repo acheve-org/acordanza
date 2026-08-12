@@ -4,7 +4,7 @@ import { renderWithProviders } from '../test/renderWithProviders';
 import { makeRouteDetail } from '../test/factories';
 import { ApiError } from '../api/client';
 import { Permissions } from '../api/permissions';
-import { RouteDetailModal } from './RouteDetailModal.tsx';
+import { RouteDetailModal } from './RouteDetailModal';
 
 const noop = () => {};
 const noopAsync = async () => {};

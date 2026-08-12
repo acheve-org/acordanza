@@ -1,8 +1,8 @@
 import { Fragment, useState, type ChangeEvent } from 'react';
-import { Button, CompassRose, ConfirmModal, GradePill, Modal, RemoveButton, orientationAbbr, type Orientation } from 'acordanza-design-system';
+import { Button, CompassRose, ConfirmModal, GradePill, Modal, RemoveButton, type Orientation } from 'acordanza-design-system';
 import { ApiError } from '../api/client';
 import type { CreateTickInput, RouteDetail } from '../api/types';
-import { gearLabels } from '../api/types';
+import { gearLabels, orientationLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../hooks/useAuth';
 import { formatDate } from '../format';
@@ -151,8 +151,8 @@ export function RouteDetailModal({
               <div className="detail-stat">
                 <span className="detail-stat-label">Orientación</span>
                 <span className="detail-stat-value">
-                  <CompassRose size="sm" value={route.orientation as Orientation} />
-                  {orientationAbbr[route.orientation as Orientation]}
+                  <CompassRose size="md" value={route.orientation as Orientation} />
+                  {orientationLabels[route.orientation as Orientation]}
                 </span>
               </div>
             )}
