@@ -2,7 +2,7 @@ using Acordanza.Core.Models;
 using Shouldly;
 using Xunit;
 
-namespace Acordanza.Api.Tests.Models;
+namespace Acordanza.Core.Tests.Models;
 
 public class ValidationTests
 {

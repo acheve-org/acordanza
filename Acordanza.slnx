@@ -3,6 +3,8 @@
     <Project Path="backend/Acordanza.Core/Acordanza.Core.csproj" />
     <Project Path="backend/Acordanza.Api/Acordanza.Api.csproj" />
     <Project Path="backend/Acordanza.Worker/Acordanza.Worker.csproj" />
+    <Project Path="backend/Acordanza.Core.Tests/Acordanza.Core.Tests.csproj" />
     <Project Path="backend/Acordanza.Api.Tests/Acordanza.Api.Tests.csproj" />
+    <Project Path="backend/Acordanza.Worker.Tests/Acordanza.Worker.Tests.csproj" />
   </Folder>
 </Solution>

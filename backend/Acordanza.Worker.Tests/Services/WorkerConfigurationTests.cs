@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Shouldly;
 using Xunit;
 
-namespace Acordanza.Api.Tests.Infrastructure;
+namespace Acordanza.Worker.Tests.Services;
 
 // Plan 22 (worker-project-split). Before the split, the worker shared Program.cs's
 // prelude, which read Jwt:Key unconditionally and threw before ever reaching the

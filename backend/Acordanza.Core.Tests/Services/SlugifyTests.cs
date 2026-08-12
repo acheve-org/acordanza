@@ -1,9 +1,8 @@
-using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Shouldly;
 using Xunit;
 
-namespace Acordanza.Api.Tests.Services;
+namespace Acordanza.Core.Tests.Services;
 
 public class SlugifyTests
 {

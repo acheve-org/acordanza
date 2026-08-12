@@ -2,7 +2,7 @@ using Acordanza.Core.Models;
 using Shouldly;
 using Xunit;
 
-namespace Acordanza.Api.Tests.Models;
+namespace Acordanza.Core.Tests.Models;
 
 // Issue #152: the French sport-grade scale is the only one the app accepts. This table
 // is duplicated verbatim by design-system's GradePill.test.tsx (gradeBand) — the
