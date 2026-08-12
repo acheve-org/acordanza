@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react';
 import { Button } from 'acordanza-design-system';
-import { useAuth, type PasskeyChallenge } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
+import type { PasskeyChallenge } from '../context/auth-context';
 import { errorMessage } from '../api/errorMessage';
 import * as authApi from '../api/auth';
 import { Brand } from './Brand';

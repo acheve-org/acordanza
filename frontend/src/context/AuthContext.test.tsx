@@ -6,7 +6,7 @@ import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
 import { makeMeResponse } from '../test/factories';
 import { queryClient } from '../queryClient';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 const STORAGE_KEY = 'acordanza.auth';
 

@@ -1,7 +1,7 @@
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { Badge } from 'acordanza-design-system';
-import { useAuth } from './context/AuthContext';
-import { usePendingTasks } from './context/PendingTasksContext';
+import { useAuth } from './hooks/useAuth';
+import { usePendingTasks } from './hooks/usePendingTasks';
 import { useDisclosure } from './hooks/useDisclosure';
 import { Permissions } from './api/permissions';
 import type { BackgroundLocationState } from './api/backgroundLocation';

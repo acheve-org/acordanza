@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { Button } from 'acordanza-design-system';
 import * as authApi from '../api/auth';
 import { Brand } from '../components/Brand';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 export function ConfirmEmailChangeScreen() {
   const [params] = useSearchParams();

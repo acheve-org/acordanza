@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router';
 import { Permissions } from '../api/permissions';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { AreaTree } from '../components/AreaTree';
 
 export function AreasPage() {

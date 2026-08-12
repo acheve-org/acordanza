@@ -5,7 +5,7 @@ import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
 import { makeLoginResponse, makeMeResponse } from '../test/factories';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { LoginScreen } from './LoginScreen';
 
 const { webauthnGet } = vi.hoisted(() => ({ webauthnGet: vi.fn() }));

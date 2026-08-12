@@ -7,7 +7,7 @@ import { queryKeys } from '../api/queryKeys';
 import type { AreaSummary } from '../api/types';
 import { validationStatusLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 interface Props {
   value: number | null;

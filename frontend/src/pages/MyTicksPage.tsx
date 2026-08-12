@@ -10,7 +10,7 @@ import { queryKeys } from '../api/queryKeys';
 import { gearLabels } from '../api/types';
 import type { TickedRoute, TickFilters } from '../api/types';
 import { Permissions } from '../api/permissions';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const emptyFilters: TickFilters = { q: '', areaId: '', gear: '' };

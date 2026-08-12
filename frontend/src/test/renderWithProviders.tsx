@@ -2,7 +2,8 @@ import type { ReactElement, ReactNode } from 'react';
 import { render, type RenderOptions } from '@testing-library/react';
 import { MemoryRouter, type InitialEntry } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthContext, AuthProvider, type AuthContextValue } from '../context/AuthContext';
+import { AuthProvider } from '../context/AuthContext';
+import { AuthContext, type AuthContextValue } from '../context/auth-context';
 
 const defaultAuthValue: AuthContextValue = {
   id: 'user-1',

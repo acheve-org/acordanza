@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
@@ -6,33 +6,9 @@ import * as areaExpertsApi from '../api/areaExperts';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import * as firstAscensionistLinksApi from '../api/firstAscensionistLinks';
 import { queryKeys } from '../api/queryKeys';
-import type {
-  AreaExpert,
-  AreaPending,
-  FirstAscensionistLinkRequestSummary,
-  FirstAscensionistPending,
-  RoutePending,
-} from '../api/types';
 import { Permissions } from '../api/permissions';
-import { useAuth } from './AuthContext';
-
-interface PendingTasksValue {
-  pendingRoutes: RoutePending[];
-  pendingAreas: AreaPending[];
-  pendingAreaExperts: AreaExpert[];
-  pendingFirstAscensionistLinks: FirstAscensionistLinkRequestSummary[];
-  pendingFirstAscensionists: FirstAscensionistPending[];
-  total: number;
-  visible: boolean;
-  showRoutes: boolean;
-  showAreas: boolean;
-  showAreaExperts: boolean;
-  showFirstAscensionistLinks: boolean;
-  showFirstAscensionists: boolean;
-  loading: boolean;
-}
-
-const PendingTasksContext = createContext<PendingTasksValue | null>(null);
+import { useAuth } from '../hooks/useAuth';
+import { PendingTasksContext } from './pending-tasks-context';
 
 export function PendingTasksProvider({ children }: { children: ReactNode }) {
   const { hasPermission, isAreaExpert } = useAuth();
@@ -108,10 +84,4 @@ export function PendingTasksProvider({ children }: { children: ReactNode }) {
       {children}
     </PendingTasksContext.Provider>
   );
-}
-
-export function usePendingTasks() {
-  const ctx = useContext(PendingTasksContext);
-  if (!ctx) throw new Error('usePendingTasks must be used within PendingTasksProvider');
-  return ctx;
 }

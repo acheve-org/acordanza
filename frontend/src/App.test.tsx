@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from './test/server';
 import { API_URL } from './test/apiUrl';
 import { createTestQueryClient, makeAuthValue } from './test/renderWithProviders';
-import { AuthContext } from './context/AuthContext';
+import { AuthContext } from './context/auth-context';
 import { PendingTasksProvider } from './context/PendingTasksContext';
 import { makeRoute, makeRouteDetail } from './test/factories';
 import App from './App';

@@ -7,7 +7,7 @@ import { queryKeys } from '../api/queryKeys';
 import type { FirstAscensionistSummary } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { errorMessage } from '../api/errorMessage';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { FirstAscensionistNameModal } from '../components/FirstAscensionistNameModal';
 

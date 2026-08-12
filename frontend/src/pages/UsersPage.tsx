@@ -8,7 +8,7 @@ import type { PagedUsers, UserAccount, UserFilters } from '../api/types';
 import { roleLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { errorMessage } from '../api/errorMessage';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { formatDate } from '../format';
 import { InviteUserModal } from '../components/InviteUserModal';

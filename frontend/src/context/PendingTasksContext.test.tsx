@@ -5,7 +5,8 @@ import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
 import { makeAreaExpert, makeAreaPending, makeFirstAscensionistLinkRequest, makeRoutePending } from '../test/factories';
 import { Permissions } from '../api/permissions';
-import { PendingTasksProvider, usePendingTasks } from './PendingTasksContext';
+import { PendingTasksProvider } from './PendingTasksContext';
+import { usePendingTasks } from '../hooks/usePendingTasks';
 
 const ALL_PERMISSIONS = [
   Permissions.routeValidate,
