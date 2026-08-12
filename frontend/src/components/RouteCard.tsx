@@ -15,7 +15,11 @@ export function RouteCard({ route, onClick }: Props) {
   return (
     <div className={`route-card${bandClass}`} onClick={onClick}>
       <div className="rc-top">
-        <GradePill>{route.grade}</GradePill>
+        <div className="rc-name" title={route.name}>{route.name}</div>
+        <GradePill grade={route.grade} obligatoryGrade={route.obligatoryGrade} />
+      </div>
+      <div className="rc-main">
+        <div className="rc-sub">{route.areaPath}</div>
         <div className="rc-icons">
           {route.hasTopos && (
             <svg className="rc-topo-icon" viewBox="0 0 24 24" fill="currentColor" aria-label="Tiene topo">
@@ -31,14 +35,10 @@ export function RouteCard({ route, onClick }: Props) {
           )}
         </div>
       </div>
-      <div className="rc-main">
-        <div className="rc-name">{route.name}</div>
-        <div className="rc-sub">{route.areaPath}</div>
-      </div>
       {route.validationStatus !== 'approved' && (
         <Chip status={route.validationStatus}>{validationStatusLabels[route.validationStatus]}</Chip>
       )}
-      <RouteMeta orientation={route.orientation} length={route.length} gear={route.gear} />
+      <RouteMeta orientation={route.orientation} length={route.length} gear={route.gear} bottomAligned />
     </div>
   );
 }

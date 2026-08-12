@@ -11,7 +11,9 @@ describe('TickedRouteCard meta line', () => {
       />,
     );
     expect(screen.getByRole('img', { name: 'Orientación: Sur' })).toBeInTheDocument();
-    expect(screen.getByText('S · 28 m · Equipada')).toBeInTheDocument();
+    expect(screen.getByText('S')).toBeInTheDocument();
+    expect(screen.getByText('28 m')).toBeInTheDocument();
+    expect(screen.getByText('Equipada')).toBeInTheDocument();
   });
 
   it('omits the meta line when orientation, length, and gear are all absent', () => {

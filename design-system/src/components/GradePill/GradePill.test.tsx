@@ -34,7 +34,7 @@ describe('GradePill', () => {
     ['7a', 'grade-band-7'],
     ['8a', 'grade-band-8-9'],
   ] as const)('renders the grade text for %s', (grade, bandClass) => {
-    render(<GradePill>{grade}</GradePill>)
+    render(<GradePill grade={grade} />)
     const pill = screen.getByText(grade)
     expect(pill).toBeInTheDocument()
     if (bandClass) {
@@ -43,9 +43,15 @@ describe('GradePill', () => {
   })
 
   it('renders no band class for a non-french-scale grade', () => {
-    render(<GradePill>V+</GradePill>)
+    render(<GradePill grade="V+" />)
     const pill = screen.getByText('V+')
     expect(pill).toHaveClass('grade-pill')
     expect(pill.className).toBe('grade-pill')
+  })
+
+  it('renders the grade with the obligatory grade in parentheses when both are present', () => {
+    render(<GradePill grade="7a" obligatoryGrade="6b" />)
+    const pill = screen.getByText('7a (6b)')
+    expect(pill).toHaveClass('grade-band-7')
   })
 })
