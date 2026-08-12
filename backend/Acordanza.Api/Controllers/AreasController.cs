@@ -268,7 +268,19 @@ public class AreasController(
         area.Name = newName;
         area.ParentAreaId = request.ParentAreaId;
 
-        Validation.InvalidateIfChanged(area, changed);
+        // Same rule as CreateArea: an editor who could validate this area outright shouldn't
+        // have their own edit demote it to Pending just to immediately re-approve it.
+        if (changed)
+        {
+            if (User.HasClaim("permission", Permissions.AreaValidate))
+            {
+                Validation.MarkValidated(area, userManager.GetUserId(User)!);
+            }
+            else
+            {
+                Validation.InvalidateIfChanged(area, changed);
+            }
+        }
 
         await db.SaveChangesAsync();
 
@@ -509,7 +521,17 @@ public class AreasController(
             area.CentroidLng = area.Polygon.Average(p => p.Lng);
         }
 
-        Validation.InvalidateIfChanged(area, changed);
+        if (changed)
+        {
+            if (User.HasClaim("permission", Permissions.AreaValidate))
+            {
+                Validation.MarkValidated(area, userManager.GetUserId(User)!);
+            }
+            else
+            {
+                Validation.InvalidateIfChanged(area, changed);
+            }
+        }
 
         await db.SaveChangesAsync();
 

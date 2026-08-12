@@ -345,6 +345,8 @@ public class RoutesController(
             .FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
+        var userId = userManager.GetUserId(User)!;
+
         if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
         {
             return BadRequest(new { error = "el sector no existe" });
@@ -418,7 +420,20 @@ public class RoutesController(
         route.FirstAscensionists.Clear();
         route.FirstAscensionists.AddRange(firstAscensionists!);
 
-        Validation.InvalidateIfChanged(route, changed);
+        // Same rule as CreateRoute: an editor who could validate this route outright (role
+        // permission or approved area expert) shouldn't have their own edit demote it to
+        // Pending just to immediately re-approve it via a second call.
+        if (changed)
+        {
+            if (await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
+            {
+                Validation.MarkValidated(route, userId);
+            }
+            else
+            {
+                Validation.InvalidateIfChanged(route, changed);
+            }
+        }
 
         await db.SaveChangesAsync();
         return Ok(new { ok = true });
