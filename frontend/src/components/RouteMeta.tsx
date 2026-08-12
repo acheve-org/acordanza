@@ -5,23 +5,22 @@ interface Props {
   orientation: string | null;
   length: number;
   gear: string | null;
+  bottomAligned?: boolean;
 }
 
-export function RouteMeta({ orientation, length, gear }: Props) {
-  const text = [
-    orientation && orientationAbbr[orientation as Orientation],
-    length ? `${length} m` : null,
-    gear && gearLabels[gear],
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
-  if (!text) return null;
+export function RouteMeta({ orientation, length, gear, bottomAligned }: Props) {
+  if (!orientation && !length && !gear) return null;
 
   return (
-    <div className="rc-meta">
-      {orientation && <CompassRose size="sm" value={orientation as Orientation} />}
-      {text}
+    <div className={bottomAligned ? 'rc-meta rc-meta-bottom' : 'rc-meta'}>
+      {orientation && (
+        <span className="rc-meta-item">
+          <CompassRose size="sm" value={orientation as Orientation} />
+          {orientationAbbr[orientation as Orientation]}
+        </span>
+      )}
+      {length ? <span className="rc-meta-item">{`${length} m`}</span> : null}
+      {gear && <span className="rc-meta-item">{gearLabels[gear]}</span>}
     </div>
   );
 }

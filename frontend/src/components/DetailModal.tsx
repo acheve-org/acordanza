@@ -96,7 +96,7 @@ export function DetailModal({
           <div>
             <h2>{route.name}</h2>
             <p className="detail-meta">
-              <GradePill>{route.grade}</GradePill>
+              <GradePill grade={route.grade} obligatoryGrade={route.obligatoryGrade} />
               {route.areaPath}
             </p>
             {route.validationStatus === 'approved' && (

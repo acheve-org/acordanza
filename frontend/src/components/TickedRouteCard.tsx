@@ -18,7 +18,7 @@ export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
     <Fragment>
       <div className={`route-card${bandClass}`} onClick={onSelect}>
         <div className="rc-top">
-          <GradePill>{tick.grade}</GradePill>
+          <GradePill grade={tick.grade} />
           {onDelete && (
             <RemoveButton
               label="Eliminar registro"
