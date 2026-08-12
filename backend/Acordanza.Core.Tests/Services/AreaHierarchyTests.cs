@@ -1,10 +1,9 @@
-using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Shouldly;
 using Xunit;
 using Node = Acordanza.Core.Services.AreaHierarchy.Node;
 
-namespace Acordanza.Api.Tests.Services;
+namespace Acordanza.Core.Tests.Services;
 
 public class AreaHierarchyTests
 {

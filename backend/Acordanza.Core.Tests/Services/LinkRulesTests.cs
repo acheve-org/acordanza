@@ -1,9 +1,8 @@
-using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Shouldly;
 using Xunit;
 
-namespace Acordanza.Api.Tests.Services;
+namespace Acordanza.Core.Tests.Services;
 
 // Moved from RoutesController.ResolveLinks when LinkRules was hoisted (plan 18) so the
 // worker path can reuse it — same assertions, new home. RouteFieldsTests still covers

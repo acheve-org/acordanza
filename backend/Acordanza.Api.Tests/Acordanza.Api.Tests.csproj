@@ -27,6 +27,5 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Acordanza.Api/Acordanza.Api.csproj" />
-    <ProjectReference Include="../Acordanza.Worker/Acordanza.Worker.csproj" />
   </ItemGroup>
 </Project>
