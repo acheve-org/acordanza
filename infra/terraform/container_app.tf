@@ -6,7 +6,18 @@ locals {
   # Root CA 2017 — verified in the image's /etc/pki/tls/certs/ca-bundle.crt).
   # Never add "Trust Server Certificate=true" — it disables validation
   # entirely and opens the TLS connection to MITM.
-  db_connection_string = "Host=${azurerm_postgresql_flexible_server.main.fqdn};Port=5432;Database=${azurerm_postgresql_flexible_server_database.app.name};Username=${var.postgres_admin_username};Password=${var.postgres_admin_password};Ssl Mode=VerifyFull"
+  #
+  # "Gss Encryption Mode=Disable" is noise suppression, not a security choice.
+  # Npgsql mirrors libpq's gssencmode default of Prefer, so every *physical*
+  # connection first probes for GSSAPI (Kerberos) encryption before falling
+  # back to TLS. That probe dlopens libgssapi_krb5.so.2, which the
+  # distroless-extra base image doesn't ship, so it always fails with
+  # "libgssapi_krb5.so.2: cannot open shared object file" — harmlessly (Npgsql
+  # catches it and continues to SSL negotiation, Ssl Mode above unaffected),
+  # but it logs on every open. Loudest on the enrichment job, which is
+  # drain-and-exit and so never reuses a pooled connection. Disabling skips a
+  # probe that can't succeed here; authentication stays username/password.
+  db_connection_string = "Host=${azurerm_postgresql_flexible_server.main.fqdn};Port=5432;Database=${azurerm_postgresql_flexible_server_database.app.name};Username=${var.postgres_admin_username};Password=${var.postgres_admin_password};Ssl Mode=VerifyFull;Gss Encryption Mode=Disable"
 
   # The frontend Container App's own URL is always allowed to call the API;
   # var.cors_allowed_origins is only for *additional* origins (e.g. a future
