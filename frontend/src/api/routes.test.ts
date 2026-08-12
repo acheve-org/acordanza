@@ -22,7 +22,7 @@ describe('listRoutes', () => {
       q: 'travesía',
       areaId: '3',
       grade: '6a',
-      orientation: 'north',
+      orientation: ['north'],
       gear: 'bolted',
       hasTopo: 'true',
     });
@@ -41,6 +41,18 @@ describe('listRoutes', () => {
     await listRoutes({ ...emptyRouteFilters, q: 'x', areaId: '', grade: '' });
 
     expect(api.get).toHaveBeenCalledWith('/routes?q=x');
+  });
+
+  it('serialises each selected orientation as a repeated query param', async () => {
+    await listRoutes({ ...emptyRouteFilters, orientation: ['north', 'south'] });
+
+    expect(api.get).toHaveBeenCalledWith('/routes?orientation=north&orientation=south');
+  });
+
+  it('omits the orientation parameter entirely when empty', async () => {
+    await listRoutes({ ...emptyRouteFilters, orientation: [] });
+
+    expect(api.get).toHaveBeenCalledWith('/routes');
   });
 
   it('only adds exactArea when truthy', async () => {

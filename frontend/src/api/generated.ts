@@ -2054,7 +2054,7 @@ export interface paths {
                     q?: string;
                     areaId?: number;
                     grade?: string;
-                    orientation?: string;
+                    orientation?: string[];
                     gear?: string;
                     hasTopo?: boolean;
                     firstAscensionistId?: number;

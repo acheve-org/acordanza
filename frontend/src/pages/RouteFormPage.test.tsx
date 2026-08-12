@@ -122,6 +122,42 @@ describe('RouteFormPage', () => {
     expect(postedBody).toMatchObject({ orientation: null, gear: null });
   });
 
+  it('picks an orientation via the compass radios and clears it back to "Sin especificar"', async () => {
+    const user = userEvent.setup();
+    let postedBody: Record<string, unknown> | undefined;
+    server.use(
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      ),
+      http.post(`${API_URL}/routes`, async ({ request }) => {
+        postedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ id: 1 });
+      }),
+    );
+    mockSavedRouteDetail(1);
+
+    renderCreateForm();
+
+    expect(screen.queryByRole('button', { name: 'Sin especificar' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'Sur' }));
+    expect(screen.getByRole('radio', { name: 'Sur' })).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: 'Sin especificar' }));
+    expect(screen.getByRole('radio', { name: 'Sur' })).not.toBeChecked();
+    expect(screen.queryByRole('button', { name: 'Sin especificar' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'Norte' }));
+    await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
+    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
+    await user.clear(screen.getByLabelText(/Longitud/));
+    await user.type(screen.getByLabelText(/Longitud/), '30');
+    await selectArea(user, 'Peña Rúa');
+    await user.click(screen.getByRole('button', { name: 'Guardar vía' }));
+
+    await waitFor(() => expect(postedBody).toBeDefined());
+    expect(postedBody).toMatchObject({ orientation: 'north' });
+  });
+
   it('adding two links then removing one posts exactly the remaining URL', async () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;

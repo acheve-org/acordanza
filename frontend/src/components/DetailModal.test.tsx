@@ -109,6 +109,7 @@ describe('DetailModal new sections (plan 20)', () => {
     });
 
     expect(screen.getByText('28 m')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Orientación: Sur' })).toBeInTheDocument();
     expect(screen.getByText('Sur')).toBeInTheDocument();
     expect(screen.getByText('Equipada')).toBeInTheDocument();
     expect(screen.getByText('Grado obligatorio: 6a')).toBeInTheDocument();
