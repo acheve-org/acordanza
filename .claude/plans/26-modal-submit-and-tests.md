@@ -34,7 +34,7 @@ The copies have already drifted in ways that matter:
 - **`AreaPolygonModal` calls the flag `saving`**, everyone else `submitting`.
 - The fallback-message expression is inconsistent in exactly the ways plan [24](24-shared-presentation-helpers.md) catalogues.
 
-**And 12 of the 13 modals have no test at all.** Of everything under `src/`, 25 files lack a `.test.tsx`; the pages among them are mostly thin, but the modals are not — they are where submit logic, error surfacing, disabled-state rules and the `allowRoleSelection`-style permission variations live. `DetailModal` is the only one covered. This is the single largest gap against the repo's own working agreement:
+**And 12 of the 13 modals have no test at all.** Of everything under `src/`, 25 files lack a `.test.tsx`; the pages among them are mostly thin, but the modals are not — they are where submit logic, error surfacing, disabled-state rules and the `allowRoleSelection`-style permission variations live. `RouteDetailModal` is the only one covered. This is the single largest gap against the repo's own working agreement:
 
 > **New page or component** → at minimum, it renders with realistic contract-typed data, and any permission-gated action is covered both ways.
 

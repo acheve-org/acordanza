@@ -4,7 +4,7 @@ import { renderWithProviders } from '../test/renderWithProviders';
 import { makeRouteDetail } from '../test/factories';
 import { ApiError } from '../api/client';
 import { Permissions } from '../api/permissions';
-import { DetailModal } from './DetailModal';
+import { RouteDetailModal } from './RouteDetailModal';
 
 const noop = () => {};
 const noopAsync = async () => {};
@@ -16,7 +16,7 @@ function renderModal(
   onEnrich?: (force: boolean) => Promise<void>,
 ) {
   return renderWithProviders(
-    <DetailModal
+    <RouteDetailModal
       route={makeRouteDetail(routeOverrides)}
       onClose={noop}
       onEdit={noop}

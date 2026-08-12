@@ -64,7 +64,7 @@ Three near-identical expressions rather than one `IQueryable<T> where T : IValid
 
 Applied to **list/browse** endpoints only. `GET /routes/{id}`, `GET /first-ascensionists/{id}` and `GET /areas/by-slug-path/*` keep returning the record whatever its status.
 
-Why: those three are how a contributor opens their own pending record, how the moderator's `DetailModal` reviews a route from the queue, and how `RouteFormPage` loads a route for editing. Gating them means bolting the same three-way "mine OR I can validate OR approved" test onto every detail read, and the payoff is nil — this is a private app where every account can already read everything, and a pending record is only reachable by guessing its id. The issue is about *where things are shown*, i.e. lists. That is the line this plan draws, and it's worth writing into `backend/CLAUDE.md` so the next person doesn't "fix" one half of it.
+Why: those three are how a contributor opens their own pending record, how the moderator's `RouteDetailModal` reviews a route from the queue, and how `RouteFormPage` loads a route for editing. Gating them means bolting the same three-way "mine OR I can validate OR approved" test onto every detail read, and the payoff is nil — this is a private app where every account can already read everything, and a pending record is only reachable by guessing its id. The issue is about *where things are shown*, i.e. lists. That is the line this plan draws, and it's worth writing into `backend/CLAUDE.md` so the next person doesn't "fix" one half of it.
 
 `GET /areas/by-slug-path/*` is a detail read, so the area itself comes back regardless — but its `children` array is a list, so it gets filtered.
 

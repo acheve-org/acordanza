@@ -204,7 +204,7 @@ The doc is the spec, so it changes with the code, per its own Iteration Guide:
 
 No `pattern=` attribute: it would be a third copy of the grammar (see §4) and the native bubble can't be worded in the app's voice.
 
-**`DetailModal`.** Line 77 renders `{route.grade} · {route.areaPath}` as plain text inside `.detail-meta` — the one place a route's grade is shown *without* a pill. It becomes `<GradePill>{route.grade}</GradePill>` followed by the area path, since "use it when showing the routes" is the issue's instruction and the detail modal is the primary route display. This is a small layout change (an inline-block pill inside a `<p>`), so `.detail-meta` gets `display: flex; align-items: center; gap: var(--space-sm);` in `styles.css` and the `·` separator goes — verify visually (§Testing).
+**`RouteDetailModal`.** Line 77 renders `{route.grade} · {route.areaPath}` as plain text inside `.detail-meta` — the one place a route's grade is shown *without* a pill. It becomes `<GradePill>{route.grade}</GradePill>` followed by the area path, since "use it when showing the routes" is the issue's instruction and the detail modal is the primary route display. This is a small layout change (an inline-block pill inside a `<p>`), so `.detail-meta` gets `display: flex; align-items: center; gap: var(--space-sm);` in `styles.css` and the `·` separator goes — verify visually (§Testing).
 
 **`RouteCard` and `TickedRouteCard` need no change at all** — they already render `<GradePill>{route.grade}</GradePill>` and pick up the colours for free. That's the payoff for putting the parse inside the component.
 
@@ -253,7 +253,7 @@ Four places state the old rule and are wrong the moment this merges:
 | `design-system/src/index.ts` | export `gradeBand`, `GradeBand` |
 | `DESIGN.md` | tokens, `GradePill` entry, amended "no third accent" rule (§4) |
 | `frontend/src/pages/RouteFormPage.tsx` | submit check, placeholder, hint, lowercase on submit (§5) |
-| `frontend/src/components/DetailModal.tsx` | grade → `GradePill` (§5) |
+| `../../frontend/src/components/RouteDetailModal.tsx` | grade → `GradePill` (§5) |
 | `frontend/src/styles.css` | `.detail-meta` flex row (§5) |
 | `landing/index.html` | band tokens + sample chips (§8) |
 | `README.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md` | free-text → French scale (§8) |
@@ -296,7 +296,7 @@ No `AuthorizationMatrixTests` row — no new endpoint, no policy change.
 - typing `V+` and submitting shows the Spanish message and issues **no** POST (assert the handler wasn't called — the point of the client check is saving the round trip);
 - typing `6A` and submitting POSTs `grade: "6a"` — assert the intercepted request body.
 
-**Visual** — via the `run-acordanza` skill, since half this issue is colour: `/routes` with one route per band seeded, at desktop and ≤720px, checking the four pills side by side read as four distinct states and that band 7 doesn't read as an error next to a `Chip status="rejected"` in the same list; plus `DetailModal` open, for §5's `.detail-meta` reflow. Then `landing/index.html` opened directly (no build step) for its three chips.
+**Visual** — via the `run-acordanza` skill, since half this issue is colour: `/routes` with one route per band seeded, at desktop and ≤720px, checking the four pills side by side read as four distinct states and that band 7 doesn't read as an error next to a `Chip status="rejected"` in the same list; plus `RouteDetailModal` open, for §5's `.detail-meta` reflow. Then `landing/index.html` opened directly (no build step) for its three chips.
 
 `bun run test` and `bun run build` in both `design-system/` and `frontend/` — the build is what catches any remaining `<GradePill>` call site passing a non-string child. `dotnet test Acordanza.slnx` from the repo root, Docker up for the integration trait.
 

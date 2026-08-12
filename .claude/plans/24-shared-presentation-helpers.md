@@ -12,7 +12,7 @@ Three shared helpers exist, are documented in `frontend/CLAUDE.md`, and are bypa
 **2. Dates render in the browser's locale on 9 of 14 sites — in a Spanish-only app.** `frontend/CLAUDE.md` and the root `CLAUDE.md` are explicit that all user-facing text is Spanish. But:
 
 - **5 sites** pin it: `toLocaleDateString('es-ES')` — `UsersPage`, `SettingsPage`, `PendingRequestsList`.
-- **9 sites** don't: bare `toLocaleDateString()` — `DetailModal` (×3: validated-by, rejected-by, "Última búsqueda"), `MyContributionsPage` (×2), `PendingTasksPage` (×2), and others.
+- **9 sites** don't: bare `toLocaleDateString()` — `RouteDetailModal` (×3: validated-by, rejected-by, "Última búsqueda"), `MyContributionsPage` (×2), `PendingTasksPage` (×2), and others.
 
 On a browser set to `en-US`, the unpinned half renders `8/11/2026` where the pinned half renders `11/8/2026` — two different dates for the same day, sometimes on the same screen (`PendingTasksPage` shows creation dates unpinned while `PendingRequestsList`, rendered by the same page, pins them). This is a real bug, not just inconsistency: it is silently wrong for any user whose browser isn't Spanish, which is exactly the case nobody developing on a Spanish laptop ever sees.
 
@@ -64,7 +64,7 @@ export function formatDate(value: string): string {
 
 **`'es-ES'` literal, not a constant.** It appears once now.
 
-All 14 sites become `formatDate(x)`. Three of them (`DetailModal`'s validated/rejected lines) currently use a non-null assertion — `new Date(route.decidedAt!)` — which stays as it is; `formatDate(route.decidedAt!)` keeps the same assumption in the same place rather than smuggling a behaviour change into a formatting sweep.
+All 14 sites become `formatDate(x)`. Three of them (`RouteDetailModal`'s validated/rejected lines) currently use a non-null assertion — `new Date(route.decidedAt!)` — which stays as it is; `formatDate(route.decidedAt!)` keeps the same assumption in the same place rather than smuggling a behaviour change into a formatting sweep.
 
 ### 3. `MyAreasPage` uses `reviewStatusLabels`
 

@@ -9,7 +9,7 @@ Depends on: [16](16-route-new-fields.md) (`Length`/`ObligatoryGrade`/`Recommende
 Two independent complaints about how a route is shown today, both real:
 
 1. **`RouteCard` (`frontend/src/components/RouteCard.tsx`) is sparse and low-signal.** It shows grade, name, area path, a gear label, a topo/tick presence icon, and (when non-approved) a status chip — nothing else. Orientation, length, and who opened it are all on the DTO already (plan 16) and never surface until the modal opens. `padding: var(--space-lg)` (16px) plus a `gap: var(--space-xs)` between four sparse rows reads as too much white space for how little information is there.
-2. **`DetailModal` (`frontend/src/components/DetailModal.tsx`) is one undifferentiated scroll.** Header → description → first-ascensionist line → divider → topo grid → divider → tick button, with no visual grouping. Worse, it's missing content that already exists on `RouteDetail`: `length`, `obligatoryGrade`, `recommendedGear`, `optionalGear`, and `links` are fetched but never rendered anywhere in the app — the exact gap plan 16 named and deferred.
+2. **`RouteDetailModal` (`../../frontend/src/components/RouteDetailModal.tsx`) is one undifferentiated scroll.** Header → description → first-ascensionist line → divider → topo grid → divider → tick button, with no visual grouping. Worse, it's missing content that already exists on `RouteDetail`: `length`, `obligatoryGrade`, `recommendedGear`, `optionalGear`, and `links` are fetched but never rendered anywhere in the app — the exact gap plan 16 named and deferred.
 
 ## Design
 
@@ -26,7 +26,7 @@ Confirmed field priority (highest to lowest): **name + area path** → **grade +
 ```
 
 - **Left accent band becomes grade-colored, not static teal.** Today `.route-card { border-left: 3px solid var(--accent-2) }` — a fixed teal regardless of grade. `RouteCard` imports `gradeBand` from `acordanza-design-system` (already exported, `design-system/src/index.ts:21`, the same function `GradePill` uses internally) and applies a `grade-band-{band}` class the way `GradePill.css` already does, reusing the existing `--grade-6`/`--grade-7`/`--grade-8-9` tokens for the border color. Band `'1-5'`/`null` (ungraded or below-6a) keeps today's `--accent-2` teal as the default — so easy routes and non-French-scale grades look exactly as they do now, and only 6th/7th/8th-9th grade routes gain a new color, at zero new token cost.
-- **Orientation + length join the existing gear line.** `[orientation && orientationLabels[...], length && `${length} m`, gear && gearLabels[...]].filter(Boolean).join(' · ')` on one `.rc-meta` line — same join-and-filter idiom `DetailModal`'s `.detail-fa` orientation/gear line already uses, so no new pattern.
+- **Orientation + length join the existing gear line.** `[orientation && orientationLabels[...], length && `${length} m`, gear && gearLabels[...]].filter(Boolean).join(' · ')` on one `.rc-meta` line — same join-and-filter idiom `RouteDetailModal`'s `.detail-fa` orientation/gear line already uses, so no new pattern.
 - **Tighten spacing.** Drop `.route-card`'s `padding` from `--space-lg` (16px) to `--space-md` (14px) and its `gap` from `--space-xs`... actually the fix here is less about the token values (which are already the smallest in the scale below `--space-lg`) and more about **row count**: today's 4 stacked flex children (`rc-top`, `rc-main`, chip, `rc-type`) become 3 (`rc-top` grade+icons, `rc-main` name+area, one meta line folding gear into it) — one fewer internal gap. `--space-xs` gap stays; measure against `run-acordanza` screenshots before tuning further, since "too much white space" is a visual judgment call best confirmed by looking at the rendered card, not by picking token values blind.
 
 ### 2. `TickedRouteCard`: brought fully in line
@@ -35,7 +35,7 @@ Confirmed field priority (highest to lowest): **name + area path** → **grade +
 
 **Field parity requires one small backend addition.** `MyTickDto` (`backend/Acordanza.Api/Dtos/TickDtos.cs:17-31`) already carries `Orientation` but has no `Length` field — confirmed by checking the actual record, not assumed. Since `Length` already exists on `ClimbingRoute` and this is a plain read, add it to `MyTickDto`'s projection in `TicksController.GetMine` — one field, no migration. With that, `TickedRouteCard` gets the exact same orientation+length meta line `RouteCard` does, true parity rather than a partial one. The delete button (`RemoveButton`) and the tick-specific `.trc-tick` date/rating/notes row are untouched — those aren't part of what's "too sparse" here.
 
-### 3. `DetailModal`: sectioned single column, no tabs
+### 3. `RouteDetailModal`: sectioned single column, no tabs
 
 Same `Modal` wrapper, same overall scroll — restructured into clearly separated blocks instead of one undifferentiated flow, each visually grouped (heading + hairline-bordered block, the same `{radius.md}`/hairline-border language `.route-card` already uses, not a new visual primitive):
 
@@ -84,9 +84,9 @@ Same `Modal` wrapper, same overall scroll — restructured into clearly separate
 2. **Regenerate the OpenAPI contract** (`ASPNETCORE_ENVIRONMENT=Development dotnet build -p:OpenApiGenerateDocumentsOnBuild=true`, Postgres+Azurite up, `Jwt:Key` set) then `bun run generate-api` in `frontend/`; commit both diffs.
 3. **`RouteCard.tsx`** — grade-band left accent (`gradeBand` import), orientation+length in the meta line, layout/spacing per §1.
 4. **`TickedRouteCard.tsx`** — inherits shared CSS automatically; add the orientation+length meta line now that `MyTickDto` carries both.
-5. **`DetailModal.tsx`** — stats row, links section, recommended/optional gear section, per §3; `styles.css`'s `.detail-*` rules reworked into the `.detail-section` block language, `hr.divider` removed.
+5. **`RouteDetailModal.tsx`** — stats row, links section, recommended/optional gear section, per §3; `styles.css`'s `.detail-*` rules reworked into the `.detail-section` block language, `hr.divider` removed.
 6. **Tests** (below).
-7. **Docs.** `backend/CLAUDE.md`: one-line mention of `MyTickDto.Length`. `frontend/CLAUDE.md`: `RouteCard`/`TickedRouteCard`/`DetailModal` bullets updated for the new fields/sections.
+7. **Docs.** `backend/CLAUDE.md`: one-line mention of `MyTickDto.Length`. `frontend/CLAUDE.md`: `RouteCard`/`TickedRouteCard`/`RouteDetailModal` bullets updated for the new fields/sections.
 8. **Verify** with the `run-acordanza` skill: screenshot cards across a few grade bands to confirm the left-accent color and spacing read cleanly, and one modal with all-new fields populated (length, obligatory grade, gear notes, links) plus one with them empty (confirming sections cleanly omit).
 
 ## Testing

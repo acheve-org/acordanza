@@ -8,7 +8,7 @@ Depends on: [17](17-grade-scale-and-pills.md) and [20](20-route-display-revamp.m
 
 Orientation is one of the few facts that decides whether a route is climbable *today* — north faces stay in the shade, south faces bake — and today it is the least legible thing on screen:
 
-- It renders as a Spanish word buried in a `·`-joined text line (`RouteCard.tsx:14`, `TickedRouteCard.tsx:17`) or as one `label/value` pair among four in `DetailModal`'s stats row (`DetailModal.tsx:149-153`). "Sureste" reads at the same weight as "28 m" and "Equipada", so scanning a list for shade means reading every card.
+- It renders as a Spanish word buried in a `·`-joined text line (`RouteCard.tsx:14`, `TickedRouteCard.tsx:17`) or as one `label/value` pair among four in `RouteDetailModal`'s stats row (`DetailModal.tsx:149-153`). "Sureste" reads at the same weight as "28 m" and "Equipada", so scanning a list for shade means reading every card.
 - The filter (`Filters.tsx:57-64`) is a `<select>` that picks **exactly one** direction. The real question a climber asks in August is "what's in the shade this afternoon?" — that's *north, northeast and northwest*, three separate searches today, whose results can't be seen together.
 
 Both are the same underlying gap: orientation is angular data being presented, and queried, as an unordered list of words. A compass rose (*rosa de los vientos*) is the notation that already exists for this, is understood without a legend, and — being a ring of eight sectors — is also a multi-select control at no extra conceptual cost. The same picture answers "where does this face?" and "give me these three".
@@ -112,7 +112,7 @@ Sizing is fixed (132px, one interactive size) — the picker appears in exactly 
 ### 2. Display sites
 
 - **`RouteCard`/`TickedRouteCard`.** The meta line stops being one `join(' · ')` string and becomes an interleaved node list: `<CompassRose size="sm" value={o} />` (the needle) then `SE · 28 m · Equipada` as before. Small helper in both files (they already duplicate this line) — or better, one shared `<RouteMeta route={…} />`, since plan 20 created the duplication and this is the second edit to both copies.
-- **`DetailModal`.** The `Orientación` stat's `<span className="detail-stat-value">` becomes `<CompassRose size="md" value={…} />` above the full Spanish word. The stats row's other three cells are untouched — the rose is the one field that earns extra height.
+- **`RouteDetailModal`.** The `Orientación` stat's `<span className="detail-stat-value">` becomes `<CompassRose size="md" value={…} />` above the full Spanish word. The stats row's other three cells are untouched — the rose is the one field that earns extra height.
 - **Not `AreaPage`.** Aggregating "this sector faces N/NE" from its routes is a real idea and a different plan; nothing here computes an aggregate.
 
 ### 3. Multi-select filter — and the backend change
@@ -161,10 +161,10 @@ EF Core/Npgsql translates the `Contains` to `= ANY(@p)`, one round trip. Rejecti
 5. **`api/routes.ts`** — `params.append` per selected value.
 6. **`Filters.tsx`** — `CompassPicker` + clear button, canonical-order toggle.
 7. **`RouteCard`/`TickedRouteCard`** — `sm` needle + abbreviation in the meta line (extract the shared `RouteMeta` while both files are open).
-8. **`DetailModal`** — `md` rose in the stats row.
+8. **`RouteDetailModal`** — `md` rose in the stats row.
 9. **`RouteFormPage`** — single-select picker.
 10. **Tests** (below), then `dotnet test Acordanza.slnx`, `bun run test` + `bun run build` in both `design-system/` and `frontend/`, `bun run lint`.
-11. **Docs.** `frontend/CLAUDE.md`: the `Filters` bullet (orientation is now multi-valued), the `RouteCard`/`DetailModal` bullets, and a line noting `orientationLabels` now originates in the design system. `backend/CLAUDE.md`: `GET /routes` takes repeated `orientation`. `/DESIGN.md`: the new components.
+11. **Docs.** `frontend/CLAUDE.md`: the `Filters` bullet (orientation is now multi-valued), the `RouteCard`/`RouteDetailModal` bullets, and a line noting `orientationLabels` now originates in the design system. `backend/CLAUDE.md`: `GET /routes` takes repeated `orientation`. `/DESIGN.md`: the new components.
 12. **Verify** with the `run-acordanza` skill: the `sm` needle at real card density, the `md` rose in the modal, and a three-sector filter selection returning the union. The two judgement calls that can't be made from code — which `sm` treatment, and whether square hit targets feel right — were settled against a live prototype before this plan was finalised, so this pass is confirmation against real data, not a second exploration.
 
 ## Testing

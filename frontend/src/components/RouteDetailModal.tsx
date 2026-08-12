@@ -27,7 +27,7 @@ interface Props {
 
 const ACCEPTED_TOPO_TYPES = 'image/jpeg,image/png,image/webp';
 
-export function DetailModal({
+export function RouteDetailModal({
   route,
   error,
   onClose,
@@ -91,7 +91,7 @@ export function DetailModal({
 
   return (
     <Fragment>
-      <Modal onClose={onClose}>
+      <Modal onClose={onClose} wide={true}>
         <div className="detail-head">
           <div>
             <h2>{route.name}</h2>
@@ -113,12 +113,12 @@ export function DetailModal({
             {error && <p className="error-text">{error}</p>}
           </div>
           <div className="detail-actions">
-            {route.validationStatus !== 'approved' && route.canValidate && (
+            {route.validationStatus === 'pending' && route.canValidate && (
               <Button variant="ghost" small onClick={onValidate}>
                 Validar
               </Button>
             )}
-            {route.validationStatus !== 'rejected' && route.canValidate && (
+            {route.validationStatus === 'pending' && route.canValidate && (
               <Button variant="ghost" small danger onClick={() => setRejecting(true)}>
                 Rechazar
               </Button>
