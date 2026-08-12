@@ -5,7 +5,7 @@ import { Badge, Button, EmptyState, List, ListRow } from 'acordanza-design-syste
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
-import { usePendingTasks } from '../context/PendingTasksContext';
+import { usePendingTasks } from '../hooks/usePendingTasks';
 import { PendingAreaExpertRequests } from '../components/PendingAreaExpertRequests';
 import { PendingFirstAscensionistLinkRequests } from '../components/PendingFirstAscensionistLinkRequests';
 import { RejectReasonModal } from '../components/RejectReasonModal';

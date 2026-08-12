@@ -1,8 +1,9 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { get, type CredentialRequestOptionsJSON } from '@github/webauthn-json';
 import { api, setAuthToken } from '../api/client';
 import { queryClient } from '../queryClient';
 import type { LoginResponse, MeResponse } from '../api/types';
+import { AuthContext, type PasskeyChallenge } from './auth-context';
 
 const STORAGE_KEY = 'acordanza.auth';
 
@@ -16,32 +17,6 @@ interface StoredAuth {
   isFirstAscensionist: boolean;
   isAreaExpert: boolean;
 }
-
-export interface PasskeyChallenge {
-  sessionId: string;
-  options: unknown;
-}
-
-export interface AuthContextValue {
-  id: string | null;
-  username: string | null;
-  name: string | null;
-  role: string | null;
-  permissions: string[];
-  isFirstAscensionist: boolean;
-  isAreaExpert: boolean;
-  loading: boolean;
-  hasPermission: (permission: string) => boolean;
-  login: (email: string, password: string) => Promise<PasskeyChallenge | null>;
-  beginPasskeyLogin: () => Promise<PasskeyChallenge>;
-  completeLoginWithPasskey: (challenge: PasskeyChallenge) => Promise<void>;
-  logout: () => void;
-  updateName: (name: string) => void;
-}
-
-// Exported so tests can supply a value directly (see src/test/renderWithProviders.tsx)
-// instead of going through the real provider's localStorage/GET-/auth/me bootstrap.
-export const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [id, setId] = useState<string | null>(null);
@@ -189,10 +164,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
 }

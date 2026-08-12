@@ -4,7 +4,7 @@ import type { RouteFilters } from '../api/types';
 import { gearLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import * as routesApi from '../api/routes';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { AreaPicker } from './AreaPicker';
 
 interface Props {

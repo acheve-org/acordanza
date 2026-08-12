@@ -7,7 +7,7 @@ import * as accountApi from '../api/account';
 import * as passkeysApi from '../api/passkeys';
 import { queryKeys } from '../api/queryKeys';
 import { errorMessage } from '../api/errorMessage';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { formatDate } from '../format';
 import { ChangeEmailModal } from '../components/ChangeEmailModal';
 

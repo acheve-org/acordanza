@@ -5,7 +5,7 @@ import { Permissions } from '../api/permissions';
 import { ManageLayout } from './ManageLayout';
 
 const { usePendingTasksMock } = vi.hoisted(() => ({ usePendingTasksMock: vi.fn() }));
-vi.mock('../context/PendingTasksContext', () => ({ usePendingTasks: usePendingTasksMock }));
+vi.mock('../hooks/usePendingTasks', () => ({ usePendingTasks: usePendingTasksMock }));
 
 function mockPendingTasks(visible: boolean, total = 0) {
   usePendingTasksMock.mockReturnValue({ visible, total });

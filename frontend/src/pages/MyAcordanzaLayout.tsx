@@ -1,5 +1,5 @@
 import { Navigate, NavLink, Outlet } from 'react-router';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { SideNav } from '../components/SideNav';
 
 export function MyAcordanzaLayout() {

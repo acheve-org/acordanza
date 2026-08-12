@@ -1,8 +1,8 @@
 import { NavLink, Navigate, Outlet } from 'react-router';
 import { Badge } from 'acordanza-design-system';
 import { Permissions } from '../api/permissions';
-import { useAuth } from '../context/AuthContext';
-import { usePendingTasks } from '../context/PendingTasksContext';
+import { useAuth } from '../hooks/useAuth';
+import { usePendingTasks } from '../hooks/usePendingTasks';
 import { SideNav } from '../components/SideNav';
 
 export function ManageLayout() {

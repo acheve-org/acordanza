@@ -4,7 +4,7 @@ import { ApiError } from '../api/client';
 import type { CreateTickInput, RouteDetail } from '../api/types';
 import { gearLabels, orientationLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { formatDate } from '../format';
 import { AddTickModal } from './AddTickModal';
 import { RejectReasonModal } from './RejectReasonModal';
