@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button } from 'acordanza-design-system';
+import { Button, CompassPicker } from 'acordanza-design-system';
 import type { RouteFilters } from '../api/types';
-import { gearLabels, orientationLabels } from '../api/types';
+import { gearLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import * as routesApi from '../api/routes';
 import { useAuth } from '../context/AuthContext';
@@ -54,14 +54,12 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
       </select>
 
       <label className="field-label">Orientación</label>
-      <select value={filters.orientation} onChange={(e) => set('orientation', e.target.value)}>
-        <option value="">Cualquiera</option>
-        {Object.entries(orientationLabels).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
+      <CompassPicker value={filters.orientation} onChange={(orientation) => set('orientation', orientation)} />
+      {filters.orientation.length > 0 && (
+        <Button variant="ghost" small onClick={() => set('orientation', [])}>
+          Cualquiera
+        </Button>
+      )}
 
       <label className="field-label">Equipamiento</label>
       <select value={filters.gear} onChange={(e) => set('gear', e.target.value)}>

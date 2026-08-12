@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using Acordanza.Api.Authorization;
 using Acordanza.Core.Data;
@@ -16,6 +17,8 @@ namespace Acordanza.Api.Tests.Controllers;
 // include and a route it must exclude.
 public class RouteFiltersTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 {
+    private sealed record ErrorResponse(string Error);
+
     private const string Alpha = "Alpha Crack";
     private const string Beta = "Beta Wall";
     private const string Gamma = "Gamma Face";
@@ -106,6 +109,36 @@ public class RouteFiltersTests(ApiFixture fixture) : IntegrationTestBase(fixture
         await SeedAsync();
 
         (await GetRouteNamesAsync("?orientation=north")).ShouldBe([Alpha]);
+    }
+
+    [Fact]
+    public async Task Orientation_with_two_values_returns_their_union()
+    {
+        await SeedAsync();
+
+        (await GetRouteNamesAsync("?orientation=north&orientation=south")).ShouldBe([Alpha, Beta], ignoreOrder: true);
+    }
+
+    [Fact]
+    public async Task Orientation_with_an_unknown_value_returns_400()
+    {
+        await SeedAsync();
+
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var response = await user.Client.GetAsync(
+            "/api/routes?orientation=north&orientation=nowhere", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadFromJsonAsync<ErrorResponse>(TestContext.Current.CancellationToken);
+        body!.Error.ShouldBe("la orientación no es válida");
+    }
+
+    [Fact]
+    public async Task No_orientation_parameter_filters_nothing()
+    {
+        await SeedAsync();
+
+        (await GetRouteNamesAsync("")).ShouldBe([Alpha, Beta, Gamma], ignoreOrder: true);
     }
 
     [Fact]

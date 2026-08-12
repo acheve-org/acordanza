@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, gradeBand, ModalActions, RemoveButton } from 'acordanza-design-system';
+import { Button, CompassPicker, gradeBand, ModalActions, RemoveButton, type Orientation } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import { errorMessage } from '../api/errorMessage';
 import type { RouteDetail, UpsertRouteInput } from '../api/types';
-import { gearLabels, orientationLabels } from '../api/types';
+import { gearLabels } from '../api/types';
 import { AreaPicker } from '../components/AreaPicker';
 import { FirstAscensionistPicker } from '../components/FirstAscensionistPicker';
 
@@ -204,14 +204,18 @@ export function RouteFormPage() {
           <div className="grid-2">
             <label>
               Orientación
-              <select value={form.orientation} onChange={(e) => set('orientation', e.target.value)}>
-                <option value="">Sin especificar</option>
-                {Object.entries(orientationLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+              <div className="picker-stack">
+                <CompassPicker
+                  multiple={false}
+                  value={(form.orientation || null) as Orientation | null}
+                  onChange={(o) => set('orientation', o ?? '')}
+                />
+                {form.orientation && (
+                  <Button variant="ghost" small type="button" onClick={() => set('orientation', '')}>
+                    Sin especificar
+                  </Button>
+                )}
+              </div>
             </label>
             <label>
               Equipamiento

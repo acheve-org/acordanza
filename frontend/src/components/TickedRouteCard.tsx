@@ -1,7 +1,7 @@
 import { Fragment, useState } from 'react';
 import { ConfirmModal, GradePill, RemoveButton, gradeBand } from 'acordanza-design-system';
 import type { TickedRoute } from '../api/types';
-import { gearLabels, orientationLabels } from '../api/types';
+import { RouteMeta } from './RouteMeta';
 
 interface Props {
   tick: TickedRoute;
@@ -13,13 +13,6 @@ export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const band = gradeBand(tick.grade);
   const bandClass = band && band !== '1-5' ? ` grade-band-${band}` : '';
-  const meta = [
-    tick.orientation && orientationLabels[tick.orientation],
-    tick.length ? `${tick.length} m` : null,
-    tick.gear && gearLabels[tick.gear],
-  ]
-    .filter(Boolean)
-    .join(' · ');
 
   return (
     <Fragment>
@@ -40,7 +33,7 @@ export function TickedRouteCard({ tick, onSelect, onDelete }: Props) {
           <div className="rc-name">{tick.routeName}</div>
           <div className="rc-sub">{tick.areaPath}</div>
         </div>
-        {meta && <div className="rc-meta">{meta}</div>}
+        <RouteMeta orientation={tick.orientation} length={tick.length} gear={tick.gear} />
         <div className="trc-tick">
           <span className="trc-date">
             {tick.date}

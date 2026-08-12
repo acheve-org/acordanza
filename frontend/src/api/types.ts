@@ -1,4 +1,8 @@
 import type { components } from './generated';
+import { orientationLabels as designSystemOrientationLabels, orientations as designSystemOrientations } from 'acordanza-design-system';
+import type { Orientation } from 'acordanza-design-system';
+
+export type { Orientation };
 
 export type GeoPoint = components['schemas']['GeoPointDto'];
 
@@ -80,7 +84,7 @@ export interface RouteFilters {
   q: string;
   areaId: string;
   grade: string;
-  orientation: string;
+  orientation: Orientation[];
   gear: string;
   hasTopo: string;
 }
@@ -89,7 +93,7 @@ export const emptyRouteFilters: RouteFilters = {
   q: '',
   areaId: '',
   grade: '',
-  orientation: '',
+  orientation: [],
   gear: '',
   hasTopo: '',
 };
@@ -114,18 +118,14 @@ export type MeResponse = components['schemas']['MeResponse'];
 
 export type PasskeySummary = components['schemas']['PasskeySummary'];
 
-// Route `orientation`/`gear` values are stored in English to match the backend; these map them to
+// Route `orientation` is ordered, angular data — the ordered list and Spanish labels
+// live in the design system's Compass module (its geometry needs the ordering too) and
+// are re-exported here so every existing call site keeps working unchanged.
+export const orientations = designSystemOrientations;
+export const orientationLabels = designSystemOrientationLabels;
+
+// Route `gear` values are stored in English to match the backend; this maps them to
 // the Spanish labels shown in the UI (see root CLAUDE.md — all user-facing text is Spanish).
-export const orientationLabels: Record<string, string> = {
-  north: 'Norte',
-  northeast: 'Noreste',
-  east: 'Este',
-  southeast: 'Sureste',
-  south: 'Sur',
-  southwest: 'Suroeste',
-  west: 'Oeste',
-  northwest: 'Noroeste',
-};
 
 export const gearLabels: Record<string, string> = {
   bolted: 'Equipada',

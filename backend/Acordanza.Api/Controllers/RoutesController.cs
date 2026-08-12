@@ -32,7 +32,7 @@ public class RoutesController(
 
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
-        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string? orientation,
+        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string[]? orientation,
         [FromQuery] string? gear, [FromQuery] bool? hasTopo,
         [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false, [FromQuery] bool openedByMe = false)
     {
@@ -77,9 +77,11 @@ public class RoutesController(
         {
             query = query.Where(r => r.Grade == grade);
         }
-        if (!string.IsNullOrWhiteSpace(orientation))
+        if (orientation is { Length: > 0 })
         {
-            query = query.Where(r => r.Orientation == orientation);
+            if (orientation.FirstOrDefault(o => !AllowedOrientations.Contains(o)) is not null)
+                return BadRequest(new { error = "la orientación no es válida" });
+            query = query.Where(r => r.Orientation != null && orientation.Contains(r.Orientation));
         }
         if (!string.IsNullOrWhiteSpace(gear))
         {

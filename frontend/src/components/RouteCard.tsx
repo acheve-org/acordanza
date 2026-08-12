@@ -1,6 +1,7 @@
 import { Chip, GradePill, gradeBand } from 'acordanza-design-system';
 import type { RouteSummary } from '../api/types';
-import { gearLabels, orientationLabels, validationStatusLabels } from '../api/types';
+import { validationStatusLabels } from '../api/types';
+import { RouteMeta } from './RouteMeta';
 
 interface Props {
   route: RouteSummary;
@@ -10,13 +11,6 @@ interface Props {
 export function RouteCard({ route, onClick }: Props) {
   const band = gradeBand(route.grade);
   const bandClass = band && band !== '1-5' ? ` grade-band-${band}` : '';
-  const meta = [
-    route.orientation && orientationLabels[route.orientation],
-    route.length ? `${route.length} m` : null,
-    route.gear && gearLabels[route.gear],
-  ]
-    .filter(Boolean)
-    .join(' · ');
 
   return (
     <div className={`route-card${bandClass}`} onClick={onClick}>
@@ -44,7 +38,7 @@ export function RouteCard({ route, onClick }: Props) {
       {route.validationStatus !== 'approved' && (
         <Chip status={route.validationStatus}>{validationStatusLabels[route.validationStatus]}</Chip>
       )}
-      {meta && <div className="rc-meta">{meta}</div>}
+      <RouteMeta orientation={route.orientation} length={route.length} gear={route.gear} />
     </div>
   );
 }

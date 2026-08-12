@@ -16,7 +16,7 @@ export function listRoutes(filters: RouteFilters, exactArea?: boolean): Promise<
   if (filters.q) params.set('q', filters.q);
   if (filters.areaId) params.set('areaId', filters.areaId);
   if (filters.grade) params.set('grade', filters.grade);
-  if (filters.orientation) params.set('orientation', filters.orientation);
+  for (const o of filters.orientation) params.append('orientation', o);
   if (filters.gear) params.set('gear', filters.gear);
   if (filters.hasTopo) params.set('hasTopo', filters.hasTopo);
   if (exactArea) params.set('exactArea', 'true');

@@ -158,9 +158,10 @@ against whatever's behind it.
 
 ## Components
 
-Source of truth for implementation is `design-system/src/` (11 components: `Button`,
+Source of truth for implementation is `design-system/src/` (12 components: `Button`,
 `Chip`, `EmptyState`, `GradePill`, `Modal`/`ModalActions`, `Pagination`, `List`/`ListRow`,
-`Badge`, `RemoveButton`, `Combobox`) — read the component CSS there for exact rules.
+`Badge`, `RemoveButton`, `Combobox`, `CompassRose`/`CompassPicker`) — read the component
+CSS there for exact rules.
 This section documents intent, not a duplicate spec. `design-system/` carries its own
 Vitest + Testing Library setup (`bun run test` from `design-system/`, wired into CI
 alongside `frontend/`'s), covering keyboard/focus behaviour that a screenshot can't
@@ -219,6 +220,21 @@ it; `leadingOption` pins an extra entry above the list (e.g. a "clear selection"
 row), `closedValue` controls what shows when not focused (typically the current
 selection's label). Filtering and multi/single-select behavior stay with the caller —
 `Combobox` only owns the open/query/dropdown mechanics.
+
+**`CompassRose`/`CompassPicker`** (plan 28) — orientation as a compass rose rather
+than a word. `CompassRose` is display-only, `role="img"`: `size="sm"` (18px, route
+cards) draws a hairline ring with a single needle rather than eight wedges — at that
+size a wedge's neighbour differs only by a 45° rotation of the same blunt shape, so
+only a needle's asymmetric tip stays legibly directional; `size="md"` (56px, the
+detail modal's stats row) draws all eight wedges, the selected one filled `{colors.
+primary}`, plus the four cardinal letters. `CompassPicker` is the interactive
+counterpart — eight native checkbox/radio inputs (`multiple` prop) arranged in a 3×3
+CSS grid (`role`/keyboard behaviour comes from the native control, not hand-rolled
+`aria-pressed`/roving `tabindex`), each cell painting its own wedge that lights up
+`{colors.primary}` on `:checked`. Both share the ordered `Orientation` list and the
+`wedgePath`/`needlePath` geometry in `compass.ts` — the ordering *is* the geometry,
+so it lives with the component, and `frontend/src/api/types.ts` re-exports
+`orientationLabels`/`orientations` from here rather than keeping its own copy.
 
 ## Do's and Don'ts
 

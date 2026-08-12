@@ -47,9 +47,10 @@ describe('RouteCard grade band', () => {
 });
 
 describe('RouteCard meta line', () => {
-  it('renders orientation and length when present', () => {
+  it('renders the orientation needle, abbreviation, length, and gear when present', () => {
     render(<RouteCard route={makeRoute({ orientation: 'south', length: 28, gear: 'bolted' })} onClick={() => {}} />);
-    expect(screen.getByText('Sur · 28 m · Equipada')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Orientación: Sur' })).toBeInTheDocument();
+    expect(screen.getByText('S · 28 m · Equipada')).toBeInTheDocument();
   });
 
   it('omits the meta line when orientation, length, and gear are all absent', () => {

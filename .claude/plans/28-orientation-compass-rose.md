@@ -1,6 +1,6 @@
 # Show orientation as a compass rose, and filter by several at once
 
-Status: not started
+Status: done
 Issue: [#185](https://github.com/acheve-org/acordanza/issues/185)
 Depends on: [17](17-grade-scale-and-pills.md) and [20](20-route-display-revamp.md) only as precedent (`GradePill`/`gradeBand` is the shape this copies: a display component in the design system plus a pure geometry/label module beside it; plan 20 is what put orientation on `RouteCard`'s meta line in the first place). One backend change, in `GET /routes` only — no migration, no data-model change.
 
