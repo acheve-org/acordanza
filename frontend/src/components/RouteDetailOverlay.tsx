@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { DetailModal } from './DetailModal';
+import { RouteDetailModal } from './RouteDetailModal.tsx';
 import * as routesApi from '../api/routes';
 import * as toposApi from '../api/topos';
 import { errorMessage } from '../api/errorMessage';
@@ -122,7 +122,7 @@ export function RouteDetailOverlay() {
   }
 
   return (
-    <DetailModal
+    <RouteDetailModal
       route={route ?? null}
       error={actionError}
       onClose={close}

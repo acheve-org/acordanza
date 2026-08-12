@@ -191,7 +191,7 @@ then `bun run generate-api` from `frontend/`. Both need Postgres + Azurite up an
 
 ### 7. Not doing
 
-- **Rendering any of the new fields on the route detail, card, or area pages.** The issue rules this out explicitly; the revamp issue owns it. `DetailModal` only *loses* markup here.
+- **Rendering any of the new fields on the route detail, card, or area pages.** The issue rules this out explicitly; the revamp issue owns it. `RouteDetailModal` only *loses* markup here.
 - **A `length` / `hasLinks` search filter.** Adding filters is a search-UX decision, not a data-model one, and the issue asks for neither.
 - **Replacing the existing `Gear` enum column.** See the Problem section — if that's wanted, it's a separate change.
 - **Per-link endpoints, link titles, or link-type classification** (topo PDF vs. video vs. blog post). `Url` is the whole model the issue describes.
@@ -216,7 +216,7 @@ then `bun run generate-api` from `frontend/`. Both need Postgres + Azurite up an
 | `frontend/src/pages/RouteFormPage.tsx` | five new fields (§3, §4); `Etiquetas` removed |
 | `frontend/src/components/Filters.tsx` | `Etiqueta` filter removed |
 | `frontend/src/pages/MyTicksPage.tsx` | `Etiqueta` filter removed |
-| `frontend/src/components/DetailModal.tsx` | tag chips + `Chip` import removed |
+| `../../frontend/src/components/RouteDetailModal.tsx` | tag chips + `Chip` import removed |
 | `frontend/src/test/factories.ts` | `tags` removed, new fields added |
 | `frontend/src/api/routes.test.ts` | `tag` assertions removed |
 | `frontend/src/pages/RouteFormPage.test.tsx` | new |

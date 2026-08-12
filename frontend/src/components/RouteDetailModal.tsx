@@ -1,8 +1,8 @@
 import { Fragment, useState, type ChangeEvent } from 'react';
-import { Button, CompassRose, ConfirmModal, GradePill, Modal, RemoveButton, type Orientation } from 'acordanza-design-system';
+import { Button, CompassRose, ConfirmModal, GradePill, Modal, RemoveButton, orientationAbbr, type Orientation } from 'acordanza-design-system';
 import { ApiError } from '../api/client';
 import type { CreateTickInput, RouteDetail } from '../api/types';
-import { gearLabels, orientationLabels } from '../api/types';
+import { gearLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../hooks/useAuth';
 import { formatDate } from '../format';
@@ -27,7 +27,7 @@ interface Props {
 
 const ACCEPTED_TOPO_TYPES = 'image/jpeg,image/png,image/webp';
 
-export function DetailModal({
+export function RouteDetailModal({
   route,
   error,
   onClose,
@@ -91,7 +91,7 @@ export function DetailModal({
 
   return (
     <Fragment>
-      <Modal onClose={onClose}>
+      <Modal onClose={onClose} wide={true}>
         <div className="detail-head">
           <div>
             <h2>{route.name}</h2>
@@ -113,12 +113,12 @@ export function DetailModal({
             {error && <p className="error-text">{error}</p>}
           </div>
           <div className="detail-actions">
-            {route.validationStatus !== 'approved' && route.canValidate && (
+            {route.validationStatus === 'pending' && route.canValidate && (
               <Button variant="ghost" small onClick={onValidate}>
                 Validar
               </Button>
             )}
-            {route.validationStatus !== 'rejected' && route.canValidate && (
+            {route.validationStatus === 'pending' && route.canValidate && (
               <Button variant="ghost" small danger onClick={() => setRejecting(true)}>
                 Rechazar
               </Button>
@@ -151,8 +151,8 @@ export function DetailModal({
               <div className="detail-stat">
                 <span className="detail-stat-label">Orientación</span>
                 <span className="detail-stat-value">
-                  <CompassRose size="md" value={route.orientation as Orientation} />
-                  {orientationLabels[route.orientation as Orientation]}
+                  <CompassRose size="sm" value={route.orientation as Orientation} />
+                  {orientationAbbr[route.orientation as Orientation]}
                 </span>
               </div>
             )}

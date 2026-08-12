@@ -58,13 +58,13 @@ POST /api/routes/{id}/enrich[?force=true]  →  202 Accepted (no body)
 
 A small `RouteEnrichmentQueue` service (Services/) owns the `QueueClient` and the `EnqueueAsync(routeId, force)` call, so the endpoint stays a lookup, a guard, and one line.
 
-**The button** lives in `frontend/src/components/DetailModal.tsx`, beside the existing topo upload, rendered only when `hasPermission(Permissions.routeEnrich)` — the same shape the modal already uses for its other permission-gated actions. It is deliberately plain, because the work is asynchronous and there is nothing to stream:
+**The button** lives in `../../frontend/src/components/RouteDetailModal.tsx`, beside the existing topo upload, rendered only when `hasPermission(Permissions.routeEnrich)` — the same shape the modal already uses for its other permission-gated actions. It is deliberately plain, because the work is asynchronous and there is nothing to stream:
 
 - Label `Buscar enlaces y topo` when `route.enrichedAt` is null; `Volver a buscar` (with a `ConfirmModal`, sending `force=true`) once it is set, alongside a muted `Última búsqueda: {date}`.
 - On click: `POST`, disable the button, and show an inline note — `Buscando en la web. Los resultados aparecerán en unos minutos; recarga la vía para verlos.` No polling, no progress bar, no optimistic rendering of results. The 409 and 503 messages above surface in the same inline slot.
 - `RouteDetail` gains `enrichedAt` (`DateTimeOffset?`) so the button can tell the two states apart. That is the DTO change that forces the OpenAPI/`generated.ts` regeneration.
 
-The prop (`onEnrich`) has to be threaded through `DetailModal`'s six call sites (`SearchPage`, `AreaPage`, `MyTicksPage`, `MyOpeningsPage`, `FirstAscensionistPage`, `PendingTasksPage`) — mechanical, but it is the bulk of the frontend diff.
+The prop (`onEnrich`) has to be threaded through `RouteDetailModal`'s six call sites (`SearchPage`, `AreaPage`, `MyTicksPage`, `MyOpeningsPage`, `FirstAscensionistPage`, `PendingTasksPage`) — mechanical, but it is the bulk of the frontend diff.
 
 Ensure-queue-exists mirrors the blob container: `CreateIfNotExistsAsync` in the startup block that already calls `EnsureContainerExistsAsync` (Azurite side; Terraform owns it in production, like the containers).
 
@@ -202,8 +202,8 @@ Config summary (all under existing patterns): `Anthropic:FoundryResource` (not a
 | `frontend/src/api/generated.ts`, the OpenAPI document | regenerated for the new endpoint + `enrichedAt` — CI's `openapi-contract-check` fails on any diff |
 | `frontend/src/api/permissions.ts` | + `routeEnrich: 'route.enrich'` — the file mirrors `Permissions.cs` and must not drift |
 | `frontend/src/api/routes.ts`, `frontend/src/api/types.ts` | `enrichRoute(id, force)` client call; `enrichedAt` on the route type |
-| `frontend/src/components/DetailModal.tsx` | the trigger button, its confirm-to-re-run, and the inline status/error note (§1) |
-| `frontend/src/pages/{SearchPage,AreaPage,MyTicksPage,MyOpeningsPage,FirstAscensionistPage,PendingTasksPage}.tsx` | thread the `onEnrich` prop + mutation through `DetailModal`'s six call sites |
+| `../../frontend/src/components/RouteDetailModal.tsx` | the trigger button, its confirm-to-re-run, and the inline status/error note (§1) |
+| `frontend/src/pages/{SearchPage,AreaPage,MyTicksPage,MyOpeningsPage,FirstAscensionistPage,PendingTasksPage}.tsx` | thread the `onEnrich` prop + mutation through `RouteDetailModal`'s six call sites |
 | `backend/Acordanza.Api.Tests/Services/LinkRulesTests.cs` | new (unit — moves with the hoist) |
 | `backend/Acordanza.Api.Tests/Controllers/RouteEnrichmentTests.cs` | new (integration — §Testing) |
 | `frontend/src/components/DetailModal.test.tsx` | button visibility by permission, the two label states, 409/503 handling (§Testing) |
