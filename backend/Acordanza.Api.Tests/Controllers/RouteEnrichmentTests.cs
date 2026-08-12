@@ -111,9 +111,9 @@ public class RouteEnrichmentTests(ApiFixture fixture) : IntegrationTestBase(fixt
         using (var scope = Factory.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            var tracked = await db.Routes.FindAsync(route.Id);
+            var tracked = await db.Routes.FindAsync([route.Id], TestContext.Current.CancellationToken);
             tracked!.EnrichedAt = DateTimeOffset.UtcNow;
-            await db.SaveChangesAsync();
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
         var conflict = await admin.Client.PostAsync($"/api/routes/{route.Id}/enrich", null, TestContext.Current.CancellationToken);

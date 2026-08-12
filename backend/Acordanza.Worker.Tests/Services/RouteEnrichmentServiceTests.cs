@@ -82,9 +82,9 @@ public class RouteEnrichmentServiceTests(WorkerFixture fixture) : WorkerTestBase
         var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
         var route = await SeedData.CreateRouteAsync(db, area, user.Id);
 
-        var tracked = await db.Routes.Include(r => r.Links).FirstAsync(r => r.Id == route.Id);
+        var tracked = await db.Routes.Include(r => r.Links).FirstAsync(r => r.Id == route.Id, TestContext.Current.CancellationToken);
         tracked.Links.Add(new Link { Url = "https://example.com/existing" });
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         var found = new List<string>
         {
@@ -97,7 +97,7 @@ public class RouteEnrichmentServiceTests(WorkerFixture fixture) : WorkerTestBase
 
         await service.EnrichAsync(route.Id, force: false, TestContext.Current.CancellationToken);
 
-        var reloaded = await db.Routes.Include(r => r.Links).FirstAsync(r => r.Id == route.Id);
+        var reloaded = await db.Routes.Include(r => r.Links).FirstAsync(r => r.Id == route.Id, TestContext.Current.CancellationToken);
         reloaded.Links.Select(l => l.Url).ShouldBe(["https://example.com/existing", "https://example.com/new"]);
         reloaded.EnrichedAt.ShouldNotBeNull();
     }
@@ -138,7 +138,7 @@ public class RouteEnrichmentServiceTests(WorkerFixture fixture) : WorkerTestBase
 
         await service.EnrichAsync(route.Id, force: false, TestContext.Current.CancellationToken);
 
-        var reloaded = await db.Routes.FindAsync(route.Id);
+        var reloaded = await db.Routes.FindAsync([route.Id], TestContext.Current.CancellationToken);
         reloaded!.ValidationStatus.ShouldBe(ReviewStatus.Approved);
     }
 
@@ -218,7 +218,7 @@ public class RouteEnrichmentServiceTests(WorkerFixture fixture) : WorkerTestBase
 
         var topos = await db.Topos.Where(t => t.RouteId == route.Id).ToListAsync(TestContext.Current.CancellationToken);
         topos.ShouldBeEmpty();
-        var reloaded = await db.Routes.FindAsync(route.Id);
+        var reloaded = await db.Routes.FindAsync([route.Id], TestContext.Current.CancellationToken);
         reloaded!.EnrichedAt.ShouldNotBeNull(); // links/EnrichedAt still land even though the topo didn't
     }
 }
