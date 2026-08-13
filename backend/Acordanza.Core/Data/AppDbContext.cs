@@ -168,6 +168,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.ToTable("Links", "core");
             entity.HasIndex(l => l.RouteId);
             entity.Property(l => l.Url).HasMaxLength(2048);
+            // String-converted like ReviewStatus, and given a store-side default so the
+            // migration that adds the column backfills every pre-existing row as Human
+            // (which they are — see Models/Link.cs) without a hand-written SQL step.
+            entity.Property(l => l.Source).HasConversion<string>().HasMaxLength(20)
+                .HasDefaultValue(LinkSource.Human);
 
             entity.HasOne(l => l.Route)
                 .WithMany(r => r.Links)

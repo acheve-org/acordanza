@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "The golden set for plan 29 §7 — real routes from the production database with a",
+    "hand-checked expected outcome each, run deliberately (never in CI) before and after a",
+    "prompt change. It is checked in empty on purpose: the entries have to be verified by a",
+    "human against the live web, and inventing them would measure nothing.",
+    "",
+    "Fill it with twelve to fifteen routes spanning the hard cases: a generic name, a famous",
+    "route, one with a known blog write-up, one with a published topo, and two or three that",
+    "genuinely have nothing on the web. Then run:",
+    "",
+    "  dotnet test backend/Acordanza.Worker.Tests --filter \"Category=Enrichment\"",
+    "",
+    "with Anthropic:FoundryResource configured and an az login session holding Cognitive",
+    "Services User on the Foundry resource. The run costs real money — roughly one dollar a",
+    "route (see plan 29 §5's cost note), so about $15 a pass.",
+    "",
+    "expectedUrls: URLs a correct run should return. An empty array means 'nothing on the",
+    "web about this route' — a run that returns nothing for it is a success, and that rate is",
+    "the metric this plan cares most about."
+  ],
+  "routes": []
+}

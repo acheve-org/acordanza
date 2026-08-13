@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Anthropic;
@@ -7,9 +8,39 @@ using Azure.Identity;
 
 namespace Acordanza.Worker.Services;
 
-public record RouteEnrichmentContext(string Name, string Grade, string AreaBreadcrumb);
+// Everything about the route that either narrows the search or lets a candidate page be
+// *rejected* (plan 29 §2). The first ascensionists are the point: «La Loca» is a hopeless
+// query, «La Loca» plus an aperturista's name is a precise one, and the names were sitting
+// on the row unused. Length/orientation/gear are weak search terms but cheap rejection
+// signals — a page about a 300 m multi-pitch is not about our 22 m single-pitch of the
+// same name. Lat/Lng come from Area.Centroid* when the sector has a polygon drawn, and
+// disambiguate the breadcrumb (Spain has more than one "Peña Rubia").
+public record RouteEnrichmentContext(
+    string Name,
+    string Grade,
+    string AreaBreadcrumb,
+    IReadOnlyList<string> FirstAscensionists,
+    int Length,
+    string? Orientation,
+    string? Gear,
+    double? Lat,
+    double? Lng);
 
-public record EnrichmentResult(List<string> Links, string? TopoImageUrl);
+// One candidate page. Every field past Url exists to make a wrong answer more expensive to
+// produce than a blank one (plan 29 §2) — in particular Evidence, a quote naming both the
+// route and its sector, which a model can't cheaply fabricate for a page about a different
+// route that happens to share the name. RouteEnrichmentService is what enforces them.
+public record EnrichmentLink(string Url, string? Title, string? Kind, string? Evidence, string? Confidence);
+
+// Completed=false means the run ended on a warning path (a stop_reason that isn't end_turn,
+// i.e. pause_turn/max_tokens/refusal) rather than on a real answer. RouteEnrichmentService
+// leaves EnrichedAt null in that case, so re-pressing the button just works instead of
+// needing force=true to get past a failure that was environmental.
+public record EnrichmentResult(
+    List<EnrichmentLink> Links,
+    string? TopoPageUrl,
+    string? TopoImageUrl,
+    bool Completed = true);
 
 // The test seam (see RouteEnrichmentTests): everything network- and Claude-shaped hides
 // behind this so integration tests fake it and never touch the real API.
@@ -33,7 +64,7 @@ public class NoOpRouteEnrichmentProvider(ILogger<NoOpRouteEnrichmentProvider> lo
     public Task<EnrichmentResult> FindAsync(RouteEnrichmentContext context, CancellationToken cancellationToken)
     {
         logger.LogInformation("enrichment skipped: no Anthropic:FoundryResource configured");
-        return Task.FromResult(new EnrichmentResult([], null));
+        return Task.FromResult(new EnrichmentResult([], null, null));
     }
 }
 
@@ -101,18 +132,50 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
     private readonly IAnthropicClient _client;
     private readonly ILogger<ClaudeRouteEnrichmentProvider> _logger;
 
+    // An array of objects rather than plan 18's bare string array (plan 29 §2): a bare
+    // array makes filling it the path of least resistance and costs nothing to get wrong.
+    // Every field here is a toll on a wrong answer — `evidence` above all, since quoting a
+    // page that names both the route and its sector is a much bigger fabrication step than
+    // inventing a plausible URL was.
     private static readonly IReadOnlyDictionary<string, JsonElement> ResultSchema = JsonSerializer
         .Deserialize<Dictionary<string, JsonElement>>("""
         {
           "type": "object",
           "properties": {
-            "links": { "type": "array", "items": { "type": "string" } },
+            "links": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "url": { "type": "string" },
+                  "title": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["first-ascent", "video", "guidebook", "topo", "sector", "other"] },
+                  "evidence": { "type": "string" },
+                  "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+                },
+                "required": ["url", "title", "kind", "evidence", "confidence"],
+                "additionalProperties": false
+              }
+            },
+            "topoPageUrl": { "type": ["string", "null"] },
             "topoImageUrl": { "type": ["string", "null"] }
           },
-          "required": ["links", "topoImageUrl"],
+          "required": ["links", "topoPageUrl", "topoImageUrl"],
           "additionalProperties": false
         }
         """)!;
+
+    // Hosts that generate confident-looking noise: social aggregators that restate route
+    // databases without adding anything checkable. Deliberately a *blocklist*, not an
+    // allowlist — the best source for a Spanish first-ascent story is a long-tail personal
+    // blog on blogspot/wordpress, and any allowlist we could write would exclude exactly
+    // those while admitting the aggregators. The API treats the two as mutually exclusive,
+    // so this is a real choice, not a default.
+    private static readonly List<string> BlockedSearchDomains =
+    [
+        "pinterest.com", "pinterest.es", "facebook.com", "instagram.com",
+        "x.com", "twitter.com", "tiktok.com"
+    ];
 
     public ClaudeRouteEnrichmentProvider(IConfiguration configuration, ILogger<ClaudeRouteEnrichmentProvider> logger)
     {
@@ -122,15 +185,7 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
 
     public async Task<EnrichmentResult> FindAsync(RouteEnrichmentContext context, CancellationToken cancellationToken)
     {
-        var prompt = $"""
-            You're researching the climbing route "{context.Name}" (grade {context.Grade}) in
-            {context.AreaBreadcrumb}. Search the web for pages specifically about this route or
-            its sector: first-ascent stories, videos, guidebook pages, topo publications. Most
-            sources will be in Spanish. Return only pages that are actually about this route or
-            sector — if nothing specific turns up, return an empty links list rather than
-            tangential results. If one of the pages publishes a topo (route-line) image for this
-            route, return its direct image URL as topoImageUrl; otherwise null.
-            """;
+        var prompt = BuildPrompt(context);
 
         _logger.LogInformation("enrichment calling Messages.Create for route={RouteName}", context.Name);
         Message response;
@@ -147,6 +202,22 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
 
         LogUsage(response.Usage, context.Name);
 
+        // Anything but end_turn means there is no trustworthy final payload: a server-side
+        // tool loop that hit its iteration cap returns pause_turn with no text block (which
+        // used to parse to an empty result and still mark the route enriched), max_tokens
+        // returns truncated JSON (which used to throw out of Deserialize and burn all five
+        // queue redeliveries on an error that recurs identically), and Opus 5's elevated
+        // safety classifiers can return refusal on an HTTP 200. All three are the same
+        // warning path, and all three leave EnrichedAt null so re-pressing the button works.
+        var stopReason = response.StopReason?.Raw();
+        if (IsIncomplete(stopReason))
+        {
+            _logger.LogWarning(
+                "enrichment run incomplete route={RouteName} stopReason={StopReason}: no links applied",
+                context.Name, stopReason);
+            return new EnrichmentResult([], null, null, Completed: false);
+        }
+
         var json = string.Concat(response.Content
             .Select(b => b.Value as TextBlock)
             .Where(t => t is not null)
@@ -154,11 +225,162 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
 
         if (string.IsNullOrWhiteSpace(json))
         {
-            return new EnrichmentResult([], null);
+            return new EnrichmentResult([], null, null);
         }
 
+        _logger.LogInformation("enrichment raw response route={RouteName} json={Json}", context.Name, json);
+
         var parsed = JsonSerializer.Deserialize<EnrichmentPayload>(json, JsonOptions);
-        return new EnrichmentResult(parsed?.Links ?? [], parsed?.TopoImageUrl);
+        var returned = (parsed?.Links ?? [])
+            .Where(l => l.Url is not null)
+            .Select(l => new EnrichmentLink(l.Url!, l.Title, l.Kind, l.Evidence, l.Confidence))
+            .ToList();
+
+        // §1, the highest-leverage change in plan 29 and the only one that is pure
+        // deterministic C#: the response carries the server-side tool traffic as content
+        // blocks alongside the text, so we know exactly which pages the model actually saw.
+        // A URL that isn't among them was reconstructed from memory, and a hallucinated URL
+        // becoming zero links is the failure mode we want.
+        var retrieved = RetrievedUrls(response.Content);
+        var grounded = Ground(returned, retrieved);
+
+        // topoPageUrl is grounded the same way — it's a page, so the model must have seen
+        // it. topoImageUrl deliberately is *not*: an <img src> spotted inside a fetched page
+        // is by construction not itself a retrieved URL, and the download + vision check
+        // downstream is what filters that one.
+        var topoPageUrl = parsed?.TopoPageUrl is { } page && retrieved.Contains(Canonical(page)) ? page : null;
+
+        _logger.LogInformation(
+            "enrichment grounding route={RouteName} returned={Returned} retrieved={Retrieved} grounded={Grounded} topoPageGrounded={TopoPage}",
+            context.Name, returned.Count, retrieved.Count, grounded.Count, topoPageUrl is not null);
+
+        return new EnrichmentResult(grounded, topoPageUrl, parsed?.TopoImageUrl);
+    }
+
+    // Allow-list of one: end_turn is the only stop reason that comes with a payload worth
+    // parsing. A missing stop_reason (streaming-shaped responses) is not treated as a
+    // failure — the payload check below covers it.
+    internal static bool IsIncomplete(string? stopReason) => stopReason is not null && stopReason != "end_turn";
+
+    internal static List<EnrichmentLink> Ground(IEnumerable<EnrichmentLink> returned, HashSet<string> retrieved) =>
+        returned.Where(l => retrieved.Contains(Canonical(l.Url))).ToList();
+
+    private static string BuildPrompt(RouteEnrichmentContext context)
+    {
+        var openers = context.FirstAscensionists.Count > 0
+            ? string.Join(", ", context.FirstAscensionists)
+            : "unknown";
+        var coordinates = context is { Lat: { } lat, Lng: { } lng }
+            ? $"approximately {lat.ToString("F4", CultureInfo.InvariantCulture)}, {lng.ToString("F4", CultureInfo.InvariantCulture)}"
+            : "unknown";
+
+        // The negative contract is most of this prompt, and is the part plan 18's never
+        // stated: what a miss looks like, and that missing is the *expected* outcome.
+        return $"""
+            You're researching one specific climbing route so a private climbing log can link
+            to pages about it. Everything known about the route:
+
+            - Name: {context.Name}
+            - Grade: {context.Grade}
+            - Sector (outermost area first): {context.AreaBreadcrumb}
+            - Approximate coordinates: {coordinates}
+            - First ascensionists (aperturistas): {openers}
+            - Length: {context.Length} m
+            - Orientation: {context.Orientation ?? "unknown"}
+            - Gear / style: {context.Gear ?? "unknown"}
+
+            Search for pages specifically about THIS route — first-ascent stories, videos,
+            guidebook pages, topo publications — or, failing that, about this exact sector.
+            Most sources are in Spanish, so search in Spanish; the aperturistas' names are
+            usually the strongest query term you have. Open the promising results with the
+            web fetch tool before deciding: a page you have read is the only kind you may
+            return.
+
+            Rejecting is the job here, not finding:
+
+            - Most routes in this log are obscure and have nothing written about them. An
+              empty links list is the correct and common answer, not a failure. Do not pad it.
+            - A page about a different route that happens to share this name, in a different
+              area, is a miss, not a partial hit. Discard it.
+            - Use the metadata above as rejection criteria: a page describing a route of a
+              very different length, style, grade or geography is about a different route.
+            - Never return a URL you did not open or receive in a search result. Do not
+              reconstruct, complete or guess a URL — a URL you are not certain of is a miss.
+            - `evidence` must be copied verbatim from the page (not paraphrased) and must name
+              BOTH this route and its sector or crag. If you cannot quote such a sentence, the
+              page does not qualify: leave it out.
+            - Set `confidence` to "high" only when that quote alone would convince a sceptical
+              reader that the page is about this route. Anything less is "medium" or "low",
+              and anything below "high" is discarded downstream.
+
+            If one of the pages publishes a topo (route-line diagram or photo) for this route,
+            set `topoPageUrl` to that page's URL. Set `topoImageUrl` only if you actually saw
+            the topo image's own URL on that page; if you did not see one, leave it null
+            rather than guessing it.
+            """;
+    }
+
+    // Every URL the model demonstrably saw: the search results it was handed and the pages
+    // it opened. Canonicalised on the way in so the comparison in FindAsync is symmetric.
+    internal static HashSet<string> RetrievedUrls(IEnumerable<ContentBlock> content)
+    {
+        var urls = new HashSet<string>();
+        foreach (var block in content)
+        {
+            switch (block.Value)
+            {
+                case WebSearchToolResultBlock search
+                    when search.Content.TryPickWebSearchResultBlocks(out var results):
+                    foreach (var result in results)
+                    {
+                        urls.Add(Canonical(result.Url));
+                    }
+                    break;
+                case WebFetchToolResultBlock fetch
+                    when fetch.Content.TryPickWebFetchBlock(out var fetched):
+                    urls.Add(Canonical(fetched.Url));
+                    break;
+            }
+        }
+        return urls;
+    }
+
+    private static readonly HashSet<string> TrackingParameters = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "fbclid", "gclid", "gbraid", "wbraid", "msclkid", "mc_cid", "mc_eid", "igshid"
+    };
+
+    // Normalises before comparing, because otherwise a link differing from its search
+    // result only by a `?utm_source=` is dropped as ungrounded — trading one failure mode
+    // for another. Redirect chains are deliberately *not* followed here: the reachability
+    // check in RouteEnrichmentService already resolves them, and doing it twice doubles the
+    // request count for no extra signal.
+    internal static string Canonical(string url)
+    {
+        var trimmed = (url ?? "").Trim();
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            return trimmed.ToLowerInvariant();
+        }
+
+        var path = uri.AbsolutePath;
+        if (path.Length > 1 && path.EndsWith('/')) path = path.TrimEnd('/');
+        if (path == "/") path = "";
+
+        var kept = uri.Query.TrimStart('?')
+            .Split('&', StringSplitOptions.RemoveEmptyEntries)
+            .Where(pair =>
+            {
+                var key = pair.Split('=', 2)[0];
+                return !key.StartsWith("utm_", StringComparison.OrdinalIgnoreCase) &&
+                    !TrackingParameters.Contains(key);
+            })
+            .ToList();
+        var query = kept.Count > 0 ? "?" + string.Join("&", kept) : "";
+
+        var authority = uri.Host.ToLowerInvariant() + (uri.IsDefaultPort ? "" : $":{uri.Port}");
+        return $"{uri.Scheme.ToLowerInvariant()}://{authority}{path}{query}";
     }
 
     // `effort` is set explicitly rather than left to the API's "high" default, and it
@@ -191,7 +413,30 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
             // into five identical queue redeliveries.
             MaxTokens = 8192,
             OutputConfig = outputConfig,
-            Tools = [new WebSearchTool20260209 { MaxUses = 5 }],
+            Tools =
+            [
+                new WebSearchTool20260209
+                {
+                    // Recall is the binding constraint, not search fees: a search is a cent
+                    // against a run costing dollars, so three more of them is noise in the
+                    // bill and a real widening of what the model gets to reject from.
+                    MaxUses = 8,
+                    // Search ranking is location-sensitive and every one of these queries is
+                    // Spanish-language and Spain-geographic. Costs nothing; the tool was
+                    // previously told nothing at all.
+                    UserLocation = new UserLocation { Country = "ES", Timezone = "Europe/Madrid" },
+                    BlockedDomains = BlockedSearchDomains
+                },
+                // Web search returns page *text* — it never returns an <img src>, which is
+                // why plan 18's topoImageUrl could not work as written: the model was asked
+                // for a fact that was never in its context, so whatever it answered was a
+                // reconstruction that 404'd on download. Fetch can only open URLs already in
+                // the conversation, which makes the pairing exactly right: search puts
+                // candidates in context, fetch opens the promising ones. It also strengthens
+                // the grounding and evidence rules for free — a model that has opened a page
+                // can quote it, and its URLs land in the retrieved set.
+                new WebFetchTool20260209 { MaxUses = 3, MaxContentTokens = 20000 }
+            ],
             Messages = [new MessageParam { Role = Role.User, Content = prompt }]
         };
     }
@@ -204,8 +449,16 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private sealed record EnrichmentPayload(
-        [property: JsonPropertyName("links")] List<string>? Links,
+        [property: JsonPropertyName("links")] List<PayloadLink>? Links,
+        [property: JsonPropertyName("topoPageUrl")] string? TopoPageUrl,
         [property: JsonPropertyName("topoImageUrl")] string? TopoImageUrl);
+
+    private sealed record PayloadLink(
+        [property: JsonPropertyName("url")] string? Url,
+        [property: JsonPropertyName("title")] string? Title,
+        [property: JsonPropertyName("kind")] string? Kind,
+        [property: JsonPropertyName("evidence")] string? Evidence,
+        [property: JsonPropertyName("confidence")] string? Confidence);
 }
 
 // The topo candidate's verification: a binary image classification, cheap enough that the
@@ -237,10 +490,16 @@ public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
 
     public async Task<bool> IsTopoAsync(TopoVerificationContext context, CancellationToken cancellationToken)
     {
+        // "Plausibly matching" (plan 18's wording) invites a yes for any topo of any route
+        // on the crag, which is most of them — the bar is identification, not plausibility.
         var prompt = $"""
-            Is this image a climbing topo (route-line photo/diagram) plausibly matching the
-            route "{context.Name}" (grade {context.Grade}) in {context.AreaBreadcrumb}?
-            Answer via the schema.
+            Is this image a climbing topo (a route-line photo or diagram) on which the line or
+            the name of the route "{context.Name}" (grade {context.Grade}) in
+            {context.AreaBreadcrumb} is itself identifiably marked?
+
+            A topo of the sector that does not identify this particular route is a no, even
+            when the route is somewhere on the wall it shows. So is any other image: a photo
+            of a climber, a map, a logo, a page screenshot. Answer via the schema.
             """;
 
         var imageBlock = new ContentBlockParam(new ImageBlockParam

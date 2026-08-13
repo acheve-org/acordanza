@@ -4949,7 +4949,7 @@
           "links": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/RouteLinkDto"
             }
           },
           "firstAscensionists": {
@@ -5105,7 +5105,7 @@
           "links": {
             "type": "array",
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/RouteLinkDto"
             }
           },
           "firstAscensionists": {
@@ -5151,6 +5151,21 @@
           },
           "canValidate": {
             "type": "boolean"
+          }
+        }
+      },
+      "RouteLinkDto": {
+        "required": [
+          "url",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
           }
         }
       },

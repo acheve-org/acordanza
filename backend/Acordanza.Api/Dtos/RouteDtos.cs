@@ -1,5 +1,12 @@
 namespace Acordanza.Api.Dtos;
 
+// Read-side only, and deliberately asymmetric with UpsertRouteRequest.Links, which stays a
+// bare string array: anything arriving over HTTP is human-entered by definition, so a
+// request body has no business asserting its own provenance — accepting one would make
+// Link.Source forgeable. Source is the lowercased LinkSource name ("human"/"enrichment"),
+// same convention as ValidationStatus.
+public record RouteLinkDto(string Url, string Source);
+
 public record RouteDto(
     int Id,
     string Name,
@@ -16,7 +23,7 @@ public record RouteDto(
     string? ObligatoryGrade,
     string? RecommendedGear,
     string? OptionalGear,
-    List<string> Links,
+    List<RouteLinkDto> Links,
     List<FirstAscensionistDto> FirstAscensionists,
     string AddedBy,
     DateTimeOffset CreatedAt,
@@ -45,7 +52,7 @@ public record RouteDetailDto(
     string? ObligatoryGrade,
     string? RecommendedGear,
     string? OptionalGear,
-    List<string> Links,
+    List<RouteLinkDto> Links,
     List<FirstAscensionistDto> FirstAscensionists,
     string AddedBy,
     DateTimeOffset CreatedAt,

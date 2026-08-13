@@ -161,7 +161,8 @@ public class RouteFieldsTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 
         var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
-        detail!.Links.ShouldBe(links);
+        detail!.Links.Select(l => l.Url).ShouldBe(links);
+        detail.Links.Select(l => l.Source).ShouldAllBe(source => source == "human");
     }
 
     [Theory]
@@ -207,7 +208,7 @@ public class RouteFieldsTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 
         var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
-        detail!.Links.ShouldBe(["https://example.com/a", "https://example.com/b"]);
+        detail!.Links.Select(l => l.Url).ShouldBe(["https://example.com/a", "https://example.com/b"]);
     }
 
     [Fact]
@@ -231,7 +232,7 @@ public class RouteFieldsTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 
         var detail = await moderator.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created.Id}", TestContext.Current.CancellationToken);
-        detail!.Links.ShouldBe(["https://example.com/a"]);
+        detail!.Links.Select(l => l.Url).ShouldBe(["https://example.com/a"]);
 
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();

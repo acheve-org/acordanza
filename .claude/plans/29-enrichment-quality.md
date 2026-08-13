@@ -1,6 +1,6 @@
 # Enrichment quality: ground every link in a retrieved URL, and make the topo findable at all
 
-Status: §5 (the model swap) landed ahead of the rest; §1–§4, §6–§7 not started
+Status: Done — §5 landed ahead of the rest; §1–§4, §6–§7 implemented. Two things this plan asked for that only a human can do: fill `backend/Acordanza.Worker.Tests/Services/GoldenSet.json` from the real database and run the golden set (§7), and the manual smoke against real Foundry that decides §4's open question (does the fetch conversion preserve image URLs, i.e. does path 1 or path 2 ship). §4's copyright decision was left where the plan put it — path 1 (import) stays the default, and switching to link-only is one branch in `EnrichAsync`.
 Issue: not filed yet — file one and link it here before the `plan:` commit
 Depends on: [18](18-route-enrichment-worker.md) — this plan is that feature retuned after its first real use, and every decision below either amends or inherits one of its decisions; [22](22-worker-project-split.md) for `Acordanza.Worker`, the project all the backend changes land in. One migration (`Link.Source`, §6). No frontend change except the badge that column exists to drive (§6). No new Terraform except the Foundry deployment swap in §5, which is a value change, not a new resource.
 
@@ -186,6 +186,10 @@ Precision is the target, not recall. Two correct links beat five links of which 
 | `backend/Acordanza.Worker.Tests/Services/EnrichmentGoldenSetTests.cs` | new — `Category=Enrichment` (§7) |
 | `.github/workflows/ci-cd.yml` | **both** test jobs exclude `Category=Enrichment` (`:64`, `:72`) — §7 |
 | `infra/terraform/ai_foundry.tf` | ~~deployment swapped to `claude-opus-5`~~ — landed (§5) |
+| `backend/Acordanza.Worker.Tests/Services/EnrichmentGroundingTests.cs` | new — unit-tier `Canonical`/`Ground`/`RetrievedUrls`/`IsIncomplete` (§Testing) |
+| `backend/Acordanza.Worker.Tests/Services/GoldenSet.json` | new — the golden set itself, checked in empty for a human to fill (§7) |
+| `frontend/src/styles.css` | `.detail-link-source`, the muted badge (§6) |
+| `frontend/src/components/RouteDetailModal.test.tsx` | link fixtures carry the new shape; badge assertion |
 
 ## Steps
 

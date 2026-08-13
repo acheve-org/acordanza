@@ -115,7 +115,7 @@ public class RoutesController(
             r.Id, r.Name, r.Slug, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId), areas.SlugPath(r.AreaId),
             r.Grade, r.Orientation, r.Gear, r.Description,
             r.Length, r.ObligatoryGrade, r.RecommendedGear, r.OptionalGear,
-            r.Links.Select(l => l.Url).ToList(),
+            r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
             r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             r.AddedBy.Name, r.CreatedAt,
             tickedRouteIds.Contains(r.Id),
@@ -251,7 +251,7 @@ public class RoutesController(
             areas.SlugPath(route.AreaId),
             route.Grade, route.Orientation, route.Gear, route.Description,
             route.Length, route.ObligatoryGrade, route.RecommendedGear, route.OptionalGear,
-            route.Links.Select(l => l.Url).ToList(),
+            route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
             route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             route.AddedBy.Name, route.CreatedAt,
             hasTick,
@@ -315,7 +315,7 @@ public class RoutesController(
             ObligatoryGrade = obligatoryGrade,
             RecommendedGear = recommendedGear,
             OptionalGear = optionalGear,
-            Links = links!.Select(u => new Link { Url = u }).ToList(),
+            Links = links!.Select(u => new Link { Url = u, Source = LinkSource.Human }).ToList(),
             AddedByUserId = userId,
             FirstAscensionists = firstAscensionists!
         };
@@ -415,7 +415,7 @@ public class RoutesController(
         route.OptionalGear = optionalGear;
 
         route.Links.Clear();
-        route.Links.AddRange(links!.Select(u => new Link { Url = u }));
+        route.Links.AddRange(links!.Select(u => new Link { Url = u, Source = LinkSource.Human }));
 
         route.FirstAscensionists.Clear();
         route.FirstAscensionists.AddRange(firstAscensionists!);

@@ -71,7 +71,10 @@ export function RouteFormPage() {
           obligatoryGrade: r.obligatoryGrade ?? '',
           recommendedGear: r.recommendedGear ?? '',
           optionalGear: r.optionalGear ?? '',
-          links: r.links,
+          // The form edits a bare list of URLs — provenance is read-only (plan 29 §6) and
+          // the write DTO has no source field, so anything saved from here is human-entered
+          // by definition, including an enrichment link a reviewer chose to keep.
+          links: r.links.map((l) => l.url),
           firstAscensionistIds: r.firstAscensionists.map((o) => o.id),
         });
       })
