@@ -3239,7 +3239,7 @@ export interface components {
             obligatoryGrade: null | string;
             recommendedGear: null | string;
             optionalGear: null | string;
-            links: string[];
+            links: components["schemas"]["RouteLinkDto"][];
             firstAscensionists: components["schemas"]["FirstAscensionistDto"][];
             addedBy: string;
             /** Format: date-time */
@@ -3274,7 +3274,7 @@ export interface components {
             obligatoryGrade: null | string;
             recommendedGear: null | string;
             optionalGear: null | string;
-            links: string[];
+            links: components["schemas"]["RouteLinkDto"][];
             firstAscensionists: components["schemas"]["FirstAscensionistDto"][];
             addedBy: string;
             /** Format: date-time */
@@ -3287,6 +3287,10 @@ export interface components {
             decidedByName: null | string;
             rejectionReason: null | string;
             canValidate: boolean;
+        };
+        RouteLinkDto: {
+            url: string;
+            source: string;
         };
         RoutePendingDto: {
             /** Format: int32 */

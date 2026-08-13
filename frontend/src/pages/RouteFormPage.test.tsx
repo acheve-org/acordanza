@@ -251,7 +251,12 @@ describe('RouteFormPage', () => {
       obligatoryGrade: 'V+',
       recommendedGear: '12 cintas',
       optionalGear: 'friends medianos',
-      links: ['https://example.com/a', 'https://example.com/b'],
+      links: [
+        { url: 'https://example.com/a', source: 'human' },
+        // An enrichment-sourced link still loads into the form as a plain URL — the edit
+        // model is a bare string list, and re-saving it makes it human-entered (plan 29 §6).
+        { url: 'https://example.com/b', source: 'enrichment' },
+      ],
     });
     server.use(
       http.get(`${API_URL}/routes/7`, () => HttpResponse.json(routeDetail)),

@@ -466,6 +466,13 @@ namespace Acordanza.Core.Migrations
                     b.Property<int>("RouteId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Human");
+
                     b.Property<string>("Url")
                         .IsRequired()
                         .HasMaxLength(2048)

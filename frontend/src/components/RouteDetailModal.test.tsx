@@ -105,7 +105,10 @@ describe('DetailModal new sections (plan 20)', () => {
       obligatoryGrade: '6a',
       recommendedGear: 'Friends hasta 3',
       optionalGear: 'Estribos',
-      links: ['https://example.com/topo'],
+      links: [
+        { url: 'https://example.com/topo', source: 'human' },
+        { url: 'https://example.com/auto', source: 'enrichment' },
+      ],
     });
 
     expect(screen.getByText('28 m')).toBeInTheDocument();
@@ -118,6 +121,13 @@ describe('DetailModal new sections (plan 20)', () => {
     expect(screen.getByRole('link', { name: 'https://example.com/topo' })).toHaveAttribute(
       'href',
       'https://example.com/topo',
+    );
+    // Only the worker-appended one is badged (plan 29 §6).
+    expect(screen.getByRole('link', { name: /https:\/\/example\.com\/auto/ })).toHaveTextContent(
+      'automático',
+    );
+    expect(screen.getByRole('link', { name: 'https://example.com/topo' })).not.toHaveTextContent(
+      'automático',
     );
   });
 

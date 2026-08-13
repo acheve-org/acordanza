@@ -60,8 +60,12 @@ jobs:
       - name: Build
         run: dotnet build Acordanza.slnx --no-restore -c Release
 
+      # Category=Enrichment is the hand-run golden set (plan 29 §7): real Foundry calls and
+      # real network requests, so it is excluded from *both* jobs. Integration tests are not
+      # opted into by a filter, they are simply not filtered out — so a new trait would
+      # otherwise run on every push and spend real money.
       - name: Unit test
-        run: dotnet test Acordanza.slnx --no-build -c Release --filter "Category!=Integration"
+        run: dotnet test Acordanza.slnx --no-build -c Release --filter "Category!=Integration&Category!=Enrichment"
 
       # Runs against real Postgres + Azurite via Testcontainers (see
       # backend/Acordanza.Api.Tests/Infrastructure/ApiFixture.cs) — ubuntu-latest has
@@ -69,7 +73,7 @@ jobs:
       # runner requirement. Kept as its own step (rather than folded into the one
       # above) so a failure here reads unambiguously in the log.
       - name: Integration test
-        run: dotnet test Acordanza.slnx --no-build -c Release
+        run: dotnet test Acordanza.slnx --no-build -c Release --filter "Category!=Enrichment"
 
   build-test-frontend:
     name: Frontend build & test

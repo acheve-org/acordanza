@@ -18,4 +18,10 @@
   <ItemGroup>
     <ProjectReference Include="../Acordanza.Worker/Acordanza.Worker.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The hand-run enrichment golden set reads this at Category=Enrichment time. -->
+    <None Update="Services/GoldenSet.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

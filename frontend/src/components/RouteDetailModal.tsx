@@ -184,8 +184,12 @@ export function RouteDetailModal({
             <h3>Enlaces</h3>
             <div className="tag-row">
               {route.links.map((link) => (
-                <a key={link} href={link} target="_blank" rel="noreferrer" className="detail-link">
-                  {link}
+                <a key={link.url} href={link.url} target="_blank" rel="noreferrer" className="detail-link">
+                  {link.url}
+                  {/* Enrichment links are appended by the worker without a human ever
+                      looking at them (plan 29 §6) — the badge is how a reader knows which
+                      ones to distrust, and which ones to delete from the edit form. */}
+                  {link.source === 'enrichment' && <span className="detail-link-source">automático</span>}
                 </a>
               ))}
             </div>
