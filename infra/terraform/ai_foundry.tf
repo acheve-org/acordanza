@@ -33,13 +33,11 @@ resource "azapi_resource" "ai_foundry" {
     }
     properties = {
       customSubDomainName = local.ai_foundry_account_name
-      # Required for the account to carry a full AI Foundry project/workspace
-      # rather than a bare Cognitive Services account — without it, Anthropic's
-      # server-side tools and structured outputs 400 with "not supported in
-      # your workspace" even on a "Hosted on Anthropic" deployment (see the
-      # claude_opus/claude_haiku deployments below). This was the property the
-      # top-of-file comment cites as the reason for using azapi_resource over
-      # azurerm_cognitive_account, but it was never actually set here.
+      # Lets the account carry Foundry projects, matching Microsoft's reference
+      # implementation (linked above) — this is the property the top-of-file
+      # comment cites as a reason for azapi_resource over azurerm_cognitive_account,
+      # and it was never actually set until now. It is NOT what gates the
+      # server-side tools: that is the deployment's model.version (see below).
       allowProjectManagement = true
       publicNetworkAccess    = "Enabled"
       # No local (API key) auth — the worker and API both authenticate via
@@ -51,9 +49,25 @@ resource "azapi_resource" "ai_foundry" {
 }
 
 # GlobalStandard, "Hosted on Anthropic" (not "Hosted on Azure") — required:
-# structured outputs and the server-side web search tool 400 on
+# structured outputs and the server-side web search/fetch tools 400 on
 # Azure-hosted deployments as of mid-2026 (see RouteEnrichmentService's
-# search call). model.format = "Anthropic" is what selects that hosting type.
+# search call).
+#
+# model.version — NOT model.format — is what selects the hosting type:
+# version "1" is Hosted on Anthropic, version "2" is Hosted on Azure, and
+# Azure assigns version 2 by default when none is pinned. `format` only names
+# the publisher, so the original config (format set, version omitted) silently
+# produced an Azure-hosted deployment, and every enrichment run 400'd with
+# "code_execution, structured_outputs, web_fetch, web_search not supported in
+# your workspace" — a message about the deployment's capability set, not about
+# account-level permissions. Azure-hosted carries only Microsoft's documented
+# "core capability set"; the server-side tools live on Anthropic-hosted:
+# https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/claude-models-hosting-comparison
+#
+# versionUpgradeOption is NoAutoUpgrade for the same reason: on
+# OnceNewDefaultVersionAvailable, Azure moves the deployment to whatever the
+# new default version is — i.e. back to the Azure-hosted variant — which would
+# re-break enrichment silently, with no diff in this file to explain it.
 #
 # claude-opus-5, replacing the claude-sonnet-4-5 deployment this account
 # originally carried. That pin existed only because the subscription had 0
@@ -83,19 +97,36 @@ resource "azapi_resource" "claude_opus" {
     }
     properties = {
       model = {
-        format = "Anthropic"
-        name   = "claude-opus-5"
+        format  = "Anthropic"
+        name    = "claude-opus-5"
+        version = "1" # Hosted on Anthropic — see the comment above
       }
       modelProviderData = {
         organizationName = var.claude_organization_name
         countryCode      = var.claude_country_code
         industry         = var.claude_industry
       }
-      versionUpgradeOption = "OnceNewDefaultVersionAvailable"
+      versionUpgradeOption = "NoAutoUpgrade"
     }
   }
 }
 
+# Also Hosted on Anthropic, for a narrower reason than claude_opus: the topo
+# vision check uses no server-side tools, but it does use structured outputs
+# (ClaudeTopoVerificationProvider's JsonOutputFormat), which is on the same
+# Azure-hosted exclusion list. Pinning only the opus deployment would leave
+# every topo verification 400ing.
+#
+# Note the version is "20251001", not "1" — the Anthropic-hosted version id is
+# per-model, not a convention, and claude-haiku-4-5 has no version "1" at all
+# (an apply would fail outright). Confirm the right value against the catalog
+# rather than copying opus's, since the hosting type is what actually matters:
+#
+#   az rest --method get --url "https://management.azure.com/subscriptions/\
+#   $SUB/providers/Microsoft.CognitiveServices/locations/swedencentral/\
+#   models?api-version=2025-10-01-preview"
+#
+# and take the version whose capabilities carry `"hostedOn": "anthropic"`.
 resource "azapi_resource" "claude_haiku" {
   type                      = "Microsoft.CognitiveServices/accounts/deployments@2025-10-01-preview"
   name                      = "claude-haiku-4-5"
@@ -109,15 +140,16 @@ resource "azapi_resource" "claude_haiku" {
     }
     properties = {
       model = {
-        format = "Anthropic"
-        name   = "claude-haiku-4-5"
+        format  = "Anthropic"
+        name    = "claude-haiku-4-5"
+        version = "20251001" # Hosted on Anthropic — see the comment above
       }
       modelProviderData = {
         organizationName = var.claude_organization_name
         countryCode      = var.claude_country_code
         industry         = var.claude_industry
       }
-      versionUpgradeOption = "OnceNewDefaultVersionAvailable"
+      versionUpgradeOption = "NoAutoUpgrade"
     }
   }
 
