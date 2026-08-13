@@ -33,7 +33,15 @@ resource "azapi_resource" "ai_foundry" {
     }
     properties = {
       customSubDomainName = local.ai_foundry_account_name
-      publicNetworkAccess = "Enabled"
+      # Required for the account to carry a full AI Foundry project/workspace
+      # rather than a bare Cognitive Services account — without it, Anthropic's
+      # server-side tools and structured outputs 400 with "not supported in
+      # your workspace" even on a "Hosted on Anthropic" deployment (see the
+      # claude_opus/claude_haiku deployments below). This was the property the
+      # top-of-file comment cites as the reason for using azapi_resource over
+      # azurerm_cognitive_account, but it was never actually set here.
+      allowProjectManagement = true
+      publicNetworkAccess    = "Enabled"
       # No local (API key) auth — the worker and API both authenticate via
       # the container app's managed identity (Entra ID token), matching the
       # "no stored API key" decision in the plan.
