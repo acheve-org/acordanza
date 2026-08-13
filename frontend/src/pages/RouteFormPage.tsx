@@ -154,41 +154,36 @@ export function RouteFormPage() {
 
   return (
     <main className="settings-page">
-      <h1>{editing ? 'Editar vía' : 'Añadir una vía'}</h1>
+      <h1>{editing ? 'Editar vía' : 'Nueva vía'}</h1>
       <section className="settings-section">
         <form onSubmit={handleSubmit}>
+          {error && <p className="error-text">{error}</p>}
           <div className="grid-2">
             <label>
               Nombre
               <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} />
             </label>
             <label>
-              Grado <span className="hint">(escala francesa)</span>
+              Equipamiento
+              <select value={form.gear} onChange={(e) => set('gear', e.target.value)}>
+                <option value="">Sin especificar</option>
+                {Object.entries(gearLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="grid-3">
+            <label>
+              Grado
               <input
                 type="text"
                 required
                 placeholder="6a, 7c+, 8a…"
                 value={form.grade}
                 onChange={(e) => set('grade', e.target.value)}
-              />
-            </label>
-          </div>
-          <p className="error-text">{error}</p>
-          <label>
-            Sector
-            <AreaPicker value={form.areaId || null} onChange={(areaId) => set('areaId', areaId ?? 0)} allowCreate />
-          </label>
-          <div className="grid-2">
-            <label>
-              Longitud <span className="hint">(metros)</span>
-              <input
-                type="number"
-                required
-                min={6}
-                max={2999}
-                step={1}
-                value={form.length}
-                onChange={(e) => set('length', Number(e.target.value))}
               />
             </label>
             <label>
@@ -200,8 +195,24 @@ export function RouteFormPage() {
                 onChange={(e) => set('obligatoryGrade', e.target.value)}
               />
             </label>
+            <label>
+              Longitud (metros)
+              <input
+                type="number"
+                required
+                min={6}
+                max={2999}
+                step={1}
+                value={form.length}
+                onChange={(e) => set('length', Number(e.target.value))}
+              />
+            </label>
           </div>
           <div className="grid-2">
+            <label>
+              Sector
+              <AreaPicker value={form.areaId || null} onChange={(areaId) => set('areaId', areaId ?? 0)} allowCreate />
+            </label>
             <label>
               Orientación
               <div className="picker-stack">
@@ -217,36 +228,27 @@ export function RouteFormPage() {
                 )}
               </div>
             </label>
+          </div>
+          <div className="grid-2">
             <label>
-              Equipamiento
-              <select value={form.gear} onChange={(e) => set('gear', e.target.value)}>
-                <option value="">Sin especificar</option>
-                {Object.entries(gearLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+              Material recomendado
+              <input
+                type="text"
+                placeholder="12 cintas, cuerda de 60 m…"
+                value={form.recommendedGear}
+                onChange={(e) => set('recommendedGear', e.target.value)}
+              />
+            </label>
+            <label>
+              Material opcional
+              <input
+                type="text"
+                placeholder="friends medianos, empotradores…"
+                value={form.optionalGear}
+                onChange={(e) => set('optionalGear', e.target.value)}
+              />
             </label>
           </div>
-          <label>
-            Material recomendado
-            <input
-              type="text"
-              placeholder="12 cintas, cuerda de 60 m…"
-              value={form.recommendedGear}
-              onChange={(e) => set('recommendedGear', e.target.value)}
-            />
-          </label>
-          <label>
-            Material opcional
-            <input
-              type="text"
-              placeholder="friends medianos, empotradores…"
-              value={form.optionalGear}
-              onChange={(e) => set('optionalGear', e.target.value)}
-            />
-          </label>
           <label>
             Descripción
             <textarea
@@ -256,6 +258,21 @@ export function RouteFormPage() {
               onChange={(e) => set('description', e.target.value)}
             />
           </label>
+          <label>
+            Apertura
+            <FirstAscensionistPicker
+              value={form.firstAscensionistIds}
+              onChange={(firstAscensionistIds) => set('firstAscensionistIds', firstAscensionistIds)}
+            />
+          </label>
+          <ModalActions>
+            <Button as={Link} variant="ghost" to="/routes">
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={!form.areaId}>
+              Guardar vía
+            </Button>
+          </ModalActions>
           <div>
             <label>
               Enlaces
@@ -277,21 +294,6 @@ export function RouteFormPage() {
               + Añadir enlace
             </Button>
           </div>
-          <label>
-            Apertura
-            <FirstAscensionistPicker
-              value={form.firstAscensionistIds}
-              onChange={(firstAscensionistIds) => set('firstAscensionistIds', firstAscensionistIds)}
-            />
-          </label>
-          <ModalActions>
-            <Button as={Link} variant="ghost" to="/routes">
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={!form.areaId}>
-              Guardar vía
-            </Button>
-          </ModalActions>
         </form>
       </section>
     </main>

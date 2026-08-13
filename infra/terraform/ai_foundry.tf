@@ -1,5 +1,5 @@
 # Azure AI Foundry resource + two Claude deployments for the route
-# enrichment worker (plan 18): claude-sonnet-5 for the search-and-extract
+# enrichment worker (plan 18): claude-opus-5 for the search-and-extract
 # call (RouteEnrichmentService), claude-haiku-4-5 for the topo vision check.
 # Both deployments are hosted on the same Foundry account (kind = AIServices).
 #
@@ -47,16 +47,24 @@ resource "azapi_resource" "ai_foundry" {
 # Azure-hosted deployments as of mid-2026 (see RouteEnrichmentService's
 # search call). model.format = "Anthropic" is what selects that hosting type.
 #
-# TEMPORARY: pinned to claude-sonnet-4-5, not claude-sonnet-5 — this
-# subscription has 0 default GlobalStandard TPM quota for claude-sonnet-5 in
-# every region checked (`az cognitiveservices usage list -l <region>`),
-# while claude-sonnet-4-5 already has 80. Revert to claude-sonnet-5 (and the
-# matching Model string in IRouteEnrichmentProvider.cs) once a quota
-# increase is approved — see infra/README.md's quota-request note (#172 CI
-# run) for the support-ticket details.
-resource "azapi_resource" "claude_sonnet" {
+# claude-opus-5, replacing the claude-sonnet-4-5 deployment this account
+# originally carried. That pin existed only because the subscription had 0
+# GlobalStandard TPM quota for claude-sonnet-5; opus-5 quota is available, so
+# the workaround is gone rather than merely relaxed. The model choice is not
+# incidental to the search-and-extract call it serves (plan 29 §5): on
+# sonnet-4-5 that call's `web_search_20260209` tool ran without its dynamic
+# filtering (server-side, 4.6-and-later only), and `output_config.effort` was
+# skipped altogether by the ClaudeModelCapabilities guard, since sonnet-4-5
+# 400s on it. Both now apply. Keep the deployment name equal to the model name: the
+# worker passes it straight through as MessageCreateParams.Model
+# (IRouteEnrichmentProvider.cs), so a mismatch is a 404 at request time.
+#
+# capacity = 1 carries over from the sonnet deployment, which sustained this
+# workload's rate. The search loop is token-heavy per request, so if the job
+# starts logging 429s from Foundry, capacity is the first thing to raise.
+resource "azapi_resource" "claude_opus" {
   type                      = "Microsoft.CognitiveServices/accounts/deployments@2025-10-01-preview"
-  name                      = "claude-sonnet-4-5"
+  name                      = "claude-opus-5"
   parent_id                 = azapi_resource.ai_foundry.id
   schema_validation_enabled = false # required to allow modelProviderData
 
@@ -68,7 +76,7 @@ resource "azapi_resource" "claude_sonnet" {
     properties = {
       model = {
         format = "Anthropic"
-        name   = "claude-sonnet-4-5"
+        name   = "claude-opus-5"
       }
       modelProviderData = {
         organizationName = var.claude_organization_name
@@ -107,7 +115,7 @@ resource "azapi_resource" "claude_haiku" {
 
   # Foundry serializes deployment creation per account — chaining avoids a
   # 409 from both deployments landing concurrently on the first apply.
-  depends_on = [azapi_resource.claude_sonnet]
+  depends_on = [azapi_resource.claude_opus]
 }
 
 # Grants the container app's managed identity (used by both the API and the
