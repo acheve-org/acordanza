@@ -75,7 +75,7 @@ describe('RouteFormPage', () => {
     renderCreateForm();
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
+    await user.type(screen.getByLabelText('Grado'), '6a');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await user.type(screen.getByLabelText('Grado obligatorio'), 'V+');
@@ -111,7 +111,7 @@ describe('RouteFormPage', () => {
     renderCreateForm();
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
+    await user.type(screen.getByLabelText('Grado'), '6a');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await selectArea(user, 'Peña Rúa');
@@ -148,7 +148,7 @@ describe('RouteFormPage', () => {
 
     await user.click(screen.getByRole('radio', { name: 'Norte' }));
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
+    await user.type(screen.getByLabelText('Grado'), '6a');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await selectArea(user, 'Peña Rúa');
@@ -175,7 +175,7 @@ describe('RouteFormPage', () => {
     renderCreateForm();
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
+    await user.type(screen.getByLabelText('Grado'), '6a');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await selectArea(user, 'Peña Rúa');
@@ -210,7 +210,7 @@ describe('RouteFormPage', () => {
     });
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6a');
+    await user.type(screen.getByLabelText('Grado'), '6a');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await selectArea(user, 'Peña Rúa');
@@ -289,7 +289,7 @@ describe('RouteFormPage', () => {
     renderCreateForm();
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado (escala francesa)'), 'V+');
+    await user.type(screen.getByLabelText('Grado'), 'V+');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await selectArea(user, 'Peña Rúa');
@@ -319,7 +319,7 @@ describe('RouteFormPage', () => {
     renderCreateForm();
 
     await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
-    await user.type(screen.getByLabelText('Grado (escala francesa)'), '6A');
+    await user.type(screen.getByLabelText('Grado'), '6A');
     await user.clear(screen.getByLabelText(/Longitud/));
     await user.type(screen.getByLabelText(/Longitud/), '30');
     await selectArea(user, 'Peña Rúa');

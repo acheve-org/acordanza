@@ -83,13 +83,20 @@ public static class FoundryClient
 // authenticates with its managed identity instead of a stored API key.
 public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
 {
-    // TEMPORARY: claude-sonnet-4-5, not claude-sonnet-5 — matches the Foundry
-    // deployment name pinned in infra/terraform/ai_foundry.tf due to a 0 TPM
-    // quota on claude-sonnet-5 in this subscription. Revert both together.
-    // A named constant (rather than inlining the literal below) so
-    // ClaudeModelCapabilitiesTests can assert this exact model's effort
-    // support without duplicating the string.
-    internal const string Model = "claude-sonnet-4-5";
+    // Must equal the Foundry deployment name in infra/terraform/ai_foundry.tf —
+    // the SDK sends this string through as the model id, so the two move
+    // together or every request 404s. A named constant (rather than inlining
+    // the literal below) so ClaudeModelCapabilitiesTests can assert this exact
+    // model's effort support without duplicating the string.
+    //
+    // Was claude-sonnet-4-5, for a quota reason that no longer applies. Two
+    // capabilities this call is built around only exist from here: the
+    // WebSearchTool20260209 declared below ran without its dynamic filtering
+    // (server-side filtering of results before they reach the context window,
+    // 4.6-and-later only), and output_config.effort was skipped entirely by
+    // the ClaudeModelCapabilities guard, sonnet-4-5 being a model that 400s
+    // on it. Both apply now.
+    internal const string Model = "claude-opus-5";
 
     private readonly IAnthropicClient _client;
     private readonly ILogger<ClaudeRouteEnrichmentProvider> _logger;
@@ -154,23 +161,35 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
         return new EnrichmentResult(parsed?.Links ?? [], parsed?.TopoImageUrl);
     }
 
-    // Not optional: omitted, the API defaults to "high", and 5-family models think by
-    // default — for a search-and-extract job that quietly buys the deepest (and most
-    // expensive) reasoning tier. See the plan's cost decision. But `effort` 400s on a
-    // model that doesn't support it (see ClaudeModelCapabilities) — Model is currently
-    // pinned to one that doesn't, so this is conditional rather than always-on.
+    // `effort` is set explicitly rather than left to the API's "high" default, and it
+    // is `High` rather than the `Medium` this call carried while it was pinned to a
+    // model that rejected the parameter outright. The failure this call actually has
+    // is one of judgment — is this page about *this* route, in *this* sector — which
+    // is what effort buys; Medium was chosen in plan 18 for a different model and its
+    // reasoning doesn't transfer. Cost is the trade, and it is the one line to dial
+    // down first (Medium, then Low) if per-run spend bites — see plan 29 §5.
+    //
+    // Kept conditional, even though Model now supports effort: the guard encodes the
+    // capability table, not today's pin, so a future re-pin to a model that 400s on
+    // `effort` fails a test (ClaudeModelCapabilitiesTests) instead of production.
     internal static MessageCreateParams BuildRequestParams(string prompt)
     {
         var outputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = ResultSchema } };
         if (ClaudeModelCapabilities.SupportsEffort(Model))
         {
-            outputConfig = outputConfig with { Effort = Effort.Medium };
+            outputConfig = outputConfig with { Effort = Effort.High };
         }
 
         return new MessageCreateParams
         {
             Model = Model,
-            MaxTokens = 4096,
+            // Bounds thinking *and* response text together, which is why 4096 no longer
+            // fits: `thinking` is omitted below, and on Opus 5 that means adaptive
+            // thinking is on (on sonnet-4-5, the previous pin, omitting it meant no
+            // thinking at all). A budget sized for a non-thinking model truncates the
+            // JSON mid-object here, and a truncated payload throws out of Deserialize
+            // into five identical queue redeliveries.
+            MaxTokens = 8192,
             OutputConfig = outputConfig,
             Tools = [new WebSearchTool20260209 { MaxUses = 5 }],
             Messages = [new MessageParam { Role = Role.User, Content = prompt }]

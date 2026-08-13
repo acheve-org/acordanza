@@ -26,7 +26,7 @@ Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
 ├── Storage Account (stacordanzaprod<random>)     — topo images, private container
 │   ├── container: topos                          — read via backend-issued SAS URLs only
 │   └── queue: route-enrichment                    — drained by the Container Apps Job above
-└── AI Foundry resource (aif-acordanza-prod<random>) — two Claude deployments (claude-sonnet-5,
+└── AI Foundry resource (aif-acordanza-prod<random>) — two Claude deployments (claude-opus-5,
     claude-haiku-4-5), Hosted on Anthropic, for route enrichment (plan 18)
 ```
 
