@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Anthropic;
 using Anthropic.Models.Messages;
+using Microsoft.Extensions.AI;
 
 namespace Acordanza.Worker.Services;
 
@@ -61,7 +61,7 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
     // sends this string through as the model id, so a mismatch is a 404 at request time.
     internal const string Model = "claude-opus-5";
 
-    private readonly IAnthropicClient _client;
+    private readonly IChatClient _chatClient;
     private readonly ILogger<ClaudeTopoExtractionProvider> _logger;
 
     // Borrows plan 29 §2's shape, because the same trick applies — make a fabricated
@@ -72,8 +72,8 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
     // Note `pattern`, `minLength` and numeric bounds are NOT supported by structured
     // outputs, so every constraint on these values is enforced in C#
     // (RouteImportService.Accept), never in the schema.
-    private static readonly IReadOnlyDictionary<string, JsonElement> ResultSchema = JsonSerializer
-        .Deserialize<Dictionary<string, JsonElement>>("""
+    private static readonly JsonElement ResultSchema = JsonSerializer
+        .Deserialize<JsonElement>("""
         {
           "type": "object",
           "properties": {
@@ -95,49 +95,43 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
           "required": ["route", "multipleRoutes", "reason"],
           "additionalProperties": false
         }
-        """)!;
+        """);
 
-    public ClaudeTopoExtractionProvider(IConfiguration configuration, ILogger<ClaudeTopoExtractionProvider> logger)
+    public ClaudeTopoExtractionProvider(IChatClient chatClient, ILogger<ClaudeTopoExtractionProvider> logger)
     {
         _logger = logger;
-        _client = FoundryClient.Create(configuration);
+        _chatClient = chatClient;
     }
 
     public async Task<TopoExtractionResult> ExtractAsync(TopoExtractionContext context, CancellationToken cancellationToken)
     {
-        var content = new List<ContentBlockParam>
-        {
-            ClaudeTopoImportGateProvider.Image(context.ImageBytes, context.ContentType),
-            ClaudeTopoImportGateProvider.Text(BuildPrompt(context))
-        };
+        ChatMessage message = new(ChatRole.User,
+            [new DataContent(context.ImageBytes, context.ContentType), new TextContent(BuildPrompt(context))]);
 
-        _logger.LogInformation("topo extraction calling Messages.Create for area={Area}", context.AreaBreadcrumb);
-        Message response;
+        _logger.LogInformation("topo extraction calling the chat client for area={Area}", context.AreaBreadcrumb);
+        ChatResponse response;
         try
         {
-            response = await _client.Messages.Create(BuildRequestParams(content), cancellationToken);
+            response = await _chatClient.GetResponseAsync([message], BuildOptions(), cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "topo extraction Messages.Create failed for area={Area}", context.AreaBreadcrumb);
+            _logger.LogError(ex, "topo extraction chat call failed for area={Area}", context.AreaBreadcrumb);
             throw;
         }
 
         _logger.LogInformation(
             "topo extraction usage area={Area} input={Input} output={Output}",
-            context.AreaBreadcrumb, response.Usage.InputTokens, response.Usage.OutputTokens);
+            context.AreaBreadcrumb, response.Usage?.InputTokenCount ?? 0, response.Usage?.OutputTokenCount ?? 0);
 
-        var stopReason = response.StopReason?.Raw();
+        var stopReason = response.RawStopReason();
         if (ClaudeRouteEnrichmentProvider.IsIncomplete(stopReason))
         {
             _logger.LogWarning("topo extraction incomplete stopReason={StopReason}", stopReason);
             return new TopoExtractionResult(null, false, null, Completed: false);
         }
 
-        var json = string.Concat(response.Content
-            .Select(b => b.Value as TextBlock)
-            .Where(t => t is not null)
-            .Select(t => t!.Text));
+        var json = response.Text;
         if (string.IsNullOrWhiteSpace(json))
         {
             return new TopoExtractionResult(null, false, null, Completed: false);
@@ -190,31 +184,21 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
         prompt, never shown to the uploader.
         """;
 
-    internal static MessageCreateParams BuildRequestParams(List<ContentBlockParam> content)
+    // Effort is Low, and this model does support it: reading small print off a photo is
+    // perception, not judgment — there is no multi-step reasoning here for effort to buy,
+    // unlike enrichment's "is this page about *this* route" call, which runs at High.
+    internal static ChatOptions BuildOptions() => new ChatOptions
     {
-        var outputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = ResultSchema } };
-        if (ClaudeModelCapabilities.SupportsEffort(Model))
-        {
-            // Reading small print off a photo is perception, not judgment — there is no
-            // multi-step reasoning here for effort to buy, unlike enrichment's "is this
-            // page about *this* route" call, which runs at High.
-            outputConfig = outputConfig with { Effort = Effort.Low };
-        }
-
-        return new MessageCreateParams
-        {
-            Model = Model,
-            // Sized for thinking plus the payload, not the payload alone: the request
-            // omits `thinking`, which on Opus 5 means adaptive thinking is *on*, and
-            // MaxTokens bounds reasoning and response text together. The JSON here is a
-            // few hundred tokens; the headroom is for the reasoning in front of it, and
-            // running out truncates mid-object into a Deserialize throw and five queue
-            // redeliveries. Same reason ClaudeRouteEnrichmentProvider carries 8192.
-            MaxTokens = 4096,
-            OutputConfig = outputConfig,
-            Messages = [new MessageParam { Role = Role.User, Content = content }]
-        };
-    }
+        ModelId = Model,
+        // Sized for thinking plus the payload, not the payload alone: the request
+        // omits `thinking`, which on Opus 5 means adaptive thinking is *on*, and
+        // the token budget bounds reasoning and response text together. The JSON here is a
+        // few hundred tokens; the headroom is for the reasoning in front of it, and
+        // running out truncates mid-object into a Deserialize throw and five queue
+        // redeliveries. Same reason ClaudeRouteEnrichmentProvider carries 8192.
+        MaxOutputTokens = 4096,
+        ResponseFormat = ChatResponseFormat.ForJsonSchema(ResultSchema),
+    }.WithAnthropicRequest(Model, Effort.Low);
 
     private sealed record ExtractionPayload(
         [property: JsonPropertyName("route")] PayloadRoute? Route,

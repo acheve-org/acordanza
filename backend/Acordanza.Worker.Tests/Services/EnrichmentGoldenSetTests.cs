@@ -57,7 +57,7 @@ public class EnrichmentGoldenSetTests(ITestOutputHelper output)
         }
 
         var provider = new ClaudeRouteEnrichmentProvider(
-            configuration, NullLogger<ClaudeRouteEnrichmentProvider>.Instance);
+            FoundryClient.CreateChatClient(configuration), NullLogger<ClaudeRouteEnrichmentProvider>.Instance);
 
         var correct = 0;
         var appended = 0;

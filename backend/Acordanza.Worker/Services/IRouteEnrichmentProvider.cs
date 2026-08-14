@@ -6,6 +6,7 @@ using Anthropic;
 using Anthropic.Foundry;
 using Anthropic.Models.Messages;
 using Azure.Identity;
+using Microsoft.Extensions.AI;
 
 namespace Acordanza.Worker.Services;
 
@@ -75,9 +76,9 @@ public class NoOpTopoVerificationProvider : ITopoVerificationProvider
         Task.FromResult(false);
 }
 
-// Both Claude providers below reach Foundry the same way — one construction, in one place,
-// because getting either half of it wrong fails only at the first real call, in production,
-// and both halves once were wrong:
+// All five Claude providers in this worker reach Foundry the same way — one construction, in
+// one place, because getting either half of it wrong fails only at the first real call, in
+// production, and both halves once were wrong:
 //
 //   - Scopes must be non-empty. AnthropicFoundryIdentityTokenCredentials' scopes parameter
 //     defaults to null and only *then* does the SDK substitute Foundry's audience; an empty
@@ -107,12 +108,28 @@ public static class FoundryClient
         return new AnthropicFoundryClient(
             new AnthropicFoundryIdentityTokenCredentials(credential, resource, Scopes));
     }
+
+    // What the five providers actually inject (plan 32): the same Foundry client above,
+    // wrapped in Microsoft.Extensions.AI's portable IChatClient so a future model or
+    // provider swap is a registration change — and so the middleware pipeline
+    // (AddChatClient(...).UseOpenTelemetry().UseLogging(), see ServiceCollectionExtensions)
+    // wraps every call site at once.
+    //
+    // Both defaults stay null on purpose. The five providers span two models and four
+    // different token budgets, so a shared default would be actively misleading rather than
+    // convenient; every ChatOptions built in this worker sets ModelId and MaxOutputTokens
+    // explicitly, and AnthropicChatExtensions.WithAnthropicRequest throws if the latter is
+    // missing rather than letting a request go out without a max_tokens the wire requires.
+    public static IChatClient CreateChatClient(IConfiguration configuration) =>
+        Create(configuration).AsIChatClient(defaultModelId: null, defaultMaxOutputTokens: null);
 }
 
-// Search-and-extract: one Messages API call with the server-side web search tool and
-// structured outputs, reached through Azure AI Foundry (Hosted on Anthropic — structured
-// outputs and server-side tools 400 on Azure-hosted deployments) so the worker
-// authenticates with its managed identity instead of a stored API key.
+// Search-and-extract: one chat call with the server-side web search tool and structured
+// outputs, reached through Azure AI Foundry (Hosted on Anthropic — structured outputs and
+// server-side tools 400 on Azure-hosted deployments) so the worker authenticates with its
+// managed identity instead of a stored API key. The transport is Microsoft.Extensions.AI's
+// IChatClient (plan 32); what can't be said portably — the tool variants, effort, and the
+// raw stop_reason/tool-result reads below — goes through AnthropicChatExtensions.
 public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
 {
     // Must equal the Foundry deployment name in infra/terraform/ai_foundry.tf —
@@ -134,7 +151,7 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
     // on it. Both apply now.
     internal const string Model = "claude-opus-5";
 
-    private readonly IAnthropicClient _client;
+    private readonly IChatClient _chatClient;
     private readonly ILogger<ClaudeRouteEnrichmentProvider> _logger;
 
     // An array of objects rather than plan 18's bare string array (plan 29 §2): a bare
@@ -142,8 +159,8 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
     // Every field here is a toll on a wrong answer — `evidence` above all, since quoting a
     // page that names both the route and its sector is a much bigger fabrication step than
     // inventing a plausible URL was.
-    private static readonly IReadOnlyDictionary<string, JsonElement> ResultSchema = JsonSerializer
-        .Deserialize<Dictionary<string, JsonElement>>("""
+    private static readonly JsonElement ResultSchema = JsonSerializer
+        .Deserialize<JsonElement>("""
         {
           "type": "object",
           "properties": {
@@ -168,7 +185,7 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
           "required": ["links", "topoPageUrl", "topoImageUrl"],
           "additionalProperties": false
         }
-        """)!;
+        """);
 
     // Hosts that generate confident-looking noise: social aggregators that restate route
     // databases without adding anything checkable. Deliberately a *blocklist*, not an
@@ -182,30 +199,31 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
         "x.com", "twitter.com", "tiktok.com"
     ];
 
-    public ClaudeRouteEnrichmentProvider(IConfiguration configuration, ILogger<ClaudeRouteEnrichmentProvider> logger)
+    public ClaudeRouteEnrichmentProvider(IChatClient chatClient, ILogger<ClaudeRouteEnrichmentProvider> logger)
     {
         _logger = logger;
-        _client = FoundryClient.Create(configuration);
+        _chatClient = chatClient;
     }
 
     public async Task<EnrichmentResult> FindAsync(RouteEnrichmentContext context, CancellationToken cancellationToken)
     {
         var prompt = BuildPrompt(context);
 
-        _logger.LogInformation("enrichment calling Messages.Create for route={RouteName}", context.Name);
-        Message response;
+        _logger.LogInformation("enrichment calling the chat client for route={RouteName}", context.Name);
+        ChatResponse response;
         try
         {
-            response = await _client.Messages.Create(BuildRequestParams(prompt), cancellationToken);
+            response = await _chatClient.GetResponseAsync(
+                [new ChatMessage(ChatRole.User, prompt)], BuildOptions(), cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "enrichment Messages.Create failed for route={RouteName}", context.Name);
+            _logger.LogError(ex, "enrichment chat call failed for route={RouteName}", context.Name);
             throw;
         }
-        _logger.LogInformation("enrichment Messages.Create returned for route={RouteName}", context.Name);
+        _logger.LogInformation("enrichment chat call returned for route={RouteName}", context.Name);
 
-        LogUsage(response.Usage, context.Name);
+        LogUsage(response, context.Name);
 
         // Anything but end_turn means there is no trustworthy final payload: a server-side
         // tool loop that hit its iteration cap returns pause_turn with no text block (which
@@ -214,7 +232,12 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
         // queue redeliveries on an error that recurs identically), and Opus 5's elevated
         // safety classifiers can return refusal on an HTTP 200. All three are the same
         // warning path, and all three leave EnrichedAt null so re-pressing the button works.
-        var stopReason = response.StopReason?.Raw();
+        //
+        // Read off the raw response, not ChatResponse.FinishReason: the portable value
+        // collapses pause_turn and end_turn into the same "stop", which would turn the
+        // tool-loop-exhausted case back into the silent no-op plan 29 fixed. See
+        // AnthropicChatExtensions.
+        var stopReason = response.RawStopReason();
         if (IsIncomplete(stopReason))
         {
             _logger.LogWarning(
@@ -223,10 +246,7 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
             return new EnrichmentResult([], null, null, Completed: false);
         }
 
-        var json = string.Concat(response.Content
-            .Select(b => b.Value as TextBlock)
-            .Where(t => t is not null)
-            .Select(t => t!.Text));
+        var json = response.Text;
 
         if (string.IsNullOrWhiteSpace(json))
         {
@@ -246,7 +266,10 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
         // blocks alongside the text, so we know exactly which pages the model actually saw.
         // A URL that isn't among them was reconstructed from memory, and a hallucinated URL
         // becoming zero links is the failure mode we want.
-        var retrieved = RetrievedUrls(response.Content);
+        // The blocks come off the raw response for the same reason as the stop reason above:
+        // web_search_tool_result/web_fetch_tool_result are Anthropic server-tool shapes with
+        // no portable equivalent. RetrievedUrls itself is unchanged.
+        var retrieved = RetrievedUrls(response.RawContent());
         var grounded = Ground(returned, retrieved);
 
         // topoPageUrl is grounded the same way — it's a page, so the model must have seen
@@ -365,60 +388,57 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
     // reasoning doesn't transfer. Cost is the trade, and it is the one line to dial
     // down first (Medium, then Low) if per-run spend bites — see plan 29 §5.
     //
-    // Kept conditional, even though Model now supports effort: the guard encodes the
-    // capability table, not today's pin, so a future re-pin to a model that 400s on
-    // `effort` fails a test (ClaudeModelCapabilitiesTests) instead of production.
-    internal static MessageCreateParams BuildRequestParams(string prompt)
+    // Effort still goes through WithAnthropicRequest's guard even though Model supports
+    // it: the guard encodes the capability table, not today's pin, so a future re-pin to a
+    // model that 400s on `effort` fails a test (ClaudeModelCapabilitiesTests) instead of
+    // production.
+    internal static ChatOptions BuildOptions() => new ChatOptions
     {
-        var outputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = ResultSchema } };
-        if (ClaudeModelCapabilities.SupportsEffort(Model))
+        ModelId = Model,
+        // Bounds thinking *and* response text together, which is why 4096 no longer
+        // fits: `thinking` is omitted below, and on Opus 5 that means adaptive
+        // thinking is on (on sonnet-4-5, the previous pin, omitting it meant no
+        // thinking at all). A budget sized for a non-thinking model truncates the
+        // JSON mid-object here, and a truncated payload throws out of Deserialize
+        // into five identical queue redeliveries.
+        MaxOutputTokens = 8192,
+        ResponseFormat = ChatResponseFormat.ForJsonSchema(ResultSchema),
+    }.WithAnthropicRequest(Model, Effort.High,
+        new WebSearchTool20260209
         {
-            outputConfig = outputConfig with { Effort = Effort.High };
-        }
+            // Recall is the binding constraint, not search fees: a search is a cent
+            // against a run costing dollars, so three more of them is noise in the
+            // bill and a real widening of what the model gets to reject from.
+            MaxUses = 8,
+            // Search ranking is location-sensitive and every one of these queries is
+            // Spanish-language and Spain-geographic. Costs nothing; the tool was
+            // previously told nothing at all.
+            UserLocation = new UserLocation { Country = "ES", Timezone = "Europe/Madrid" },
+            BlockedDomains = BlockedSearchDomains
+        },
+        // Web search returns page *text* — it never returns an <img src>, which is
+        // why plan 18's topoImageUrl could not work as written: the model was asked
+        // for a fact that was never in its context, so whatever it answered was a
+        // reconstruction that 404'd on download. Fetch can only open URLs already in
+        // the conversation, which makes the pairing exactly right: search puts
+        // candidates in context, fetch opens the promising ones. It also strengthens
+        // the grounding and evidence rules for free — a model that has opened a page
+        // can quote it, and its URLs land in the retrieved set.
+        //
+        // Both tools are declared raw rather than through HostedWebSearchTool, whose
+        // portable shape carries none of the tuning above — see AnthropicChatExtensions.
+        new WebFetchTool20260209 { MaxUses = 3, MaxContentTokens = 20000 });
 
-        return new MessageCreateParams
-        {
-            Model = Model,
-            // Bounds thinking *and* response text together, which is why 4096 no longer
-            // fits: `thinking` is omitted below, and on Opus 5 that means adaptive
-            // thinking is on (on sonnet-4-5, the previous pin, omitting it meant no
-            // thinking at all). A budget sized for a non-thinking model truncates the
-            // JSON mid-object here, and a truncated payload throws out of Deserialize
-            // into five identical queue redeliveries.
-            MaxTokens = 8192,
-            OutputConfig = outputConfig,
-            Tools =
-            [
-                new WebSearchTool20260209
-                {
-                    // Recall is the binding constraint, not search fees: a search is a cent
-                    // against a run costing dollars, so three more of them is noise in the
-                    // bill and a real widening of what the model gets to reject from.
-                    MaxUses = 8,
-                    // Search ranking is location-sensitive and every one of these queries is
-                    // Spanish-language and Spain-geographic. Costs nothing; the tool was
-                    // previously told nothing at all.
-                    UserLocation = new UserLocation { Country = "ES", Timezone = "Europe/Madrid" },
-                    BlockedDomains = BlockedSearchDomains
-                },
-                // Web search returns page *text* — it never returns an <img src>, which is
-                // why plan 18's topoImageUrl could not work as written: the model was asked
-                // for a fact that was never in its context, so whatever it answered was a
-                // reconstruction that 404'd on download. Fetch can only open URLs already in
-                // the conversation, which makes the pairing exactly right: search puts
-                // candidates in context, fetch opens the promising ones. It also strengthens
-                // the grounding and evidence rules for free — a model that has opened a page
-                // can quote it, and its URLs land in the retrieved set.
-                new WebFetchTool20260209 { MaxUses = 3, MaxContentTokens = 20000 }
-            ],
-            Messages = [new MessageParam { Role = Role.User, Content = prompt }]
-        };
-    }
-
-    private void LogUsage(Usage usage, string routeName) =>
+    // Token counts are portable; the server-side search count is not — usage.server_tool_use
+    // has no ChatResponse.Usage equivalent, so that one field alone comes off the raw
+    // response, inline, since nothing else reads it.
+    private void LogUsage(ChatResponse response, string routeName) =>
         _logger.LogInformation(
             "enrichment usage route={RouteName} input={Input} output={Output} searches={Searches}",
-            routeName, usage.InputTokens, usage.OutputTokens, usage.ServerToolUse?.WebSearchRequests ?? 0);
+            routeName,
+            response.Usage?.InputTokenCount ?? 0,
+            response.Usage?.OutputTokenCount ?? 0,
+            (response.RawRepresentation as Message)?.Usage.ServerToolUse?.WebSearchRequests ?? 0);
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -443,23 +463,23 @@ public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
     // ClaudeModelCapabilitiesTests assert this model's effort support directly.
     internal const string Model = "claude-haiku-4-5";
 
-    private readonly IAnthropicClient _client;
+    private readonly IChatClient _chatClient;
     private readonly ILogger<ClaudeTopoVerificationProvider> _logger;
 
-    private static readonly IReadOnlyDictionary<string, JsonElement> ResultSchema = JsonSerializer
-        .Deserialize<Dictionary<string, JsonElement>>("""
+    private static readonly JsonElement ResultSchema = JsonSerializer
+        .Deserialize<JsonElement>("""
         {
           "type": "object",
           "properties": { "isTopo": { "type": "boolean" } },
           "required": ["isTopo"],
           "additionalProperties": false
         }
-        """)!;
+        """);
 
-    public ClaudeTopoVerificationProvider(IConfiguration configuration, ILogger<ClaudeTopoVerificationProvider> logger)
+    public ClaudeTopoVerificationProvider(IChatClient chatClient, ILogger<ClaudeTopoVerificationProvider> logger)
     {
         _logger = logger;
-        _client = FoundryClient.Create(configuration);
+        _chatClient = chatClient;
     }
 
     public async Task<bool> IsTopoAsync(TopoVerificationContext context, CancellationToken cancellationToken)
@@ -476,37 +496,32 @@ public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
             of a climber, a map, a logo, a page screenshot. Answer via the schema.
             """;
 
-        var imageBlock = new ContentBlockParam(new ImageBlockParam
-        {
-            Source = new ImageBlockParamSource(new Base64ImageSource
-            {
-                MediaType = context.ContentType,
-                Data = Convert.ToBase64String(context.ImageBytes)
-            })
-        });
-        var textBlock = new ContentBlockParam(new TextBlockParam { Text = prompt });
+        // Image content is portable: DataContent carries the bytes and the media type, and
+        // the adapter builds the base64 image block the raw path used to hand-assemble.
+        ChatMessage message = new(ChatRole.User,
+            [new DataContent(context.ImageBytes, context.ContentType), new TextContent(prompt)]);
 
-        _logger.LogInformation("topo verification calling Messages.Create for route={RouteName}", context.Name);
-        Message response;
+        _logger.LogInformation("topo verification calling the chat client for route={RouteName}", context.Name);
+        ChatResponse response;
         try
         {
-            response = await _client.Messages.Create(
-                BuildRequestParams(imageBlock, textBlock), cancellationToken);
+            response = await _chatClient.GetResponseAsync([message], BuildOptions(), cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "topo verification Messages.Create failed for route={RouteName}", context.Name);
+            _logger.LogError(ex, "topo verification chat call failed for route={RouteName}", context.Name);
             throw;
         }
 
         _logger.LogInformation(
             "topo verification usage route={RouteName} input={Input} output={Output}",
-            context.Name, response.Usage.InputTokens, response.Usage.OutputTokens);
+            context.Name, response.Usage?.InputTokenCount ?? 0, response.Usage?.OutputTokenCount ?? 0);
 
-        var json = string.Concat(response.Content
-            .Select(b => b.Value as TextBlock)
-            .Where(t => t is not null)
-            .Select(t => t!.Text));
+        // No stop_reason check here, unlike the other four providers — an existing
+        // inconsistency carried forward unchanged rather than fixed under a transport swap
+        // (plan 32 §6): a pause_turn/refusal response still falls through to the blank-payload
+        // check below and answers false.
+        var json = response.Text;
 
         if (string.IsNullOrWhiteSpace(json)) return false;
 
@@ -514,22 +529,15 @@ public class ClaudeTopoVerificationProvider : ITopoVerificationProvider
         return parsed?.IsTopo ?? false;
     }
 
-    internal static MessageCreateParams BuildRequestParams(ContentBlockParam imageBlock, ContentBlockParam textBlock)
+    // Effort is asked for and silently skipped: haiku-4-5 isn't in ClaudeModelCapabilities'
+    // set, and WithAnthropicRequest is the one place that decides so — see plan 32 §4 on why
+    // every provider calls it even when it contributes nothing.
+    internal static ChatOptions BuildOptions() => new ChatOptions
     {
-        var outputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = ResultSchema } };
-        if (ClaudeModelCapabilities.SupportsEffort(Model))
-        {
-            outputConfig = outputConfig with { Effort = Effort.Low };
-        }
-
-        return new MessageCreateParams
-        {
-            Model = Model,
-            MaxTokens = 256,
-            OutputConfig = outputConfig,
-            Messages = [new MessageParam { Role = Role.User, Content = new List<ContentBlockParam> { imageBlock, textBlock } }]
-        };
-    }
+        ModelId = Model,
+        MaxOutputTokens = 256,
+        ResponseFormat = ChatResponseFormat.ForJsonSchema(ResultSchema),
+    }.WithAnthropicRequest(Model, Effort.Low);
 
     private sealed record TopoVerificationPayload([property: JsonPropertyName("isTopo")] bool IsTopo);
 }
