@@ -104,17 +104,21 @@ public class TopoImageReader(
             return (null, RouteImportOutcomes.LowConfidence);
         }
 
-        // The model is told to copy the grade and never to convert it, so an
-        // unconvertible grade is a discard with a reason, not a best effort.
-        if (!GradeValidator.IsValid(route.Grade))
+        // The model is told to copy the grade and never to convert it, so what arrives is
+        // whatever the topo prints where a grade goes — often «MD+ 6c (6a+ obl)» rather
+        // than «6c». PrintedGrade pulls the French grade (and any obligatory grade) out of
+        // that; a string it can't resolve to exactly one is an unconvertible grade, which
+        // is a discard with a reason, not a best effort.
+        if (PrintedGrade.Parse(route.Grade) is not { } grade)
         {
             return (null, RouteImportOutcomes.UnreadableGrade);
         }
 
         return (new RouteCandidate(
             route.Name.Trim(),
-            GradeValidator.Normalize(route.Grade),
+            grade.Grade,
             RouteImportService.AcceptableLength(route.Length),
-            route.Evidence!.Trim()), null);
+            route.Evidence!.Trim(),
+            ObligatoryGrade: grade.ObligatoryGrade), null);
     }
 }

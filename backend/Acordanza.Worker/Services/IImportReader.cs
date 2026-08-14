@@ -44,6 +44,9 @@ public record RouteReading(
 // (plan 31 §5/§8), which happens in the spine rather than here.
 // SectorMentioned is a cross-check, not an input: a page naming a crag nowhere in the
 // picked sector's breadcrumb gets a note in Outcome, and nothing else happens.
+// ObligatoryGrade is the one field here that is optional in the *source* rather than in
+// one of the two kinds: both kinds fill it when the artifact printed one (see
+// PrintedGrade), and most artifacts don't.
 public record RouteCandidate(
     string Name,
     string Grade,
@@ -51,7 +54,8 @@ public record RouteCandidate(
     string Evidence,
     string Description = "",
     IReadOnlyList<string>? FirstAscensionists = null,
-    string? SectorMentioned = null);
+    string? SectorMentioned = null,
+    string? ObligatoryGrade = null);
 
 // An image the reader has already vision-verified as a topo of *this* route. Bytes rather
 // than a URL or a blob name, because the two kinds get here by different routes (a staged

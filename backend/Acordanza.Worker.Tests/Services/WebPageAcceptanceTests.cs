@@ -126,6 +126,18 @@ public class WebPageAcceptanceTests
         candidate!.Grade.ShouldBe("6b+");
     }
 
+    // A post about a multi-pitch route quotes the whole grade line, and the prompt asks
+    // for it as written. PrintedGrade is the shared pull-apart — the Image kind's half of
+    // this lives in RouteImportAcceptanceTests, its edges in PrintedGradeTests.
+    [Fact]
+    public void A_multi_pitch_grade_line_yields_the_free_grade_and_the_obligatory_one()
+    {
+        var (candidate, _) = WebPageReader.Accept(CleanRead(grade: "MD+ 6c (6a+ obl)"));
+
+        candidate!.Grade.ShouldBe("6c");
+        candidate.ObligatoryGrade.ShouldBe("6a+");
+    }
+
     // 0 is below RoutesController.ValidateLength's floor on purpose: the page didn't say,
     // so a reviewer has to before they can save.
     [Theory]

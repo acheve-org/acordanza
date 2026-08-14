@@ -204,6 +204,11 @@ public class RouteImportService(
             Slug = await RouteSlugs.GenerateUniqueAsync(db, import.AreaId, candidate.Name, cancellationToken: cancellationToken),
             AreaId = import.AreaId,
             Grade = candidate.Grade,
+            // Null unless the source printed one next to the grade («MD+ 6c (6a+ obl)»).
+            // Set only here, on create: filling it on a matched route would be editing a
+            // human's route data from a photograph, which is the thing GradeDisagreement
+            // below exists to avoid doing.
+            ObligatoryGrade = candidate.ObligatoryGrade,
             Length = candidate.Length,
             // Empty for the Image kind — a photo of a topo says nothing a summary could be
             // written from. A page does.

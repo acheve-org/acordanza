@@ -161,7 +161,10 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
           guidebooks are usually French-scale, but UIAA (V+) and YDS (5.11a) appear, and a
           converted grade is a guess wearing the costume of data. Copy what is printed; a
           grade this log can't accept is handled downstream, and is a better outcome than a
-          silently converted one.
+          silently converted one. Copy the *whole* grade line, including the alpine
+          difficulty grade and the obligatory grade a multi-pitch topo prints alongside it
+          («MD+ 6c (6a+ obl)»); pulling those apart is done downstream too, and dropping
+          them here loses the obligatory grade for good.
         - `length`: the route's length in metres if the topo states it, otherwise null. Do
           not estimate it from the photo.
         - `evidence`: the text you read the name and grade from, copied verbatim off the
