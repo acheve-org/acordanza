@@ -1,6 +1,6 @@
 # Create a route from a topo: upload a photo, read it with vision, create or enrich the route
 
-Status: not started
+Status: not started — **amended by [31](31-route-from-url.md) before being built.** That plan generalises this one's `TopoImport` into a two-kind `RouteImport` (Image | Url), renames the `topo-import` queue and `TopoImportsController` to `route-import`/`RouteImportsController`, and puts §3's gate-and-extract behind an `IImportReader` seam shared with the URL kind. Read §1, §2, §3, §6 and §7 below through plan 31 §1–§2; §4 (match-or-create), §5 (few-shot, golden set) and §8 (not doing) stand as written.
 Issue: [#205](https://github.com/acheve-org/acordanza/issues/205)
 Depends on: [18](18-route-enrichment-worker.md) (the queue, the Container Apps Job, the Foundry resource and its managed-identity auth — this plan adds a second queue and a third deployment to all of it); [22](22-worker-project-split.md) for `Acordanza.Worker`, which every backend change lands in; [29](29-enrichment-quality.md) for the evidence/confidence schema pattern and the golden-set harness, both reused wholesale. One migration (`TopoImport`, §1). One new Foundry deployment (`claude-sonnet-5`, §3). Two new `BlobStorageService` methods (§2).
 
