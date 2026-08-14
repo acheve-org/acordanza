@@ -41,8 +41,8 @@ using (var scope = app.Services.CreateScope())
     var enrichmentProcessor = scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>();
     await enrichmentProcessor.RunAsync();
 
-    var topoImportProcessor = scope.ServiceProvider.GetRequiredService<TopoImportQueueProcessor>();
-    await topoImportProcessor.RunAsync();
+    var routeImportProcessor = scope.ServiceProvider.GetRequiredService<RouteImportQueueProcessor>();
+    await routeImportProcessor.RunAsync();
 }
 
 await app.StopAsync();

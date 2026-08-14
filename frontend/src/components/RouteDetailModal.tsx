@@ -188,8 +188,11 @@ export function RouteDetailModal({
                   {link.url}
                   {/* Enrichment links are appended by the worker without a human ever
                       looking at them (plan 29 §6) — the badge is how a reader knows which
-                      ones to distrust, and which ones to delete from the edit form. */}
+                      ones to distrust, and which ones to delete from the edit form. An
+                      import link is a weaker claim: a person chose that page and pasted
+                      it, they just didn't type the route in themselves (plan 31 §5). */}
                   {link.source === 'enrichment' && <span className="detail-link-source">automático</span>}
+                  {link.source === 'import' && <span className="detail-link-source">importado</span>}
                 </a>
               ))}
             </div>

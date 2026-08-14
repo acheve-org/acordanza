@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Acordanza.Worker.Tests.Services;
 
-// Plan 30 §5 — the acceptance gate for prompt changes to the topo-import pipeline, and the
+// Plan 30 §5 — the acceptance gate for prompt changes to the route-import pipeline, and the
 // second of the two harnesses in this repo that make real Foundry calls. Same tier as
 // EnrichmentGoldenSetTests: neither unit nor integration, run by hand, and excluded from
 // both CI test jobs by Category=Enrichment so a push never spends money.
@@ -16,13 +16,13 @@ namespace Acordanza.Worker.Tests.Services;
 // This is also the honest answer to "does it learn over time?". Claude models are not
 // fine-tunable, so there is no training loop — but TopoImport is a labelled corpus
 // accumulating for free, and the loop is a human periodically promoting rows into the
-// few-shot prefixes and into TopoImportGoldenSet.json, then measuring here whether that
+// few-shot prefixes and into RouteImportGoldenSet.json, then measuring here whether that
 // helped. Real learning, measurable and reversible, with a person in the loop.
 //
 // Precision is the target, as in plan 29: a correct discard is a success, and the two
 // numbers reported are the gate's precision/recall and the extraction's accuracy.
 [Trait("Category", "Enrichment")]
-public class TopoImportGoldenSetTests(ITestOutputHelper output)
+public class RouteImportGoldenSetTests(ITestOutputHelper output)
 {
     private sealed record GoldenImage(
         [property: JsonPropertyName("blobName")] string BlobName,
@@ -36,7 +36,7 @@ public class TopoImportGoldenSetTests(ITestOutputHelper output)
     [Fact]
     public async Task The_golden_set_reports_gate_precision_and_extraction_accuracy()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "Services", "TopoImportGoldenSet.json");
+        var path = Path.Combine(AppContext.BaseDirectory, "Services", "RouteImportGoldenSet.json");
         var set = JsonSerializer.Deserialize<GoldenSet>(
             await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
         if (set is null || set.Images.Count == 0)
@@ -95,7 +95,7 @@ public class TopoImportGoldenSetTests(ITestOutputHelper output)
 
             // Exactly the predicate production applies, so this measures the shipped
             // behaviour rather than a second implementation of it.
-            var (candidate, discardReason) = RouteImportService.Accept(extracted);
+            var (candidate, discardReason) = TopoImageReader.Accept(extracted);
 
             extractionAttempted++;
             // A correct discard counts as a hit: an entry whose expectedName is null is one

@@ -161,8 +161,9 @@ resource "azapi_resource" "claude_haiku" {
   depends_on = [azapi_resource.claude_opus]
 }
 
-# The topo-import extraction call (plan 30 §3, Acordanza.Worker's
-# ClaudeTopoExtractionProvider). Hosted on Anthropic for the same reason as
+# The route-import extraction calls (plan 30 §3 and plan 31 §5, Acordanza.Worker's
+# ClaudeTopoExtractionProvider for a photo, ClaudePageExtractionProvider for a
+# page). Hosted on Anthropic for the same reason as
 # claude_haiku: it uses structured outputs, which is on the Azure-hosted
 # exclusion list, even though it uses no server-side tools.
 #
@@ -172,7 +173,10 @@ resource "azapi_resource" "claude_haiku" {
 # gate's binary "is there a line drawn on this rock" 1568 px is plenty; for
 # reading «La Loca 6b+ 25m» off the small print of a guidebook page it is very
 # possibly the difference between a correct extraction and a garbled one. The
-# split falls out of the tiers rather than out of taste.
+# split falls out of the tiers rather than out of taste. Plan 31's page
+# extraction shares this deployment and adds none of its own: reading Spanish
+# prose and deciding which route a post is principally about is a comprehension
+# judgment worth the same tier, and it carries no image at all.
 #
 # VERIFY THE VERSION BEFORE THE FIRST APPLY. "1" follows claude_opus's
 # same-generation value, but the Anthropic-hosted version id is per-model, not a

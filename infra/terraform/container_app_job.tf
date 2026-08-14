@@ -75,16 +75,16 @@ resource "azurerm_container_app_job" "enrichment" {
         }
       }
 
-      # Topo import (plan 30) fires the same job, not a second one: the worker
+      # Route import (plans 30 and 31) fires the same job, not a second one: the worker
       # binary drains both queues in sequence and exits, so an execution started
       # by either rule handles whatever is waiting on both. A second job would
       # mean a second Terraform resource and a second CI deploy step for a
       # process that shares every line of its configuration with this one.
       rules {
-        name             = "topo-import-queue"
+        name             = "route-import-queue"
         custom_rule_type = "azure-queue"
         metadata = {
-          queueName   = azurerm_storage_queue.topo_import.name
+          queueName   = azurerm_storage_queue.route_import.name
           accountName = azurerm_storage_account.topos.name
           queueLength = "1"
         }
@@ -133,8 +133,8 @@ resource "azurerm_container_app_job" "enrichment" {
       }
 
       env {
-        name  = "Storage__TopoImportQueueName"
-        value = azurerm_storage_queue.topo_import.name
+        name  = "Storage__RouteImportQueueName"
+        value = azurerm_storage_queue.route_import.name
       }
 
       env {

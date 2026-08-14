@@ -528,6 +528,74 @@ namespace Acordanza.Core.Migrations
                     b.ToTable("PasskeyCredentials", "auth");
                 });
 
+            modelBuilder.Entity("Acordanza.Core.Models.RouteImport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AreaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("BlobName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ContentType")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Outcome")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("RouteId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("RouteWasCreated")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SourceUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("SubmittedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AreaId");
+
+                    b.HasIndex("RouteId");
+
+                    b.HasIndex("SourceUrl");
+
+                    b.HasIndex("SubmittedByUserId");
+
+                    b.ToTable("RouteImports", "core", t =>
+                        {
+                            t.HasCheckConstraint("CK_RouteImport_KindPayload", "(\"Kind\" = 'Image' AND \"BlobName\" IS NOT NULL) OR (\"Kind\" = 'Url' AND \"SourceUrl\" IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("Acordanza.Core.Models.Tick", b =>
                 {
                     b.Property<int>("Id")
@@ -603,64 +671,6 @@ namespace Acordanza.Core.Migrations
                     b.HasIndex("UploadedByUserId");
 
                     b.ToTable("Topos", "core");
-                });
-
-            modelBuilder.Entity("Acordanza.Core.Models.TopoImport", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AreaId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("BlobName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Outcome")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("RouteId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("RouteWasCreated")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("UploadedByUserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AreaId");
-
-                    b.HasIndex("RouteId");
-
-                    b.HasIndex("UploadedByUserId");
-
-                    b.ToTable("TopoImports", "core");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -1012,6 +1022,32 @@ namespace Acordanza.Core.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Acordanza.Core.Models.RouteImport", b =>
+                {
+                    b.HasOne("Acordanza.Core.Models.Area", "Area")
+                        .WithMany()
+                        .HasForeignKey("AreaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Acordanza.Core.Models.ClimbingRoute", "Route")
+                        .WithMany()
+                        .HasForeignKey("RouteId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Acordanza.Core.Models.ApplicationUser", "SubmittedBy")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Area");
+
+                    b.Navigation("Route");
+
+                    b.Navigation("SubmittedBy");
+                });
+
             modelBuilder.Entity("Acordanza.Core.Models.Tick", b =>
                 {
                     b.HasOne("Acordanza.Core.Models.ApplicationUser", "Climber")
@@ -1044,32 +1080,6 @@ namespace Acordanza.Core.Migrations
                         .HasForeignKey("UploadedByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Route");
-
-                    b.Navigation("UploadedBy");
-                });
-
-            modelBuilder.Entity("Acordanza.Core.Models.TopoImport", b =>
-                {
-                    b.HasOne("Acordanza.Core.Models.Area", "Area")
-                        .WithMany()
-                        .HasForeignKey("AreaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Acordanza.Core.Models.ClimbingRoute", "Route")
-                        .WithMany()
-                        .HasForeignKey("RouteId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Acordanza.Core.Models.ApplicationUser", "UploadedBy")
-                        .WithMany()
-                        .HasForeignKey("UploadedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Area");
 
                     b.Navigation("Route");
 

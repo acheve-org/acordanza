@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Acordanza.Core.Services;
 using System.Text.Json.Serialization;
 using Anthropic;
 using Anthropic.Foundry;
@@ -345,43 +346,12 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
         return urls;
     }
 
-    private static readonly HashSet<string> TrackingParameters = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "fbclid", "gclid", "gbraid", "wbraid", "msclkid", "mc_cid", "mc_eid", "igshid"
-    };
-
-    // Normalises before comparing, because otherwise a link differing from its search
-    // result only by a `?utm_source=` is dropped as ungrounded — trading one failure mode
-    // for another. Redirect chains are deliberately *not* followed here: the reachability
-    // check in RouteEnrichmentService already resolves them, and doing it twice doubles the
-    // request count for no extra signal.
-    internal static string Canonical(string url)
-    {
-        var trimmed = (url ?? "").Trim();
-        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-        {
-            return trimmed.ToLowerInvariant();
-        }
-
-        var path = uri.AbsolutePath;
-        if (path.Length > 1 && path.EndsWith('/')) path = path.TrimEnd('/');
-        if (path == "/") path = "";
-
-        var kept = uri.Query.TrimStart('?')
-            .Split('&', StringSplitOptions.RemoveEmptyEntries)
-            .Where(pair =>
-            {
-                var key = pair.Split('=', 2)[0];
-                return !key.StartsWith("utm_", StringComparison.OrdinalIgnoreCase) &&
-                    !TrackingParameters.Contains(key);
-            })
-            .ToList();
-        var query = kept.Count > 0 ? "?" + string.Join("&", kept) : "";
-
-        var authority = uri.Host.ToLowerInvariant() + (uri.IsDefaultPort ? "" : $":{uri.Port}");
-        return $"{uri.Scheme.ToLowerInvariant()}://{authority}{path}{query}";
-    }
+    // The normaliser itself now lives in Core (UrlCanonicalizer), hoisted there in plan 31
+    // once the image sweep and the API's duplicate-submission check needed the same
+    // "are these the same page" answer. Kept as a forwarder rather than replaced at every
+    // call site: grounding is stated in terms of this provider, and the tests and golden
+    // set read better naming it here.
+    internal static string Canonical(string url) => UrlCanonicalizer.Canonical(url);
 
     // `effort` is set explicitly rather than left to the API's "high" default, and it
     // is `High` rather than the `Medium` this call carried while it was pinned to a

@@ -31,7 +31,7 @@ public class WorkerConfigurationTests
             ["Storage:AccountName"] = "acordanzaworkertest",
             ["Storage:ContainerName"] = "topos",
             ["Storage:EnrichmentQueueName"] = "route-enrichment",
-            ["Storage:TopoImportQueueName"] = "topo-import",
+            ["Storage:RouteImportQueueName"] = "route-import",
             ["Storage:ManagedIdentityClientId"] = Guid.NewGuid().ToString(),
             ["Anthropic:FoundryResource"] = "acordanza-foundry-test",
             ["Anthropic:ManagedIdentityClientId"] = Guid.NewGuid().ToString()
@@ -42,7 +42,7 @@ public class WorkerConfigurationTests
         using var scope = host.Services.CreateScope();
 
         Should.NotThrow(() => scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>());
-        Should.NotThrow(() => scope.ServiceProvider.GetRequiredService<TopoImportQueueProcessor>());
+        Should.NotThrow(() => scope.ServiceProvider.GetRequiredService<RouteImportQueueProcessor>());
         // The Claude providers, not the no-op pair — Anthropic:FoundryResource is set above,
         // so this asserts the real Foundry-backed graph resolves, not just some graph.
         scope.ServiceProvider.GetRequiredService<IRouteEnrichmentProvider>()
@@ -70,7 +70,7 @@ public class WorkerConfigurationTests
             ["Storage:AccountName"] = "acordanzaworkertest",
             ["Storage:ContainerName"] = "topos",
             ["Storage:EnrichmentQueueName"] = "route-enrichment",
-            ["Storage:TopoImportQueueName"] = "topo-import",
+            ["Storage:RouteImportQueueName"] = "route-import",
             ["Storage:ManagedIdentityClientId"] = Guid.NewGuid().ToString()
         });
 
@@ -78,8 +78,8 @@ public class WorkerConfigurationTests
         using var host = builder.Build();
 
         host.Services.GetRequiredService<QueueClient>().Name.ShouldBe("route-enrichment");
-        host.Services.GetRequiredKeyedService<QueueClient>(TopoImportKeys.QueueServiceKey).Name
-            .ShouldBe("topo-import");
+        host.Services.GetRequiredKeyedService<QueueClient>(RouteImportKeys.QueueServiceKey).Name
+            .ShouldBe("route-import");
     }
 
     // Regression guard: the deployed worker once passed an empty scope array to

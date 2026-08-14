@@ -47,7 +47,7 @@ public static class ServiceCollectionExtensions
             .WithTracing(tracing => tracing
                 .SetResourceBuilder(otelResource)
                 .AddSource("Acordanza.Worker.EnrichmentQueueProcessor")
-                .AddSource("Acordanza.Worker.TopoImportQueueProcessor")
+                .AddSource("Acordanza.Worker.RouteImportQueueProcessor")
                 .AddHttpClientInstrumentation()
                 .AddNpgsql()
                 .AddOtlpExporter())
@@ -95,16 +95,17 @@ public static class ServiceCollectionExtensions
         }
         services.AddSingleton(enrichmentQueueClient);
 
-        // Topo import (plan 30) rides a second queue on the same account. Registered under
+        // Route import (plans 30 and 31) rides a second queue on the same account, carrying
+        // both kinds. Registered under
         // a DI key so it can't shadow the unkeyed enrichment client above — which both test
         // fixtures resolve by bare type.
-        var topoImportQueueName = storageSection["TopoImportQueueName"]
-            ?? throw new InvalidOperationException("Missing Storage:TopoImportQueueName configuration");
+        var routeImportQueueName = storageSection["RouteImportQueueName"]
+            ?? throw new InvalidOperationException("Missing Storage:RouteImportQueueName configuration");
 
-        QueueClient topoImportQueueClient;
+        QueueClient routeImportQueueClient;
         if (!string.IsNullOrEmpty(storageConnectionString))
         {
-            topoImportQueueClient = new QueueClient(storageConnectionString, topoImportQueueName, queueClientOptions);
+            routeImportQueueClient = new QueueClient(storageConnectionString, routeImportQueueName, queueClientOptions);
         }
         else
         {
@@ -115,15 +116,29 @@ public static class ServiceCollectionExtensions
 
             var credential = new DefaultAzureCredential(
                 new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-            topoImportQueueClient = new QueueClient(
-                new Uri($"https://{accountName}.queue.core.windows.net/{topoImportQueueName}"), credential, queueClientOptions);
+            routeImportQueueClient = new QueueClient(
+                new Uri($"https://{accountName}.queue.core.windows.net/{routeImportQueueName}"), credential, queueClientOptions);
         }
-        services.AddKeyedSingleton(TopoImportKeys.QueueServiceKey, topoImportQueueClient);
+        services.AddKeyedSingleton(RouteImportKeys.QueueServiceKey, routeImportQueueClient);
 
         services.AddScoped<RouteEnrichmentService>();
         services.AddScoped<EnrichmentQueueProcessor>();
         services.AddScoped<RouteImportService>();
-        services.AddScoped<TopoImportQueueProcessor>();
+        services.AddScoped<RouteImportQueueProcessor>();
+
+        // The two readers behind plan 31 §2's seam, registered as one collection:
+        // RouteImportService picks the one whose Kind matches the row, so adding a third
+        // artifact kind later is a registration and a Kind value, not a branch in the spine.
+        services.AddScoped<IImportReader, TopoImageReader>();
+        services.AddScoped<IImportReader, WebPageReader>();
+        services.AddScoped<PageFetcher>();
+
+        // The guarded client both the page fetch and the image sweep go through — one
+        // client, one guard, both callers (plan 31 §3). A second, unguarded client for the
+        // images would reopen everything PageFetcher closes, since an <img src> on a
+        // fetched page is exactly as attacker-supplied as the page URL was.
+        services.AddHttpClient(PageFetcher.HttpClientName)
+            .ConfigurePrimaryHttpMessageHandler(PageFetcher.CreateHandler);
         // Singleton: the few-shot example set is downloaded once per process and reused
         // across every message in a drain — see TopoImportFewShotSet.
         services.AddSingleton<TopoImportFewShotSet>();
@@ -138,6 +153,7 @@ public static class ServiceCollectionExtensions
             services.AddScoped<ITopoVerificationProvider, NoOpTopoVerificationProvider>();
             services.AddScoped<ITopoImportGateProvider, NoOpTopoImportGateProvider>();
             services.AddScoped<ITopoExtractionProvider, NoOpTopoExtractionProvider>();
+            services.AddScoped<IPageExtractionProvider, NoOpPageExtractionProvider>();
         }
         else
         {
@@ -145,6 +161,7 @@ public static class ServiceCollectionExtensions
             services.AddScoped<ITopoVerificationProvider, ClaudeTopoVerificationProvider>();
             services.AddScoped<ITopoImportGateProvider, ClaudeTopoImportGateProvider>();
             services.AddScoped<ITopoExtractionProvider, ClaudeTopoExtractionProvider>();
+            services.AddScoped<IPageExtractionProvider, ClaudePageExtractionProvider>();
         }
 
         services.AddSingleton(new EnrichmentProviderConfig(foundryResourceConfigured));
