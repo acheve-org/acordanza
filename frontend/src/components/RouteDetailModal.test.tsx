@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeRouteDetail } from '../test/factories';
+import { makeRouteDetail, makeTopo } from '../test/factories';
 import { ApiError } from '../api/client';
 import { Permissions } from '../api/permissions';
 import { RouteDetailModal } from './RouteDetailModal';
@@ -83,16 +83,21 @@ describe('DetailModal permission gating', () => {
       decidedByName: 'Alex',
     });
     expect(screen.queryByRole('button', { name: 'Validar' })).not.toBeInTheDocument();
-    expect(screen.getByText('✓ Validada por Alex el 1/1/2026')).toBeInTheDocument();
   });
 
-  it('shows the rejection line with the es-ES decision date', () => {
+  // The modal itself no longer reports the verdict — who decided, when, and why lives on
+  // /my-acordanza/contributions. Only the review *actions* are still here, and only while
+  // the decision is outstanding.
+  it('shows no verdict line for a decided route', () => {
     renderModal([], {
       validationStatus: 'rejected',
       decidedAt: '2026-01-01T00:00:00Z',
       decidedByName: 'Alex',
+      rejectionReason: 'Falta el croquis',
     });
-    expect(screen.getByText('✗ Rechazada por Alex el 1/1/2026')).toBeInTheDocument();
+    expect(screen.queryByText(/Rechazada por/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Falta el croquis/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rechazar' })).not.toBeInTheDocument();
   });
 });
 
@@ -111,11 +116,13 @@ describe('DetailModal new sections (plan 20)', () => {
       ],
     });
 
+    // Grade and length are the head's second identity pair now, not stats-row entries;
+    // the obligatory grade rides along inside the GradePill.
     expect(screen.getByText('28 m')).toBeInTheDocument();
+    expect(screen.getByText('6a (6a)')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Orientación: Sur' })).toBeInTheDocument();
     expect(screen.getByText('Sur')).toBeInTheDocument();
     expect(screen.getByText('Equipada')).toBeInTheDocument();
-    expect(screen.getByText('Grado obligatorio: 6a')).toBeInTheDocument();
     expect(screen.getByText('Material recomendado: Friends hasta 3')).toBeInTheDocument();
     expect(screen.getByText('Material opcional: Estribos')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'https://example.com/topo' })).toHaveAttribute(
@@ -149,6 +156,43 @@ describe('DetailModal new sections (plan 20)', () => {
     expect(screen.queryByText(/Material recomendado/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Material opcional/)).not.toBeInTheDocument();
     expect(screen.queryByText('Enlaces')).not.toBeInTheDocument();
+  });
+});
+
+// The two-column split: the left column is what there is to read, the rail is what there
+// is to do. Pinning it here is what stops a later action from being dropped back into a
+// content section, which is exactly how the pre-split layout drifted.
+describe('DetailModal two-column layout', () => {
+  const actionsRail = () => screen.getByRole('complementary', { name: 'Acciones' });
+
+  it('puts every action in the rail, none in the content column', () => {
+    renderModal(
+      [Permissions.routeEdit, Permissions.routeDelete, Permissions.tickCreate, Permissions.routeEnrich],
+      { canValidate: true, validationStatus: 'pending' },
+      noopAsync,
+    );
+
+    const rail = actionsRail();
+    for (const name of ['Validar', 'Rechazar', 'Editar', 'Eliminar', '+ Registrar ascenso', 'Buscar enlaces y topo']) {
+      expect(within(rail).getByRole('button', { name })).toBeInTheDocument();
+    }
+    // The upload is a <label> wrapping a file input, so it has no button role.
+    expect(within(rail).getByText('+ Añadir topo')).toBeInTheDocument();
+    // Nothing actionable is left outside the rail — the modal's only other buttons are
+    // in the stacked confirm dialogs, which aren't open here.
+    expect(screen.getAllByRole('button')).toHaveLength(within(rail).getAllByRole('button').length);
+  });
+
+  it('offers the topo upload but no Topos section when the route has no photos', () => {
+    renderModal([], { topos: [] });
+    expect(within(actionsRail()).getByText('+ Añadir topo')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Topos' })).not.toBeInTheDocument();
+  });
+
+  it('renders the Topos section in the content column once there are photos', () => {
+    renderModal([], { topos: [makeTopo()] });
+    expect(screen.getByRole('heading', { name: 'Topos' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'topo.jpg' })).toBeInTheDocument();
   });
 });
 
