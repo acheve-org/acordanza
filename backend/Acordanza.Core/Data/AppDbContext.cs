@@ -13,7 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<FirstAscensionist> FirstAscensionists => Set<FirstAscensionist>();
     public DbSet<Topo> Topos => Set<Topo>();
-    public DbSet<TopoImport> TopoImports => Set<TopoImport>();
+    public DbSet<RouteImport> RouteImports => Set<RouteImport>();
     public DbSet<Link> Links => Set<Link>();
     public DbSet<AreaMedia> AreaMedia => Set<AreaMedia>();
     public DbSet<AreaExpert> AreaExperts => Set<AreaExpert>();
@@ -215,15 +215,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        builder.Entity<TopoImport>(entity =>
+        builder.Entity<RouteImport>(entity =>
         {
-            entity.ToTable("TopoImports", "core");
+            entity.ToTable("RouteImports", "core", t => t.HasCheckConstraint(
+                "CK_RouteImport_KindPayload",
+                // What table-per-hierarchy would have enforced with a discriminator, two
+                // DbSets and two DTO shapes (plan 31 §1) — one line, visible in the schema:
+                // an Image import has a staged blob, a Url import has a URL.
+                """("Kind" = 'Image' AND "BlobName" IS NOT NULL) OR ("Kind" = 'Url' AND "SourceUrl" IS NOT NULL)"""));
 
-            // GET /topo-imports/mine is the only list read, always the caller's own rows
+            // GET /route-imports/mine is the only list read, always the caller's own rows
             // newest first.
-            entity.HasIndex(i => i.UploadedByUserId);
+            entity.HasIndex(i => i.SubmittedByUserId);
+
+            // The duplicate-submission short-circuit (plan 31 §5) looks a canonical URL up
+            // across the table before spending anything on it.
+            entity.HasIndex(i => i.SourceUrl);
 
             entity.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
+            entity.Property(i => i.Kind).HasConversion<string>().HasMaxLength(20);
 
             // An import is scoped to its sector and means nothing without it.
             entity.HasOne(i => i.Area)
@@ -232,9 +242,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Matching Topo.UploadedBy — deleting a user never cascades.
-            entity.HasOne(i => i.UploadedBy)
+            entity.HasOne(i => i.SubmittedBy)
                 .WithMany()
-                .HasForeignKey(i => i.UploadedByUserId)
+                .HasForeignKey(i => i.SubmittedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // SetNull, not Cascade: deleting a bad machine-created route should leave the

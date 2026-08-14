@@ -23,7 +23,7 @@
     <None Update="Services/GoldenSet.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Services/TopoImportGoldenSet.json">
+    <None Update="Services/RouteImportGoldenSet.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

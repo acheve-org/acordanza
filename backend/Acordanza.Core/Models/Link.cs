@@ -9,7 +9,14 @@ namespace Acordanza.Core.Models;
 public enum LinkSource
 {
     Human,
-    Enrichment
+    Enrichment,
+
+    // The page a user pasted into /my-acordanza/my-imports (plan 31). Needs no migration:
+    // the column is HasConversion<string>().HasMaxLength(20) with a store-side default,
+    // so a new value is a code-only change. Note this is the *only* URL a URL import ever
+    // writes — never one found on the page, which is the concrete bound on prompt
+    // injection plan 31 §5 draws.
+    Import
 }
 
 public class Link

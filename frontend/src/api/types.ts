@@ -56,24 +56,35 @@ export type FirstAscensionistLinkRequestSummary =
 
 export type TopoSummary = components['schemas']['TopoDto'];
 
-// TopoImport.Status is a string column on the backend for the same reason
-// ValidationStatus is (see RequestStatus above), but its runtime values are this closed
-// set — narrowed by hand, since openapi-typescript can't see it from the schema.
-export type TopoImportStatus = 'pending' | 'completed' | 'discarded' | 'failed';
+// RouteImport.Status and .Kind are string columns on the backend for the same reason
+// ValidationStatus is (see RequestStatus above), but their runtime values are these closed
+// sets — narrowed by hand, since openapi-typescript can't see them from the schema.
+export type RouteImportStatus = 'pending' | 'completed' | 'discarded' | 'failed';
 
-export type TopoImport = Omit<components['schemas']['TopoImportDto'], 'status'> & {
-  status: TopoImportStatus;
+// What the user handed us to read: a topo photo or the URL of a page. FileName is set for
+// the first, SourceUrl for the second — never both.
+export type RouteImportKind = 'image' | 'url';
+
+export type RouteImport = Omit<components['schemas']['RouteImportDto'], 'status' | 'kind'> & {
+  status: RouteImportStatus;
+  kind: RouteImportKind;
 };
 
 // A third label map alongside reviewStatusLabels/validationStatusLabels, and separate for
 // the same reason those two are: the four states here are the import pipeline's, not a
 // review's — "Descartado" is the model's own answer, "Falló" is the pipeline breaking, and
-// only the second is worth retrying.
-export const topoImportStatusLabels: Record<TopoImportStatus, string> = {
-  pending: 'Leyendo el topo',
+// only the second is worth retrying. "Leyendo" covers both kinds, since a row's title
+// already says which one it is.
+export const routeImportStatusLabels: Record<RouteImportStatus, string> = {
+  pending: 'Leyendo',
   completed: 'Completado',
   discarded: 'Descartado',
   failed: 'Falló',
+};
+
+export const routeImportKindLabels: Record<RouteImportKind, string> = {
+  image: 'Foto',
+  url: 'Enlace',
 };
 
 export type RouteSummary = Omit<components['schemas']['RouteDto'], 'validationStatus'> & {

@@ -158,11 +158,12 @@ export function RouteFormPage() {
   return (
     <main className="settings-page">
       <h1>{editing ? 'Editar vía' : 'Nueva vía'}</h1>
-      {/* /routes/new is where someone with a topo in their hand actually starts, so the
-          way out of typing it all in belongs here rather than only in the left nav. */}
+      {/* /routes/new is where someone with a topo in their hand — or a blog post open in
+          another tab — actually starts, so the way out of typing it all in belongs here
+          rather than only in the left nav. */}
       {!editing && (
         <p>
-          ¿Tienes un topo? <Link to="/my-acordanza/my-imports">Créala desde la foto</Link>
+          ¿Tienes una foto o un enlace? <Link to="/my-acordanza/my-imports">Crea la vía desde ahí</Link>
         </p>
       )}
       <section className="settings-section">

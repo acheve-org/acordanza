@@ -75,29 +75,32 @@ resource "azurerm_storage_queue" "route_enrichment" {
   storage_account_id = azurerm_storage_account.topos.id
 }
 
-# Topo import queue (plan 30) — a second queue rather than a second message
-# shape on route-enrichment: EnrichmentQueueProcessor drops an undeserializable
-# message as poison, and the two want different visibility timeouts (five
-# minutes for a web-search loop, one for a pair of vision calls).
-resource "azurerm_storage_queue" "topo_import" {
-  name               = "topo-import"
+# Route import queue (plans 30 and 31) — a second queue rather than a second
+# message shape on route-enrichment: EnrichmentQueueProcessor drops an
+# undeserializable message as poison, and the two want different visibility
+# timeouts (five minutes for a web-search loop, two for an import). Both import
+# kinds — an uploaded topo photo and a pasted URL — ride this one queue: the
+# message is a row id, and which reader runs is a column on the row.
+resource "azurerm_storage_queue" "route_import" {
+  name               = "route-import"
   storage_account_id = azurerm_storage_account.topos.id
 }
 
-# Sweeps abandoned topo-import uploads. The API writes each upload to
+# Sweeps abandoned route-import uploads (the Image kind only — a Url import
+# stages nothing). The API writes each upload to
 # "_imports/" and the worker promotes it to the route's own prefix on success
 # (or deletes it on a discard) — but a run that crashes in between leaves the
 # blob behind, and nothing else would ever collect it. One rule beats cleanup
 # code that has to be gotten right on a path that only runs after a failure.
 #
 # Seven days is well past the queue's own give-up point (five deliveries against
-# a one-minute visibility timeout), so this can only ever catch blobs no
+# a two-minute visibility timeout), so this can only ever catch blobs no
 # execution is still coming for.
 resource "azurerm_storage_management_policy" "topos" {
   storage_account_id = azurerm_storage_account.topos.id
 
   rule {
-    name    = "expire-abandoned-topo-imports"
+    name    = "expire-abandoned-route-imports"
     enabled = true
 
     filters {
@@ -115,8 +118,8 @@ resource "azurerm_storage_management_policy" "topos" {
 
 # The blob role above (Storage Blob Data Contributor) covers blobs only —
 # queues need their own data-plane role for the API (enqueue on
-# POST /routes/{id}/enrich and POST /topo-imports) and the worker (dequeue/delete
-# in EnrichmentQueueProcessor/TopoImportQueueProcessor) to operate without a
+# POST /routes/{id}/enrich and POST /route-imports) and the worker (dequeue/delete
+# in EnrichmentQueueProcessor/RouteImportQueueProcessor) to operate without a
 # stored connection string. Scoped to the account, so it covers both queues.
 resource "azurerm_role_assignment" "topos_queue_contributor" {
   scope                = azurerm_storage_account.topos.id

@@ -16,21 +16,21 @@ namespace Acordanza.Worker.Tests.Services;
 // row Failed. Enrichment can drop a poison message and move on because the route still
 // exists; here the row *is* the artifact, and a row left Pending forever is precisely the
 // "waited two minutes for silence" outcome plan 30 exists to prevent.
-public class TopoImportQueueProcessorTests(WorkerFixture fixture) : WorkerTestBase(fixture)
+public class RouteImportQueueProcessorTests(WorkerFixture fixture) : WorkerTestBase(fixture)
 {
     private async Task<int> QueueLengthAsync()
     {
-        var props = await Fixture.TopoImportQueueClient.GetPropertiesAsync(TestContext.Current.CancellationToken);
+        var props = await Fixture.RouteImportQueueClient.GetPropertiesAsync(TestContext.Current.CancellationToken);
         return props.Value.ApproximateMessagesCount;
     }
 
     [Fact]
     public async Task An_unparseable_message_is_dropped_without_retrying()
     {
-        await Fixture.TopoImportQueueClient.SendMessageAsync("not json", TestContext.Current.CancellationToken);
+        await Fixture.RouteImportQueueClient.SendMessageAsync("not json", TestContext.Current.CancellationToken);
 
         using var scope = Fixture.Services.CreateScope();
-        var processor = scope.ServiceProvider.GetRequiredService<TopoImportQueueProcessor>();
+        var processor = scope.ServiceProvider.GetRequiredService<RouteImportQueueProcessor>();
         await processor.RunAsync(TestContext.Current.CancellationToken);
 
         (await QueueLengthAsync()).ShouldBe(0);
@@ -38,7 +38,7 @@ public class TopoImportQueueProcessorTests(WorkerFixture fixture) : WorkerTestBa
 
     // The two queues must not read each other's messages. Without the keyed registration
     // this is exactly what would break — and silently, since an EnrichmentMessage happens
-    // to deserialize into a TopoImportMessage with ImportId 0.
+    // to deserialize into a RouteImportMessage with ImportId 0.
     [Fact]
     public async Task The_topo_import_processor_only_drains_its_own_queue()
     {
@@ -47,7 +47,7 @@ public class TopoImportQueueProcessorTests(WorkerFixture fixture) : WorkerTestBa
             JsonSerializer.Serialize(new EnrichmentMessage(1, false)), TestContext.Current.CancellationToken);
 
         using var scope = Fixture.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<TopoImportQueueProcessor>()
+        await scope.ServiceProvider.GetRequiredService<RouteImportQueueProcessor>()
             .RunAsync(TestContext.Current.CancellationToken);
 
         var props = await enrichmentQueue.GetPropertiesAsync(TestContext.Current.CancellationToken);
@@ -59,11 +59,11 @@ public class TopoImportQueueProcessorTests(WorkerFixture fixture) : WorkerTestBa
     [Fact]
     public async Task A_message_for_a_missing_import_is_deleted()
     {
-        await Fixture.TopoImportQueueClient.SendMessageAsync(
-            JsonSerializer.Serialize(new TopoImportMessage(9999)), TestContext.Current.CancellationToken);
+        await Fixture.RouteImportQueueClient.SendMessageAsync(
+            JsonSerializer.Serialize(new RouteImportMessage(9999)), TestContext.Current.CancellationToken);
 
         using var scope = Fixture.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<TopoImportQueueProcessor>()
+        await scope.ServiceProvider.GetRequiredService<RouteImportQueueProcessor>()
             .RunAsync(TestContext.Current.CancellationToken);
 
         (await QueueLengthAsync()).ShouldBe(0);
@@ -82,32 +82,32 @@ public class TopoImportQueueProcessorTests(WorkerFixture fixture) : WorkerTestBa
         var area = await SeedData.CreateAreaAsync(db, "Peña Rúa");
 
         var blobStorage = scope.ServiceProvider.GetRequiredService<BlobStorageService>();
-        var blobName = $"{TopoImportKeys.StagingPrefix}{Guid.NewGuid():N}.jpg";
+        var blobName = $"{RouteImportKeys.StagingPrefix}{Guid.NewGuid():N}.jpg";
         await blobStorage.UploadAsync(blobName, new MemoryStream([0xFF, 0xD8, 0xFF, 0xD9]), "image/jpeg");
 
-        var import = new TopoImport
+        var import = new RouteImport
         {
             BlobName = blobName,
             ContentType = "image/jpeg",
             FileName = "topo.jpg",
             AreaId = area.Id,
-            UploadedByUserId = user.Id,
-            Status = TopoImportStatus.Pending
+            SubmittedByUserId = user.Id,
+            Status = RouteImportStatus.Pending
         };
-        db.TopoImports.Add(import);
+        db.RouteImports.Add(import);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        await Fixture.TopoImportQueueClient.SendMessageAsync(
-            JsonSerializer.Serialize(new TopoImportMessage(import.Id)), TestContext.Current.CancellationToken);
+        await Fixture.RouteImportQueueClient.SendMessageAsync(
+            JsonSerializer.Serialize(new RouteImportMessage(import.Id)), TestContext.Current.CancellationToken);
 
-        await scope.ServiceProvider.GetRequiredService<TopoImportQueueProcessor>()
+        await scope.ServiceProvider.GetRequiredService<RouteImportQueueProcessor>()
             .RunAsync(TestContext.Current.CancellationToken);
 
         (await QueueLengthAsync()).ShouldBe(0);
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
-        reloaded.Status.ShouldBe(TopoImportStatus.Failed);
-        reloaded.Outcome.ShouldBe(TopoImportOutcomes.Failed);
+        reloaded.Status.ShouldBe(RouteImportStatus.Failed);
+        reloaded.Outcome.ShouldBe(RouteImportOutcomes.Failed);
         reloaded.ProcessedAt.ShouldNotBeNull();
     }
 }

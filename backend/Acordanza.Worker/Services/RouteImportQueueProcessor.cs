@@ -10,36 +10,42 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Acordanza.Worker.Services;
 
-// Drains the topo-import queue and exits — mirrors EnrichmentQueueProcessor, on its own
+// Drains the route-import queue and exits — mirrors EnrichmentQueueProcessor, on its own
 // queue. Two queues rather than one with a discriminated union: EnrichmentQueueProcessor
 // treats an undeserializable message as poison, which a second shape on the same queue
 // would trip, and each queue wants its own visibility timeout — enrichment needs five
-// minutes for a web-search loop, a topo import about one.
+// minutes for a web-search loop, a route import two.
+//
+// Both import kinds ride *this* queue, though (plan 31 §1): the message is a row id, and
+// which reader runs is a column on the row.
 //
 // The one behavioural difference from its sibling: when a message is finally given up on,
 // this marks the row Failed. Enrichment can drop a poison message and move on because the
 // route still exists; here the row *is* the artifact, and leaving it Pending forever is
-// the broken-feature outcome plan 30 exists to prevent.
-public class TopoImportQueueProcessor(
-    [FromKeyedServices(TopoImportKeys.QueueServiceKey)] QueueClient queueClient,
+// the broken-feature outcome plans 30 and 31 exist to prevent.
+public class RouteImportQueueProcessor(
+    [FromKeyedServices(RouteImportKeys.QueueServiceKey)] QueueClient queueClient,
     IServiceScopeFactory scopeFactory,
-    ILogger<TopoImportQueueProcessor> logger)
+    ILogger<RouteImportQueueProcessor> logger)
 {
     private const int BatchSize = 8;
-    private static readonly TimeSpan VisibilityTimeout = TimeSpan.FromMinutes(1);
+    // Two minutes: a fetch plus one extraction plus up to eight vision calls is the Url
+    // kind's worst case, against the Image kind's pair of vision calls and enrichment's
+    // five-minute search loop.
+    private static readonly TimeSpan VisibilityTimeout = TimeSpan.FromMinutes(2);
     private const int MaxDeliveryAttempts = 5;
 
-    private static readonly ActivitySource ActivitySource = new("Acordanza.Worker.TopoImportQueueProcessor");
+    private static readonly ActivitySource ActivitySource = new("Acordanza.Worker.RouteImportQueueProcessor");
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
     {
-        logger.LogInformation("topo import drain started, polling queue {QueueName}", queueClient.Name);
+        logger.LogInformation("route import drain started, polling queue {QueueName}", queueClient.Name);
         var totalProcessed = 0;
         while (true)
         {
             var response = await queueClient.ReceiveMessagesAsync(BatchSize, VisibilityTimeout, cancellationToken);
             var messages = response.Value;
-            logger.LogInformation("topo import received {Count} message(s)", messages.Length);
+            logger.LogInformation("route import received {Count} message(s)", messages.Length);
             if (messages.Length == 0) break;
 
             foreach (var message in messages)
@@ -48,24 +54,24 @@ public class TopoImportQueueProcessor(
                 totalProcessed++;
             }
         }
-        logger.LogInformation("topo import drain finished, processed {Count} message(s)", totalProcessed);
+        logger.LogInformation("route import drain finished, processed {Count} message(s)", totalProcessed);
     }
 
     private async Task ProcessAsync(QueueMessage message, CancellationToken cancellationToken)
     {
-        using var activity = ActivitySource.StartActivity("topo_import.process_message", ActivityKind.Consumer);
+        using var activity = ActivitySource.StartActivity("route_import.process_message", ActivityKind.Consumer);
         activity?.SetTag("messaging.message.id", message.MessageId);
         activity?.SetTag("messaging.azure.dequeue_count", message.DequeueCount);
 
-        TopoImportMessage? body;
+        RouteImportMessage? body;
         try
         {
-            body = JsonSerializer.Deserialize<TopoImportMessage>(message.MessageText);
+            body = JsonSerializer.Deserialize<RouteImportMessage>(message.MessageText);
         }
         catch (JsonException ex)
         {
             activity?.SetStatus(ActivityStatusCode.Error, "unparseable message");
-            logger.LogError(ex, "topo import poison message (unparseable), dropping: {Body}", message.MessageText);
+            logger.LogError(ex, "route import poison message (unparseable), dropping: {Body}", message.MessageText);
             await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken);
             return;
         }
@@ -73,13 +79,13 @@ public class TopoImportQueueProcessor(
         if (body is null)
         {
             activity?.SetStatus(ActivityStatusCode.Error, "null message body");
-            logger.LogError("topo import poison message (null body), dropping: {Body}", message.MessageText);
+            logger.LogError("route import poison message (null body), dropping: {Body}", message.MessageText);
             await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken);
             return;
         }
 
-        activity?.SetTag("acordanza.topo_import_id", body.ImportId);
-        logger.LogInformation("topo import processing import {ImportId} (dequeueCount={Count})",
+        activity?.SetTag("acordanza.route_import_id", body.ImportId);
+        logger.LogInformation("route import processing import {ImportId} (dequeueCount={Count})",
             body.ImportId, message.DequeueCount);
 
         try
@@ -88,23 +94,23 @@ public class TopoImportQueueProcessor(
             var service = scope.ServiceProvider.GetRequiredService<RouteImportService>();
             await service.ImportAsync(body.ImportId, cancellationToken);
             await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken);
-            logger.LogInformation("topo import message for import {ImportId} deleted from queue", body.ImportId);
+            logger.LogInformation("route import message for import {ImportId} deleted from queue", body.ImportId);
         }
         catch (Exception ex)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             if (message.DequeueCount > MaxDeliveryAttempts)
             {
-                activity?.SetTag("acordanza.topo_import.outcome", "poison");
-                logger.LogError(ex, "topo import poison message for import {ImportId}, dropping after {Count} attempts",
+                activity?.SetTag("acordanza.route_import.outcome", "poison");
+                logger.LogError(ex, "route import poison message for import {ImportId}, dropping after {Count} attempts",
                     body.ImportId, message.DequeueCount);
                 await MarkFailedAsync(body.ImportId, cancellationToken);
                 await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt, cancellationToken);
             }
             else
             {
-                activity?.SetTag("acordanza.topo_import.outcome", "retry");
-                logger.LogError(ex, "topo import failed for import {ImportId} (attempt {Count}), will be redelivered",
+                activity?.SetTag("acordanza.route_import.outcome", "retry");
+                logger.LogError(ex, "route import failed for import {ImportId} (attempt {Count}), will be redelivered",
                     body.ImportId, message.DequeueCount);
                 // Left in place — the visibility timeout expiring redelivers it.
             }
@@ -120,16 +126,16 @@ public class TopoImportQueueProcessor(
         {
             using var scope = scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            await db.TopoImports
-                .Where(i => i.Id == importId && i.Status == TopoImportStatus.Pending)
+            await db.RouteImports
+                .Where(i => i.Id == importId && i.Status == RouteImportStatus.Pending)
                 .ExecuteUpdateAsync(s => s
-                    .SetProperty(i => i.Status, TopoImportStatus.Failed)
-                    .SetProperty(i => i.Outcome, TopoImportOutcomes.Failed)
+                    .SetProperty(i => i.Status, RouteImportStatus.Failed)
+                    .SetProperty(i => i.Outcome, RouteImportOutcomes.Failed)
                     .SetProperty(i => i.ProcessedAt, DateTimeOffset.UtcNow), cancellationToken);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "topo import could not mark import {ImportId} as failed", importId);
+            logger.LogError(ex, "route import could not mark import {ImportId} as failed", importId);
         }
     }
 }

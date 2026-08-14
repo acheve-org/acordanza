@@ -7,7 +7,7 @@ import type {
   RouteDetail,
   RouteSummary,
   TickedRoute,
-  TopoImport,
+  RouteImport,
 } from '../api/types';
 
 // Typed off the generated OpenAPI contract (see api/generated.ts) rather than hand-rolled:
@@ -40,9 +40,9 @@ type UserAccountDto = components['schemas']['UserAccountDto'];
 // where validationStatus is the closed RequestStatus set.
 type ContributionDto = Contribution;
 type AreaDetailDto = AreaDetail;
-// Same narrowing again: TopoImportDto.status is a plain string in the contract but a
-// closed four-value set at runtime (see api/types.ts's TopoImportStatus).
-type TopoImportDto = TopoImport;
+// Same narrowing again: RouteImportDto.status and .kind are plain strings in the contract
+// but closed sets at runtime (see api/types.ts's RouteImportStatus/RouteImportKind).
+type RouteImportDto = RouteImport;
 
 export const makeTickedRoute = (o: Partial<TickedRoute> = {}): TickedRoute => ({
   tickId: 1,
@@ -291,9 +291,11 @@ export const makeContribution = (o: Partial<ContributionDto> = {}): Contribution
   ...o,
 });
 
-export const makeTopoImport = (o: Partial<TopoImportDto> = {}): TopoImportDto => ({
+export const makeRouteImport = (o: Partial<RouteImportDto> = {}): RouteImportDto => ({
   id: 1,
+  kind: 'image',
   fileName: 'topo.jpg',
+  sourceUrl: null,
   areaId: 1,
   areaNamePath: 'Peña Rúa › Sector 1',
   createdAt: '2026-01-01T00:00:00Z',

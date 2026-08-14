@@ -11,11 +11,11 @@ using Xunit;
 
 namespace Acordanza.Worker.Tests.Services;
 
-// Plan 30 (route-from-topo) — the write paths: gate discard, create-vs-match, blob
-// promotion, and the four terminal states. Constructs RouteImportService directly with
+// Plan 30 (route-from-topo), through plan 31's reader seam — the Image kind's write
+// paths: gate discard, create-vs-match, blob promotion, and the four terminal states. Constructs RouteImportService directly with
 // fake providers against this project's Postgres+Azurite fixture, exactly as
 // RouteEnrichmentServiceTests does — no real Foundry call is ever made in CI. The pure
-// acceptance predicate is unit-tier and lives in TopoImportAcceptanceTests.
+// acceptance predicate is unit-tier and lives in RouteImportAcceptanceTests.
 public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fixture)
 {
     // --- Fakes -------------------------------------------------------------------
@@ -55,36 +55,48 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
     private static TopoExtractionResult CleanRead(string name = "La Loca", string grade = "6b+", int? length = 25) =>
         new(new ExtractedRoute(name, grade, length, "La Loca 6b+ 25m", "high"), false, null);
 
+    // The Image kind's reader, wired with fakes and handed to the spine as the only
+    // registered reader — the same shape production builds, minus Foundry.
     private RouteImportService BuildService(
-        AppDbContext db, ITopoImportGateProvider gate, ITopoExtractionProvider? extraction = null) =>
-        new(db,
+        AppDbContext db, ITopoImportGateProvider gate, ITopoExtractionProvider? extraction = null)
+    {
+        var reader = new TopoImageReader(
             new AreaHierarchyService(db),
             gate,
             extraction ?? new FakeExtraction(CleanRead()),
+            Fixture.Services.GetRequiredService<BlobStorageService>(),
+            NullLogger<TopoImageReader>.Instance);
+
+        return new RouteImportService(
+            db,
+            new AreaHierarchyService(db),
+            [reader],
             Fixture.Services.GetRequiredService<MediaUploadService>(),
             Fixture.Services.GetRequiredService<BlobStorageService>(),
             NullLogger<RouteImportService>.Instance);
+    }
 
     // A 1x1 JPEG is enough: nothing in the pipeline decodes the bytes, the providers are
     // faked, and Azurite doesn't care what a blob contains.
     private static readonly byte[] ImageBytes = [0xFF, 0xD8, 0xFF, 0xD9];
 
-    private async Task<TopoImport> SeedImportAsync(AppDbContext db, Area area, string userId)
+    private async Task<RouteImport> SeedImportAsync(AppDbContext db, Area area, string userId)
     {
         var blobStorage = Fixture.Services.GetRequiredService<BlobStorageService>();
-        var blobName = $"{TopoImportKeys.StagingPrefix}{Guid.NewGuid():N}.jpg";
+        var blobName = $"{RouteImportKeys.StagingPrefix}{Guid.NewGuid():N}.jpg";
         await blobStorage.UploadAsync(blobName, new MemoryStream(ImageBytes), "image/jpeg");
 
-        var import = new TopoImport
+        var import = new RouteImport
         {
+            Kind = RouteImportKind.Image,
             BlobName = blobName,
             ContentType = "image/jpeg",
             FileName = "topo.jpg",
             AreaId = area.Id,
-            UploadedByUserId = userId,
-            Status = TopoImportStatus.Pending
+            SubmittedByUserId = userId,
+            Status = RouteImportStatus.Pending
         };
-        db.TopoImports.Add(import);
+        db.RouteImports.Add(import);
         await db.SaveChangesAsync();
         return import;
     }
@@ -111,16 +123,16 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         var user = await SeedData.CreateUserAsync(db);
         var area = await CreateAreaAsync(db);
         var import = await SeedImportAsync(db, area, user.Id);
-        var stagedBlobName = import.BlobName;
+        var stagedBlobName = import.BlobName!;
 
         var extraction = new FakeExtraction(CleanRead());
         await BuildService(db, new FakeGate(isTopo: false), extraction)
             .ImportAsync(import.Id, TestContext.Current.CancellationToken);
 
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
-        reloaded.Status.ShouldBe(TopoImportStatus.Discarded);
-        reloaded.Outcome.ShouldBe(TopoImportOutcomes.NotATopo);
+        reloaded.Status.ShouldBe(RouteImportStatus.Discarded);
+        reloaded.Outcome.ShouldBe(RouteImportOutcomes.NotATopo);
         reloaded.RouteId.ShouldBeNull();
         reloaded.ProcessedAt.ShouldNotBeNull();
 
@@ -160,9 +172,9 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         route.DecidedAt.ShouldBeNull();
         route.DecidedByUserId.ShouldBeNull();
 
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
-        reloaded.Status.ShouldBe(TopoImportStatus.Completed);
+        reloaded.Status.ShouldBe(RouteImportStatus.Completed);
         reloaded.RouteWasCreated.ShouldBeTrue();
         reloaded.RouteId.ShouldBe(route.Id);
     }
@@ -175,7 +187,7 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         var user = await SeedData.CreateUserAsync(db);
         var area = await CreateAreaAsync(db);
         var import = await SeedImportAsync(db, area, user.Id);
-        var stagedBlobName = import.BlobName;
+        var stagedBlobName = import.BlobName!;
 
         await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(CleanRead()))
             .ImportAsync(import.Id, TestContext.Current.CancellationToken);
@@ -191,7 +203,7 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         (await BlobExistsAsync(stagedBlobName)).ShouldBeFalse();
 
         // The row follows the image, so it still points at something live.
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
         reloaded.BlobName.ShouldBe(promoted);
     }
@@ -233,13 +245,13 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         reloadedRoute.Length.ShouldBe(30);
         reloadedRoute.ValidationStatus.ShouldBe(ReviewStatus.Approved);
 
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
-        reloaded.Status.ShouldBe(TopoImportStatus.Completed);
+        reloaded.Status.ShouldBe(RouteImportStatus.Completed);
         reloaded.RouteWasCreated.ShouldBeFalse();
         reloaded.RouteId.ShouldBe(existing.Id);
         // The disagreement is recorded for a human to decide on, not acted on.
-        reloaded.Outcome.ShouldBe("La vía ya existía; el topo indica 6b+ y la ficha 6a");
+        reloaded.Outcome.ShouldBe("La vía ya existía. El topo indica 6b+ y la ficha 6a");
 
         (await db.Topos.CountAsync(t => t.RouteId == existing.Id, TestContext.Current.CancellationToken)).ShouldBe(1);
     }
@@ -321,16 +333,16 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         var user = await SeedData.CreateUserAsync(db);
         var area = await CreateAreaAsync(db);
         var import = await SeedImportAsync(db, area, user.Id);
-        var stagedBlobName = import.BlobName;
+        var stagedBlobName = import.BlobName!;
 
         var incomplete = new TopoExtractionResult(null, false, null, Completed: false);
         await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(incomplete))
             .ImportAsync(import.Id, TestContext.Current.CancellationToken);
 
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
-        reloaded.Status.ShouldBe(TopoImportStatus.Failed);
-        reloaded.Outcome.ShouldBe(TopoImportOutcomes.Failed);
+        reloaded.Status.ShouldBe(RouteImportStatus.Failed);
+        reloaded.Outcome.ShouldBe(RouteImportOutcomes.Failed);
         (await db.Routes.CountAsync(TestContext.Current.CancellationToken)).ShouldBe(0);
 
         // Kept, unlike on a discard: a Failed row is retryable, and re-running it needs
@@ -352,9 +364,9 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
             .ImportAsync(import.Id, TestContext.Current.CancellationToken);
 
         extraction.CallCount.ShouldBe(0);
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
-        reloaded.Status.ShouldBe(TopoImportStatus.Failed);
+        reloaded.Status.ShouldBe(RouteImportStatus.Failed);
     }
 
     [Fact]
@@ -365,16 +377,16 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         var user = await SeedData.CreateUserAsync(db);
         var area = await CreateAreaAsync(db);
         var import = await SeedImportAsync(db, area, user.Id);
-        await Fixture.Services.GetRequiredService<BlobStorageService>().DeleteAsync(import.BlobName);
+        await Fixture.Services.GetRequiredService<BlobStorageService>().DeleteAsync(import.BlobName!);
 
         var gate = new FakeGate(isTopo: true);
         await BuildService(db, gate).ImportAsync(import.Id, TestContext.Current.CancellationToken);
 
         gate.CallCount.ShouldBe(0);
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
-        reloaded.Status.ShouldBe(TopoImportStatus.Failed);
-        reloaded.Outcome.ShouldBe(TopoImportOutcomes.ImageGone);
+        reloaded.Status.ShouldBe(RouteImportStatus.Failed);
+        reloaded.Outcome.ShouldBe(RouteImportOutcomes.ImageGone);
     }
 
     // Idempotency: a redelivered or duplicated message must not import the same photo twice.
@@ -417,7 +429,7 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
     }
 
     // A provider blowing up must propagate, so the queue processor can retry it and, at
-    // the end of the road, mark the row Failed — see TopoImportQueueProcessorTests.
+    // the end of the road, mark the row Failed — see RouteImportQueueProcessorTests.
     [Fact]
     public async Task A_throwing_provider_propagates_and_leaves_the_row_pending()
     {
@@ -431,8 +443,8 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         await Should.ThrowAsync<InvalidOperationException>(
             () => service.ImportAsync(import.Id, TestContext.Current.CancellationToken));
 
-        var reloaded = await db.TopoImports.AsNoTracking()
+        var reloaded = await db.RouteImports.AsNoTracking()
             .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
-        reloaded.Status.ShouldBe(TopoImportStatus.Pending);
+        reloaded.Status.ShouldBe(RouteImportStatus.Pending);
     }
 }

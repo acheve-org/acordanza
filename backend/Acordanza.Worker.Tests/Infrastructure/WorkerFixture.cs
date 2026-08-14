@@ -49,11 +49,11 @@ public sealed class WorkerFixture : IAsyncLifetime
         _services ?? throw new InvalidOperationException(
             $"{nameof(WorkerFixture)} hasn't started yet — call {nameof(EnsureStartedAsync)}() first (WorkerTestBase does this automatically).");
 
-    // The topo-import queue is registered under a DI key so it can't shadow the unkeyed
-    // enrichment client (see TopoImportKeys.QueueServiceKey) — surfaced here so tests
+    // The route-import queue is registered under a DI key so it can't shadow the unkeyed
+    // enrichment client (see RouteImportKeys.QueueServiceKey) — surfaced here so tests
     // don't each have to remember the key.
-    public QueueClient TopoImportQueueClient =>
-        Services.GetRequiredKeyedService<QueueClient>(TopoImportKeys.QueueServiceKey);
+    public QueueClient RouteImportQueueClient =>
+        Services.GetRequiredKeyedService<QueueClient>(RouteImportKeys.QueueServiceKey);
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
@@ -76,7 +76,7 @@ public sealed class WorkerFixture : IAsyncLifetime
                     ["Storage:ConnectionString"] = _azurite.GetConnectionString(),
                     ["Storage:ContainerName"] = "topos",
                     ["Storage:EnrichmentQueueName"] = "route-enrichment",
-                    ["Storage:TopoImportQueueName"] = "topo-import"
+                    ["Storage:RouteImportQueueName"] = "route-import"
                     // No Anthropic:FoundryResource — AddEnrichmentWorker falls back to the
                     // no-op providers; tests that exercise RouteEnrichmentService/
                     // RouteImportService construct them directly with fakes.
@@ -100,7 +100,7 @@ public sealed class WorkerFixture : IAsyncLifetime
             // Unlike the API host (Program.cs), nothing in the worker's own startup
             // creates the queues — production relies on Terraform provisioning them.
             await _services.GetRequiredService<QueueClient>().CreateIfNotExistsAsync();
-            await TopoImportQueueClient.CreateIfNotExistsAsync();
+            await RouteImportQueueClient.CreateIfNotExistsAsync();
 
             await using var connection = new NpgsqlConnection(_connectionString);
             await connection.OpenAsync();
@@ -127,7 +127,7 @@ public sealed class WorkerFixture : IAsyncLifetime
         await _respawner.ResetAsync(connection);
 
         await Services.GetRequiredService<QueueClient>().ClearMessagesAsync();
-        await TopoImportQueueClient.ClearMessagesAsync();
+        await RouteImportQueueClient.ClearMessagesAsync();
     }
 
     public async ValueTask DisposeAsync()

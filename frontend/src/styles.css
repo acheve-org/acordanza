@@ -462,6 +462,15 @@ input:focus, select:focus, textarea:focus {
   opacity: 0.7;
 }
 
+/* The two import kinds on /my-acordanza/my-imports. Two buttons rather than a <select>
+   or radios: the choice changes which field the form shows, so it wants to read as a
+   switch between two forms, not as a value being picked. */
+.segmented-control {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
 .tag-row { display: flex; gap: var(--space-xs); flex-wrap: wrap; }
 
 .picker-stack { display: flex; flex-direction: column; gap: var(--space-xs); }

@@ -2208,6 +2208,151 @@
         }
       }
     },
+    "/api/route-imports/image": {
+      "post": {
+        "tags": [
+          "RouteImports"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "file": {
+                        "$ref": "#/components/schemas/IFormFile"
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "areaId": {
+                        "type": "integer",
+                        "format": "int32"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteImportDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteImportDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteImportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/route-imports/url": {
+      "post": {
+        "tags": [
+          "RouteImports"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUrlImportRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUrlImportRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUrlImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteImportDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteImportDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RouteImportDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/route-imports/mine": {
+      "get": {
+        "tags": [
+          "RouteImports"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RouteImportDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RouteImportDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RouteImportDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/routes": {
       "get": {
         "tags": [
@@ -2859,102 +3004,6 @@
         "responses": {
           "200": {
             "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/topo-imports": {
-      "post": {
-        "tags": [
-          "TopoImports"
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "allOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "file": {
-                        "$ref": "#/components/schemas/IFormFile"
-                      }
-                    }
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "areaId": {
-                        "type": "integer",
-                        "format": "int32"
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TopoImportDto"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TopoImportDto"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TopoImportDto"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/topo-imports/mine": {
-      "get": {
-        "tags": [
-          "TopoImports"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TopoImportDto"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TopoImportDto"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TopoImportDto"
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -4061,6 +4110,25 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "CreateUrlImportRequest": {
+        "required": [
+          "url",
+          "areaId"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "areaId": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -5250,6 +5318,102 @@
           }
         }
       },
+      "RouteImportDto": {
+        "required": [
+          "id",
+          "kind",
+          "fileName",
+          "sourceUrl",
+          "areaId",
+          "areaNamePath",
+          "createdAt",
+          "status",
+          "outcome",
+          "routeId",
+          "routeName",
+          "routeSlug",
+          "routeAreaSlugPath",
+          "routeWasCreated",
+          "processedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "fileName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sourceUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "areaId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "areaNamePath": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "routeId": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "routeName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "routeSlug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "routeAreaSlugPath": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "routeWasCreated": {
+            "type": "boolean"
+          },
+          "processedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "RouteLinkDto": {
         "required": [
           "url",
@@ -5332,88 +5496,6 @@
           },
           "uploadedBy": {
             "type": "string"
-          }
-        }
-      },
-      "TopoImportDto": {
-        "required": [
-          "id",
-          "fileName",
-          "areaId",
-          "areaNamePath",
-          "createdAt",
-          "status",
-          "outcome",
-          "routeId",
-          "routeName",
-          "routeSlug",
-          "routeAreaSlugPath",
-          "routeWasCreated",
-          "processedAt"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "fileName": {
-            "type": "string"
-          },
-          "areaId": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "areaNamePath": {
-            "type": "string"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "status": {
-            "type": "string"
-          },
-          "outcome": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "routeId": {
-            "type": [
-              "null",
-              "integer"
-            ],
-            "format": "int32"
-          },
-          "routeName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "routeSlug": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "routeAreaSlugPath": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "routeWasCreated": {
-            "type": "boolean"
-          },
-          "processedAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
           }
         }
       },
@@ -5657,13 +5739,13 @@
       "name": "Passkeys"
     },
     {
+      "name": "RouteImports"
+    },
+    {
       "name": "Routes"
     },
     {
       "name": "Ticks"
-    },
-    {
-      "name": "TopoImports"
     },
     {
       "name": "Topos"

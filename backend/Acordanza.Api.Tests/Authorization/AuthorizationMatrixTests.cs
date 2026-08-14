@@ -28,7 +28,7 @@ public class AuthorizationMatrixTests(ApiFixture fixture) : IntegrationTestBase(
 
     private static HttpContent Json(string json) => new StringContent(json, Encoding.UTF8, "application/json");
 
-    // The one multipart endpoint in the matrix (POST /topo-imports). Authorization runs
+    // The one multipart endpoint in the matrix (POST /route-imports). Authorization runs
     // before model binding, so the parts only have to be well-formed enough to reach the
     // action at all — an unauthorized role never gets that far either way.
     private static HttpContent Multipart()
@@ -54,7 +54,7 @@ public class AuthorizationMatrixTests(ApiFixture fixture) : IntegrationTestBase(
         // Gated on route.create, deliberately not a new permission and not route.enrich —
         // see TopoImportsController. A permitted role falls through to a 400 here ("el
         // sector no existe"), which the assertion below is fine with.
-        new EndpointCase("Import a route from a topo", HttpMethod.Post, "/api/topo-imports", Permissions.RouteCreate,
+        new EndpointCase("Import a route from a topo", HttpMethod.Post, "/api/route-imports", Permissions.RouteCreate,
             Multipart),
 
         new EndpointCase("Create area", HttpMethod.Post, "/api/areas", Permissions.AreaCreate,
