@@ -158,6 +158,13 @@ export function RouteFormPage() {
   return (
     <main className="settings-page">
       <h1>{editing ? 'Editar vía' : 'Nueva vía'}</h1>
+      {/* /routes/new is where someone with a topo in their hand actually starts, so the
+          way out of typing it all in belongs here rather than only in the left nav. */}
+      {!editing && (
+        <p>
+          ¿Tienes un topo? <Link to="/my-acordanza/my-imports">Créala desde la foto</Link>
+        </p>
+      )}
       <section className="settings-section">
         <form onSubmit={handleSubmit}>
           {error && <p className="error-text">{error}</p>}

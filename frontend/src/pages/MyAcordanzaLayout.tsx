@@ -23,6 +23,9 @@ export function MyAcordanzaLayout() {
         >
           Vincular aperturista
         </NavLink>
+        <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/my-imports">
+          Mis importaciones
+        </NavLink>
         <NavLink className={({ isActive }) => `side-nav-item${isActive ? ' active' : ''}`} to="/my-acordanza/contributions">
           Contribuciones
         </NavLink>

@@ -654,22 +654,8 @@ public class RoutesController(
 
     private static FirstAscensionistDto ToFirstAscensionistDto(FirstAscensionist o) => new(o.Id, o.Name, o.UserId, o.User?.Name);
 
-    // Route.Name has no uniqueness constraint at all (unlike Area, which enforces it per
-    // sibling), so this "-2"/"-3" suffix loop is the primary disambiguator, not just a
-    // diacritics fallback — two "Directa"s in the same area get directa and directa-2.
-    // Scoped to AreaId, not global, mirroring AreasController.GenerateUniqueAreaSlugAsync
-    // (per-parent) rather than FirstAscensionistsController's flat version — see
-    // ClimbingRoute.Slug. excludeId lets an unchanged name/area keep its slug on update.
-    private async Task<string> GenerateUniqueRouteSlugAsync(int areaId, string name, int? excludeId = null)
-    {
-        var baseSlug = Slugify.ToSlug(name);
-        var slug = baseSlug;
-        var suffix = 2;
-        while (await db.Routes.AnyAsync(r => r.AreaId == areaId && r.Slug == slug && r.Id != excludeId))
-        {
-            slug = $"{baseSlug}-{suffix}";
-            suffix++;
-        }
-        return slug;
-    }
+    // Thin wrapper over Core's RouteSlugs, where the loop itself lives now that the topo
+    // import worker creates routes too (plan 30 §4).
+    private Task<string> GenerateUniqueRouteSlugAsync(int areaId, string name, int? excludeId = null) =>
+        RouteSlugs.GenerateUniqueAsync(db, areaId, name, excludeId);
 }

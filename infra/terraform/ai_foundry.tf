@@ -1,7 +1,9 @@
-# Azure AI Foundry resource + two Claude deployments for the route
-# enrichment worker (plan 18): claude-opus-5 for the search-and-extract
-# call (RouteEnrichmentService), claude-haiku-4-5 for the topo vision check.
-# Both deployments are hosted on the same Foundry account (kind = AIServices).
+# Azure AI Foundry resource + three Claude deployments for the worker:
+# claude-opus-5 for enrichment's search-and-extract call (RouteEnrichmentService,
+# plan 18), claude-haiku-4-5 for both cheap vision checks (enrichment's topo
+# verification and topo import's gate), and claude-sonnet-5 for topo import's
+# high-resolution extraction (RouteImportService, plan 30). All three are hosted
+# on the same Foundry account (kind = AIServices).
 #
 # IMPORTANT: applying this auto-accepts the Anthropic Marketplace offer terms
 # via the modelProviderData block on each deployment below (see
@@ -111,8 +113,9 @@ resource "azapi_resource" "claude_opus" {
   }
 }
 
-# Also Hosted on Anthropic, for a narrower reason than claude_opus: the topo
-# vision check uses no server-side tools, but it does use structured outputs
+# Serves two callers now: enrichment's topo verification (plan 18) and topo
+# import's gate (plan 30 §3). Also Hosted on Anthropic, for a narrower reason
+# than claude_opus: neither uses server-side tools, but both use structured outputs
 # (ClaudeTopoVerificationProvider's JsonOutputFormat), which is on the same
 # Azure-hosted exclusion list. Pinning only the opus deployment would leave
 # every topo verification 400ing.
@@ -156,6 +159,58 @@ resource "azapi_resource" "claude_haiku" {
   # Foundry serializes deployment creation per account — chaining avoids a
   # 409 from both deployments landing concurrently on the first apply.
   depends_on = [azapi_resource.claude_opus]
+}
+
+# The topo-import extraction call (plan 30 §3, Acordanza.Worker's
+# ClaudeTopoExtractionProvider). Hosted on Anthropic for the same reason as
+# claude_haiku: it uses structured outputs, which is on the Azure-hosted
+# exclusion list, even though it uses no server-side tools.
+#
+# Sonnet 5 rather than reusing the haiku deployment the gate runs on, and the
+# reason is resolution, not intelligence: Claude downsamples images server-side
+# to a per-tier long edge — 1568 px on haiku-4-5, 2576 px on sonnet-5. For the
+# gate's binary "is there a line drawn on this rock" 1568 px is plenty; for
+# reading «La Loca 6b+ 25m» off the small print of a guidebook page it is very
+# possibly the difference between a correct extraction and a garbled one. The
+# split falls out of the tiers rather than out of taste.
+#
+# VERIFY THE VERSION BEFORE THE FIRST APPLY. "1" follows claude_opus's
+# same-generation value, but the Anthropic-hosted version id is per-model, not a
+# convention — claude-haiku-4-5's is "20251001" and has no version "1" at all, so
+# a wrong value here fails the apply outright. Confirm against the catalog with
+# the `az rest` query documented on claude_haiku above and take the version whose
+# capabilities carry `"hostedOn": "anthropic"`.
+#
+# Keep the deployment name equal to the model name: the worker passes it straight
+# through as MessageCreateParams.Model, so a mismatch is a 404 at request time.
+resource "azapi_resource" "claude_sonnet" {
+  type                      = "Microsoft.CognitiveServices/accounts/deployments@2025-10-01-preview"
+  name                      = "claude-sonnet-5"
+  parent_id                 = azapi_resource.ai_foundry.id
+  schema_validation_enabled = false
+
+  body = {
+    sku = {
+      name     = "GlobalStandard"
+      capacity = 1
+    }
+    properties = {
+      model = {
+        format  = "Anthropic"
+        name    = "claude-sonnet-5"
+        version = "1" # Hosted on Anthropic — see the comment above
+      }
+      modelProviderData = {
+        organizationName = var.claude_organization_name
+        countryCode      = var.claude_country_code
+        industry         = var.claude_industry
+      }
+      versionUpgradeOption = "NoAutoUpgrade"
+    }
+  }
+
+  # Keeps the per-account creation chain serialized, same as claude_haiku.
+  depends_on = [azapi_resource.claude_haiku]
 }
 
 # Grants the container app's managed identity (used by both the API and the

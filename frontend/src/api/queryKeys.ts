@@ -13,6 +13,7 @@ export const queryKeys = {
   myTicks: (filters: TickFilters) => ['ticks', 'mine', filters] as const,
   rootAreas: (page: number) => ['areas', 'roots', page] as const,
   myInvites: () => ['users', 'my-invites'] as const,
+  myTopoImports: () => ['topo-imports', 'mine'] as const,
   myAreaExperts: () => ['area-experts', 'mine'] as const,
   pendingAreaExperts: () => ['area-experts', 'pending'] as const,
   myFirstAscensionistLinks: () => ['first-ascensionist-links', 'mine'] as const,

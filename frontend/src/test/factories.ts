@@ -7,6 +7,7 @@ import type {
   RouteDetail,
   RouteSummary,
   TickedRoute,
+  TopoImport,
 } from '../api/types';
 
 // Typed off the generated OpenAPI contract (see api/generated.ts) rather than hand-rolled:
@@ -39,6 +40,9 @@ type UserAccountDto = components['schemas']['UserAccountDto'];
 // where validationStatus is the closed RequestStatus set.
 type ContributionDto = Contribution;
 type AreaDetailDto = AreaDetail;
+// Same narrowing again: TopoImportDto.status is a plain string in the contract but a
+// closed four-value set at runtime (see api/types.ts's TopoImportStatus).
+type TopoImportDto = TopoImport;
 
 export const makeTickedRoute = (o: Partial<TickedRoute> = {}): TickedRoute => ({
   tickId: 1,
@@ -284,6 +288,23 @@ export const makeContribution = (o: Partial<ContributionDto> = {}): Contribution
   decidedAt: null,
   decidedByName: null,
   rejectionReason: null,
+  ...o,
+});
+
+export const makeTopoImport = (o: Partial<TopoImportDto> = {}): TopoImportDto => ({
+  id: 1,
+  fileName: 'topo.jpg',
+  areaId: 1,
+  areaNamePath: 'Peña Rúa › Sector 1',
+  createdAt: '2026-01-01T00:00:00Z',
+  status: 'pending',
+  outcome: null,
+  routeId: null,
+  routeName: null,
+  routeSlug: null,
+  routeAreaSlugPath: null,
+  routeWasCreated: false,
+  processedAt: null,
   ...o,
 });
 

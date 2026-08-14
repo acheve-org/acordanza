@@ -10,8 +10,12 @@ resource "azurerm_container_app_job" "enrichment" {
   location                     = data.azurerm_resource_group.main.location
   container_app_environment_id = azurerm_container_app_environment.main.id
 
-  replica_timeout_in_seconds = 600 # covers the worst case: 8 messages x ~1 min each
-  replica_retry_limit        = 0   # retries are queue-level (visibility timeout), not job-level
+  # Covers the common case (a batch of 8 enrichments at ~1 min each), not the
+  # absolute worst one now that an execution drains both queues in sequence. An
+  # execution cut off mid-drain is safe rather than lossy: the messages it hadn't
+  # deleted reappear when their visibility timeout expires, and KEDA fires again.
+  replica_timeout_in_seconds = 600
+  replica_retry_limit        = 0 # retries are queue-level (visibility timeout), not job-level
   workload_profile_name      = null
 
   depends_on = [time_sleep.acr_pull_propagation]
@@ -70,6 +74,25 @@ resource "azurerm_container_app_job" "enrichment" {
           trigger_parameter = "connection"
         }
       }
+
+      # Topo import (plan 30) fires the same job, not a second one: the worker
+      # binary drains both queues in sequence and exits, so an execution started
+      # by either rule handles whatever is waiting on both. A second job would
+      # mean a second Terraform resource and a second CI deploy step for a
+      # process that shares every line of its configuration with this one.
+      rules {
+        name             = "topo-import-queue"
+        custom_rule_type = "azure-queue"
+        metadata = {
+          queueName   = azurerm_storage_queue.topo_import.name
+          accountName = azurerm_storage_account.topos.name
+          queueLength = "1"
+        }
+        authentication {
+          secret_name       = "queue-scaler-connection-string"
+          trigger_parameter = "connection"
+        }
+      }
     }
   }
 
@@ -107,6 +130,11 @@ resource "azurerm_container_app_job" "enrichment" {
       env {
         name  = "Storage__EnrichmentQueueName"
         value = azurerm_storage_queue.route_enrichment.name
+      }
+
+      env {
+        name  = "Storage__TopoImportQueueName"
+        value = azurerm_storage_queue.topo_import.name
       }
 
       env {

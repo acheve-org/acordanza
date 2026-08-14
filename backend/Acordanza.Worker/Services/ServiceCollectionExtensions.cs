@@ -47,6 +47,7 @@ public static class ServiceCollectionExtensions
             .WithTracing(tracing => tracing
                 .SetResourceBuilder(otelResource)
                 .AddSource("Acordanza.Worker.EnrichmentQueueProcessor")
+                .AddSource("Acordanza.Worker.TopoImportQueueProcessor")
                 .AddHttpClientInstrumentation()
                 .AddNpgsql()
                 .AddOtlpExporter())
@@ -94,8 +95,38 @@ public static class ServiceCollectionExtensions
         }
         services.AddSingleton(enrichmentQueueClient);
 
+        // Topo import (plan 30) rides a second queue on the same account. Registered under
+        // a DI key so it can't shadow the unkeyed enrichment client above — which both test
+        // fixtures resolve by bare type.
+        var topoImportQueueName = storageSection["TopoImportQueueName"]
+            ?? throw new InvalidOperationException("Missing Storage:TopoImportQueueName configuration");
+
+        QueueClient topoImportQueueClient;
+        if (!string.IsNullOrEmpty(storageConnectionString))
+        {
+            topoImportQueueClient = new QueueClient(storageConnectionString, topoImportQueueName, queueClientOptions);
+        }
+        else
+        {
+            var accountName = storageSection["AccountName"]
+                ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
+            var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
+                ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
+
+            var credential = new DefaultAzureCredential(
+                new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
+            topoImportQueueClient = new QueueClient(
+                new Uri($"https://{accountName}.queue.core.windows.net/{topoImportQueueName}"), credential, queueClientOptions);
+        }
+        services.AddKeyedSingleton(TopoImportKeys.QueueServiceKey, topoImportQueueClient);
+
         services.AddScoped<RouteEnrichmentService>();
         services.AddScoped<EnrichmentQueueProcessor>();
+        services.AddScoped<RouteImportService>();
+        services.AddScoped<TopoImportQueueProcessor>();
+        // Singleton: the few-shot example set is downloaded once per process and reused
+        // across every message in a drain — see TopoImportFewShotSet.
+        services.AddSingleton<TopoImportFewShotSet>();
 
         // Without Anthropic:FoundryResource configured, enrichment is skipped rather
         // than failing (see IRouteEnrichmentProvider.cs) — the queue/worker stays
@@ -105,11 +136,15 @@ public static class ServiceCollectionExtensions
         {
             services.AddScoped<IRouteEnrichmentProvider, NoOpRouteEnrichmentProvider>();
             services.AddScoped<ITopoVerificationProvider, NoOpTopoVerificationProvider>();
+            services.AddScoped<ITopoImportGateProvider, NoOpTopoImportGateProvider>();
+            services.AddScoped<ITopoExtractionProvider, NoOpTopoExtractionProvider>();
         }
         else
         {
             services.AddScoped<IRouteEnrichmentProvider, ClaudeRouteEnrichmentProvider>();
             services.AddScoped<ITopoVerificationProvider, ClaudeTopoVerificationProvider>();
+            services.AddScoped<ITopoImportGateProvider, ClaudeTopoImportGateProvider>();
+            services.AddScoped<ITopoExtractionProvider, ClaudeTopoExtractionProvider>();
         }
 
         services.AddSingleton(new EnrichmentProviderConfig(foundryResourceConfigured));

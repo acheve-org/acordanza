@@ -88,6 +88,38 @@ public class BlobStorageService
         await _container.GetBlobClient(blobName).DeleteIfExistsAsync();
     }
 
+    // Reads a blob back into memory (plan 30 §2). The topo-import worker needs this
+    // twice per successful run: once to feed the vision calls, once to re-upload the
+    // staged image under the route's proper prefix — Blob Storage has no rename, so
+    // "promote" is download → re-upload → delete. Returns null when the blob is gone,
+    // which is a real case (a lifecycle sweep of an old _imports/ orphan) and one the
+    // caller turns into a Failed row rather than an exception.
+    public async Task<(byte[] Content, string ContentType)?> DownloadAsync(string blobName)
+    {
+        var blob = _container.GetBlobClient(blobName);
+        try
+        {
+            var response = await blob.DownloadContentAsync();
+            return (response.Value.Content.ToArray(), response.Value.Details.ContentType ?? "");
+        }
+        catch (RequestFailedException ex) when (ex.Status == 404)
+        {
+            return null;
+        }
+    }
+
+    // Every blob name under a prefix. Used for the few-shot example sets, whose
+    // prefix *is* their label (plan 30 §5) — there's no manifest file to drift.
+    public async Task<List<string>> ListAsync(string prefix, CancellationToken cancellationToken = default)
+    {
+        var names = new List<string>();
+        await foreach (var blob in _container.GetBlobsAsync(BlobTraits.None, BlobStates.None, prefix, cancellationToken))
+        {
+            names.Add(blob.Name);
+        }
+        return names;
+    }
+
     public async Task<string> GetReadSasUrlAsync(string blobName, TimeSpan validFor)
     {
         var blob = _container.GetBlobClient(blobName);

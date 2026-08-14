@@ -2584,6 +2584,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/topo-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file?: components["schemas"]["IFormFile"];
+                    } & {
+                        /** Format: int32 */
+                        areaId?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["TopoImportDto"];
+                        "application/json": components["schemas"]["TopoImportDto"];
+                        "text/json": components["schemas"]["TopoImportDto"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/topo-imports/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["TopoImportDto"][];
+                        "application/json": components["schemas"]["TopoImportDto"][];
+                        "text/json": components["schemas"]["TopoImportDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/topos/{id}": {
         parameters: {
             query?: never;
@@ -3312,6 +3395,26 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             uploadedBy: string;
+        };
+        TopoImportDto: {
+            /** Format: int32 */
+            id: number;
+            fileName: string;
+            /** Format: int32 */
+            areaId: number;
+            areaNamePath: string;
+            /** Format: date-time */
+            createdAt: string;
+            status: string;
+            outcome: null | string;
+            /** Format: int32 */
+            routeId: null | number;
+            routeName: null | string;
+            routeSlug: null | string;
+            routeAreaSlugPath: null | string;
+            routeWasCreated: boolean;
+            /** Format: date-time */
+            processedAt: null | string;
         };
         UpdateAreaCoordinatesRequest: {
             polygon: components["schemas"]["GeoPointDto"][];

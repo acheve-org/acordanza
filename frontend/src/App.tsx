@@ -29,6 +29,7 @@ import { MyContributionsPage } from './pages/MyContributionsPage';
 import { MyOpeningsPage } from './pages/MyOpeningsPage';
 import { MyTicksPage } from './pages/MyTicksPage';
 import { MyInvitesPage } from './pages/MyInvitesPage';
+import { MyImportsPage } from './pages/MyImportsPage';
 import { PendingTasksPage } from './pages/PendingTasksPage';
 import { ManageLayout, ManageIndexRedirect } from './pages/ManageLayout';
 import { MyAcordanzaLayout, MyAcordanzaIndexRedirect } from './pages/MyAcordanzaLayout';
@@ -185,6 +186,7 @@ function App() {
             <Route path="contributions" element={<MyContributionsPage />} />
             <Route path="my-routes" element={<MyTicksPage />} />
             <Route path="my-invites" element={<MyInvitesPage />} />
+            <Route path="my-imports" element={<MyImportsPage />} />
             <Route path="my-openings" element={<MyOpeningsPage />} />
           </Route>
           <Route path="settings" element={<SettingsPage />} />

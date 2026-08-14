@@ -1,4 +1,6 @@
+using Acordanza.Core.Services;
 using Acordanza.Worker.Services;
+using Azure.Storage.Queues;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -29,6 +31,7 @@ public class WorkerConfigurationTests
             ["Storage:AccountName"] = "acordanzaworkertest",
             ["Storage:ContainerName"] = "topos",
             ["Storage:EnrichmentQueueName"] = "route-enrichment",
+            ["Storage:TopoImportQueueName"] = "topo-import",
             ["Storage:ManagedIdentityClientId"] = Guid.NewGuid().ToString(),
             ["Anthropic:FoundryResource"] = "acordanza-foundry-test",
             ["Anthropic:ManagedIdentityClientId"] = Guid.NewGuid().ToString()
@@ -39,12 +42,44 @@ public class WorkerConfigurationTests
         using var scope = host.Services.CreateScope();
 
         Should.NotThrow(() => scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>());
+        Should.NotThrow(() => scope.ServiceProvider.GetRequiredService<TopoImportQueueProcessor>());
         // The Claude providers, not the no-op pair — Anthropic:FoundryResource is set above,
         // so this asserts the real Foundry-backed graph resolves, not just some graph.
         scope.ServiceProvider.GetRequiredService<IRouteEnrichmentProvider>()
             .ShouldBeOfType<ClaudeRouteEnrichmentProvider>();
         scope.ServiceProvider.GetRequiredService<ITopoVerificationProvider>()
             .ShouldBeOfType<ClaudeTopoVerificationProvider>();
+        scope.ServiceProvider.GetRequiredService<ITopoImportGateProvider>()
+            .ShouldBeOfType<ClaudeTopoImportGateProvider>();
+        scope.ServiceProvider.GetRequiredService<ITopoExtractionProvider>()
+            .ShouldBeOfType<ClaudeTopoExtractionProvider>();
+    }
+
+    // The two queue clients must be distinguishable, and the keyed registration is what
+    // makes them so: a second unkeyed AddSingleton<QueueClient> would silently win over
+    // the enrichment one depending on registration order, and nothing else in the suite
+    // would notice until an enrichment message landed on the wrong queue.
+    [Fact]
+    public void The_two_queues_resolve_to_different_clients()
+    {
+        var builder = Host.CreateApplicationBuilder();
+        builder.Configuration.Sources.Clear();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:Default"] = "Host=localhost;Port=5432;Database=acordanza;Username=acordanza;Password=acordanza",
+            ["Storage:AccountName"] = "acordanzaworkertest",
+            ["Storage:ContainerName"] = "topos",
+            ["Storage:EnrichmentQueueName"] = "route-enrichment",
+            ["Storage:TopoImportQueueName"] = "topo-import",
+            ["Storage:ManagedIdentityClientId"] = Guid.NewGuid().ToString()
+        });
+
+        builder.Services.AddEnrichmentWorker(builder.Configuration);
+        using var host = builder.Build();
+
+        host.Services.GetRequiredService<QueueClient>().Name.ShouldBe("route-enrichment");
+        host.Services.GetRequiredKeyedService<QueueClient>(TopoImportKeys.QueueServiceKey).Name
+            .ShouldBe("topo-import");
     }
 
     // Regression guard: the deployed worker once passed an empty scope array to
