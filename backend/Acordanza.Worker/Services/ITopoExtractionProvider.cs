@@ -44,17 +44,22 @@ public class NoOpTopoExtractionProvider(ILogger<NoOpTopoExtractionProvider> logg
 // The expensive half: read the route's name, grade and length off the image.
 public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
 {
-    // Sonnet 5 rather than the Haiku the gate uses, and the reason is not "smarter
-    // model", it's **resolution**: Haiku downsamples to a 1568 px long edge, Sonnet 5 to
-    // 2576 px. Anything larger is downsampled server-side, so a 4000 px phone photo of a
+    // Not the Haiku the gate uses, and the reason is not "smarter model", it's
+    // **resolution**: Haiku downsamples to a 1568 px long edge, Opus 5 to 2576 px.
+    // Anything larger is downsampled server-side, so a 4000 px phone photo of a
     // guidebook page reaches Haiku at 1568 px no matter what is sent. For a binary "is
     // there a line drawn on this rock" that is plenty; for reading «La Loca 6b+ 25m» off
     // small print it is very possibly the difference between a correct extraction and a
     // garbled one — which is the whole feature.
     //
+    // Opus 5 rather than plan 30 §3's claude-sonnet-5: this subscription has no
+    // GlobalStandard quota for the sonnet family, and Opus 5 is in the same 2576 px
+    // image tier, so the resolution argument above carries over unchanged — the swap
+    // costs money ($5/$25 per MTok against $3/$15), not fidelity.
+    //
     // Must equal the Foundry deployment name in infra/terraform/ai_foundry.tf: the SDK
     // sends this string through as the model id, so a mismatch is a 404 at request time.
-    internal const string Model = "claude-sonnet-5";
+    internal const string Model = "claude-opus-5";
 
     private readonly IAnthropicClient _client;
     private readonly ILogger<ClaudeTopoExtractionProvider> _logger;
@@ -199,7 +204,13 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
         return new MessageCreateParams
         {
             Model = Model,
-            MaxTokens = 1024,
+            // Sized for thinking plus the payload, not the payload alone: the request
+            // omits `thinking`, which on Opus 5 means adaptive thinking is *on*, and
+            // MaxTokens bounds reasoning and response text together. The JSON here is a
+            // few hundred tokens; the headroom is for the reasoning in front of it, and
+            // running out truncates mid-object into a Deserialize throw and five queue
+            // redeliveries. Same reason ClaudeRouteEnrichmentProvider carries 8192.
+            MaxTokens = 4096,
             OutputConfig = outputConfig,
             Messages = [new MessageParam { Role = Role.User, Content = content }]
         };

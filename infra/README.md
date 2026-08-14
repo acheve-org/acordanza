@@ -34,13 +34,14 @@ Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
 │   └── queue: route-import                       — likewise; a second queue rather than a
 │       second message shape, so each carries its own visibility timeout. Both import
 │       kinds (a topo photo, a pasted URL) ride this one: the message is a row id
-└── AI Foundry resource (aif-acordanza-prod<random>) — three Claude deployments, all
-    Hosted on Anthropic: claude-opus-5 (enrichment's search-and-extract call, plan 18),
-    claude-haiku-4-5 (every cheap vision check — enrichment's topo verification, the
-    topo-import gate, and the URL import's image sweep), claude-sonnet-5 (both imports'
-    extraction: a topo photo, plan 30 — chosen for its higher image resolution cap, not
-    for intelligence — and a page's text, plan 31, which adds no deployment of its own;
-    see ai_foundry.tf)
+└── AI Foundry resource (aif-acordanza-prod<random>) — two Claude deployments, both
+    Hosted on Anthropic: claude-opus-5 (enrichment's search-and-extract call, plan 18,
+    plus both imports' extraction — a topo photo, plan 30, and a page's text, plan 31)
+    and claude-haiku-4-5 (every cheap vision check — enrichment's topo verification, the
+    import gate, and the URL import's image sweep). Two rather than plans 30/31's three:
+    the claude-sonnet-5 deployment they specify can't be created (no GlobalStandard
+    quota for the sonnet family on this subscription), and Opus 5 is in the same
+    2576 px image-resolution tier the choice was made for; see ai_foundry.tf
 ```
 
 The landing page is a separate Azure primitive from the two Container Apps

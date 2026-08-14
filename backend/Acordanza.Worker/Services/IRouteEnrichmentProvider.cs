@@ -121,7 +121,11 @@ public class ClaudeRouteEnrichmentProvider : IRouteEnrichmentProvider
     // the literal below) so ClaudeModelCapabilitiesTests can assert this exact
     // model's effort support without duplicating the string.
     //
-    // Was claude-sonnet-4-5, for a quota reason that no longer applies. Two
+    // Was claude-sonnet-4-5, for a quota reason that still holds (this subscription
+    // has no GlobalStandard quota for the sonnet family at all — which is also why
+    // the route-import extractions land on this same deployment rather than on
+    // plans 30/31's claude-sonnet-5) but no longer binds, opus-5 quota being
+    // available. Two
     // capabilities this call is built around only exist from here: the
     // WebSearchTool20260209 declared below ran without its dynamic filtering
     // (server-side filtering of results before they reach the context window,
