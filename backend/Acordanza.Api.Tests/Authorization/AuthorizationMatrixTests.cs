@@ -28,6 +28,20 @@ public class AuthorizationMatrixTests(ApiFixture fixture) : IntegrationTestBase(
 
     private static HttpContent Json(string json) => new StringContent(json, Encoding.UTF8, "application/json");
 
+    // The one multipart endpoint in the matrix (POST /topo-imports). Authorization runs
+    // before model binding, so the parts only have to be well-formed enough to reach the
+    // action at all — an unauthorized role never gets that far either way.
+    private static HttpContent Multipart()
+    {
+        var file = new ByteArrayContent([0xFF, 0xD8, 0xFF, 0xD9]);
+        file.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+        return new MultipartFormDataContent
+        {
+            { file, "file", "topo.jpg" },
+            { new StringContent("999999"), "areaId" }
+        };
+    }
+
     public static TheoryData<EndpointCase> Endpoints => new()
     {
         new EndpointCase("Create route", HttpMethod.Post, "/api/routes", Permissions.RouteCreate,
@@ -37,6 +51,11 @@ public class AuthorizationMatrixTests(ApiFixture fixture) : IntegrationTestBase(
         new EndpointCase("Delete route", HttpMethod.Delete, "/api/routes/999999", Permissions.RouteDelete),
         new EndpointCase("Tick a route", HttpMethod.Post, "/api/routes/999999/ticks", Permissions.TickCreate,
             () => Json("""{"date":"2024-01-01"}""")),
+        // Gated on route.create, deliberately not a new permission and not route.enrich —
+        // see TopoImportsController. A permitted role falls through to a 400 here ("el
+        // sector no existe"), which the assertion below is fine with.
+        new EndpointCase("Import a route from a topo", HttpMethod.Post, "/api/topo-imports", Permissions.RouteCreate,
+            Multipart),
 
         new EndpointCase("Create area", HttpMethod.Post, "/api/areas", Permissions.AreaCreate,
             () => Json($$"""{"name":"area-{{Guid.NewGuid():N}}"}""")),

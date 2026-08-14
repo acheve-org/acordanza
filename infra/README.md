@@ -14,8 +14,9 @@ Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
 ├── Container Apps Environment
 │   ├── Container App (ca-acordanza-prod)       — the API, scale-to-zero
 │   ├── Container App (ca-acordanza-prod-web)   — the frontend (nginx), scale-to-zero
-│   └── Container Apps Job (caj-acordanza-prod-enrichment) — route enrichment worker,
-│       event-driven (KEDA azure-queue), its own acordanza-worker image
+│   └── Container Apps Job (caj-acordanza-prod-enrichment) — the worker: route enrichment
+│       (plan 18) and topo import (plan 30). Event-driven, one KEDA azure-queue rule per
+│       queue; an execution drains both and exits. Its own acordanza-worker image
 │       (backend/Acordanza.Worker — a separate project/image from the API's, plan 22,
 │       sharing only backend/Acordanza.Core's EF models/migrations)
 │       └── shared user-assigned managed identity — AcrPull on the registry, Storage
@@ -25,9 +26,17 @@ Resource group (rg-acordanza-prod, created by scripts/bootstrap-azure.sh)
 │   └── database: acordanza
 ├── Storage Account (stacordanzaprod<random>)     — topo images, private container
 │   ├── container: topos                          — read via backend-issued SAS URLs only
-│   └── queue: route-enrichment                    — drained by the Container Apps Job above
-└── AI Foundry resource (aif-acordanza-prod<random>) — two Claude deployments (claude-opus-5,
-    claude-haiku-4-5), Hosted on Anthropic, for route enrichment (plan 18)
+│   │   └── _imports/ prefix                      — staged topo-import uploads (plan 30),
+│   │       promoted to the route's own prefix on success; a lifecycle-management rule
+│   │       deletes anything left here after 7 days, so a crashed run leaves no orphan
+│   ├── queue: route-enrichment                   — drained by the Container Apps Job above
+│   └── queue: topo-import                        — likewise; a second queue rather than a
+│       second message shape, so each carries its own visibility timeout
+└── AI Foundry resource (aif-acordanza-prod<random>) — three Claude deployments, all
+    Hosted on Anthropic: claude-opus-5 (enrichment's search-and-extract call, plan 18),
+    claude-haiku-4-5 (both cheap vision checks — enrichment's topo verification and topo
+    import's gate), claude-sonnet-5 (topo import's extraction, plan 30 — chosen for its
+    higher image resolution cap, not for intelligence; see ai_foundry.tf)
 ```
 
 The landing page is a separate Azure primitive from the two Container Apps

@@ -1,4 +1,5 @@
 using Acordanza.Core.Data;
+using Acordanza.Core.Services;
 using Acordanza.Worker.Services;
 using Azure.Storage.Queues;
 using Microsoft.EntityFrameworkCore;
@@ -48,6 +49,12 @@ public sealed class WorkerFixture : IAsyncLifetime
         _services ?? throw new InvalidOperationException(
             $"{nameof(WorkerFixture)} hasn't started yet — call {nameof(EnsureStartedAsync)}() first (WorkerTestBase does this automatically).");
 
+    // The topo-import queue is registered under a DI key so it can't shadow the unkeyed
+    // enrichment client (see TopoImportKeys.QueueServiceKey) — surfaced here so tests
+    // don't each have to remember the key.
+    public QueueClient TopoImportQueueClient =>
+        Services.GetRequiredKeyedService<QueueClient>(TopoImportKeys.QueueServiceKey);
+
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
     public async Task EnsureStartedAsync()
@@ -68,10 +75,11 @@ public sealed class WorkerFixture : IAsyncLifetime
                     ["ConnectionStrings:Default"] = _connectionString,
                     ["Storage:ConnectionString"] = _azurite.GetConnectionString(),
                     ["Storage:ContainerName"] = "topos",
-                    ["Storage:EnrichmentQueueName"] = "route-enrichment"
+                    ["Storage:EnrichmentQueueName"] = "route-enrichment",
+                    ["Storage:TopoImportQueueName"] = "topo-import"
                     // No Anthropic:FoundryResource — AddEnrichmentWorker falls back to the
-                    // no-op providers; tests that exercise RouteEnrichmentService construct
-                    // it directly with a fake IRouteEnrichmentProvider/ITopoVerificationProvider.
+                    // no-op providers; tests that exercise RouteEnrichmentService/
+                    // RouteImportService construct them directly with fakes.
                 })
                 .Build();
 
@@ -90,8 +98,9 @@ public sealed class WorkerFixture : IAsyncLifetime
             }
 
             // Unlike the API host (Program.cs), nothing in the worker's own startup
-            // creates the queue — production relies on Terraform provisioning it.
+            // creates the queues — production relies on Terraform provisioning them.
             await _services.GetRequiredService<QueueClient>().CreateIfNotExistsAsync();
+            await TopoImportQueueClient.CreateIfNotExistsAsync();
 
             await using var connection = new NpgsqlConnection(_connectionString);
             await connection.OpenAsync();
@@ -118,6 +127,7 @@ public sealed class WorkerFixture : IAsyncLifetime
         await _respawner.ResetAsync(connection);
 
         await Services.GetRequiredService<QueueClient>().ClearMessagesAsync();
+        await TopoImportQueueClient.ClearMessagesAsync();
     }
 
     public async ValueTask DisposeAsync()

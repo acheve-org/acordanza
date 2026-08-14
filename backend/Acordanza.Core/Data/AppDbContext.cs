@@ -13,6 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<FirstAscensionist> FirstAscensionists => Set<FirstAscensionist>();
     public DbSet<Topo> Topos => Set<Topo>();
+    public DbSet<TopoImport> TopoImports => Set<TopoImport>();
     public DbSet<Link> Links => Set<Link>();
     public DbSet<AreaMedia> AreaMedia => Set<AreaMedia>();
     public DbSet<AreaExpert> AreaExperts => Set<AreaExpert>();
@@ -212,6 +213,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
                 .WithMany()
                 .HasForeignKey(t => t.UploadedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<TopoImport>(entity =>
+        {
+            entity.ToTable("TopoImports", "core");
+
+            // GET /topo-imports/mine is the only list read, always the caller's own rows
+            // newest first.
+            entity.HasIndex(i => i.UploadedByUserId);
+
+            entity.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
+
+            // An import is scoped to its sector and means nothing without it.
+            entity.HasOne(i => i.Area)
+                .WithMany()
+                .HasForeignKey(i => i.AreaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Matching Topo.UploadedBy — deleting a user never cascades.
+            entity.HasOne(i => i.UploadedBy)
+                .WithMany()
+                .HasForeignKey(i => i.UploadedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // SetNull, not Cascade: deleting a bad machine-created route should leave the
+            // import's history intact rather than erasing the evidence of how it got there.
+            entity.HasOne(i => i.Route)
+                .WithMany()
+                .HasForeignKey(i => i.RouteId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<AreaMedia>(entity =>

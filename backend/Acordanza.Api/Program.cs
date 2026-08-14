@@ -200,6 +200,35 @@ else
 builder.Services.AddSingleton(enrichmentQueueClient);
 builder.Services.AddSingleton<RouteEnrichmentQueue>();
 
+// Topo import (plan 30) rides a second queue on the same account, not a second message
+// type on the enrichment one: EnrichmentQueueProcessor treats an undeserializable
+// message as poison, which a second shape would trip, and each queue wants its own
+// visibility timeout. Registered under a DI key so it can't shadow the unkeyed
+// enrichment client above.
+var topoImportQueueName = storageSection["TopoImportQueueName"]
+    ?? throw new InvalidOperationException("Missing Storage:TopoImportQueueName configuration");
+
+QueueClient topoImportQueueClient;
+if (!string.IsNullOrEmpty(storageConnectionString))
+{
+    topoImportQueueClient = new QueueClient(storageConnectionString, topoImportQueueName, queueClientOptions);
+}
+else
+{
+    var accountName = storageSection["AccountName"]
+        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
+    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
+        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
+
+    var topoImportCredential = new DefaultAzureCredential(
+        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
+    topoImportQueueClient = new QueueClient(
+        new Uri($"https://{accountName}.queue.core.windows.net/{topoImportQueueName}"), topoImportCredential, queueClientOptions);
+}
+
+builder.Services.AddKeyedSingleton(TopoImportKeys.QueueServiceKey, topoImportQueueClient);
+builder.Services.AddSingleton(new TopoImportQueue(topoImportQueueClient));
+
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
@@ -283,6 +312,30 @@ builder.Services.AddRateLimiter(options =>
         factory: _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 3,
+            Window = TimeSpan.FromHours(1),
+            QueueLimit = 0
+        }));
+});
+
+// Caps how many topo imports a single caller (by IP) can trigger. This is the whole
+// bound on the feature's spend: unlike route.enrich, POST /topo-imports is open to
+// anyone who can create a route (see TopoImportsController), so what stops a loop is a
+// rate limit rather than a role. 10/hour against ~$0.05 an import is a ceiling of about
+// $0.50 an hour per caller, and comfortably above what a real session needs.
+//
+// Configurable only so the integration suite can raise it: the limiter's window is
+// process-global and partitions on an IP that's always "unknown" under
+// WebApplicationFactory, so every topo-import test in the assembly shares one bucket and
+// the suite would start 429ing on its ninth test rather than on anything real.
+var topoImportPermitLimit = builder.Configuration.GetValue("RateLimits:TopoImportPerHour", 10);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("topo-import", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = topoImportPermitLimit,
             Window = TimeSpan.FromHours(1),
             QueueLimit = 0
         }));
@@ -402,6 +455,7 @@ using (var scope = app.Services.CreateScope())
     {
         await dataProtectionContainer.CreateIfNotExistsAsync(PublicAccessType.None);
         await enrichmentQueueClient.CreateIfNotExistsAsync();
+        await topoImportQueueClient.CreateIfNotExistsAsync();
     }
 }
 

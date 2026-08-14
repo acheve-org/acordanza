@@ -32,8 +32,17 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    var processor = scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>();
-    await processor.RunAsync();
+    // Both queues, in sequence, then exit. One binary, no branches, two drains (plan 30
+    // §3): a second job would mean a second Terraform resource and a second deploy step,
+    // and a CLI arg selecting which queue to drain would re-introduce exactly the
+    // shared-configuration-between-two-processes failure plan 22 exists to prevent.
+    // KEDA has a scale rule per queue, so an execution may well be fired by one of them
+    // and find the other empty — draining an empty queue is one cheap receive call.
+    var enrichmentProcessor = scope.ServiceProvider.GetRequiredService<EnrichmentQueueProcessor>();
+    await enrichmentProcessor.RunAsync();
+
+    var topoImportProcessor = scope.ServiceProvider.GetRequiredService<TopoImportQueueProcessor>();
+    await topoImportProcessor.RunAsync();
 }
 
 await app.StopAsync();
