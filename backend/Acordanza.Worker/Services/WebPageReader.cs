@@ -102,7 +102,9 @@ public class WebPageReader(
             return (null, RouteImportOutcomes.LowConfidence);
         }
 
-        if (!GradeValidator.IsValid(route.Grade))
+        // As printed, which on a multi-pitch post is «MD+ 6c (6a+ obl)» rather than «6c» —
+        // see PrintedGrade for what that means and how narrowly it is pulled apart.
+        if (PrintedGrade.Parse(route.Grade) is not { } grade)
         {
             return (null, RouteImportOutcomes.UnreadableGradeOnPage);
         }
@@ -115,7 +117,7 @@ public class WebPageReader(
 
         return (new RouteCandidate(
             route.Name.Trim(),
-            GradeValidator.Normalize(route.Grade),
+            grade.Grade,
             RouteImportService.AcceptableLength(route.Length),
             route.Evidence!.Trim(),
             (route.Description ?? "").Trim(),
@@ -123,7 +125,8 @@ public class WebPageReader(
             // A cross-check, not an input (plan 31 §2): the spine turns a mismatch into a
             // note in Outcome and nothing else, because crag naming is inconsistent enough
             // that a false discard here would be both infuriating and frequent.
-            string.IsNullOrWhiteSpace(result.SectorMentioned) ? null : result.SectorMentioned.Trim()), null);
+            string.IsNullOrWhiteSpace(result.SectorMentioned) ? null : result.SectorMentioned.Trim(),
+            grade.ObligatoryGrade), null);
     }
 
     // Candidates in order, first hit wins, the rest never downloaded. Worst case is eight

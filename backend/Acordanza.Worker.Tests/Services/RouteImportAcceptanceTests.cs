@@ -122,6 +122,26 @@ public class RouteImportAcceptanceTests
         TopoImageReader.Accept(CleanRead(grade: " 6B+ ")).Candidate!.Grade.ShouldBe("6b+");
     }
 
+    // Copying the grade exactly as printed means a multi-pitch topo hands us three facts
+    // in one string. PrintedGrade owns the pull-apart and PrintedGradeTests owns its
+    // edges; what this pins is that Accept goes through it — «Núria MD+ 6c (6a+ obl)» was
+    // discarded as unreadable before it did.
+    [Fact]
+    public void A_multi_pitch_grade_line_yields_the_free_grade_and_the_obligatory_one()
+    {
+        var candidate = TopoImageReader.Accept(CleanRead(grade: "MD+ 6c (6a+ obl)")).Candidate;
+
+        candidate.ShouldNotBeNull();
+        candidate.Grade.ShouldBe("6c");
+        candidate.ObligatoryGrade.ShouldBe("6a+");
+    }
+
+    [Fact]
+    public void A_plain_grade_leaves_the_obligatory_grade_unset()
+    {
+        TopoImageReader.Accept(CleanRead(grade: "6b+")).Candidate!.ObligatoryGrade.ShouldBeNull();
+    }
+
     [Fact]
     public void The_name_is_trimmed()
     {

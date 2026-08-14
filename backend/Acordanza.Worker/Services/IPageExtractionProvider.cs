@@ -188,7 +188,10 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
           sources are usually French-scale, but UIAA (V+) and YDS (5.11a) appear, and a
           converted grade is a guess wearing the costume of data. Copy what is written; a
           grade this log can't accept is handled downstream, and is a better outcome than a
-          silently converted one.
+          silently converted one. Copy the *whole* grade, including the alpine difficulty
+          grade and the obligatory grade a multi-pitch route is given alongside it
+          («MD+ 6c (6a+ obl)»); pulling those apart is done downstream too, and dropping
+          them here loses the obligatory grade for good.
         - `length`: the route's length in metres if the page states it, otherwise null. Do
           not estimate it.
         - `firstAscensionists`: the names of the openers as written, or an empty array.
