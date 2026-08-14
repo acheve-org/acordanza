@@ -7,7 +7,7 @@ namespace Acordanza.Worker.Services;
 // ask a cheap model whether it is a topo at all, then read the route off it.
 //
 // Two calls rather than one, and the gate earns its round trip because the expensive
-// thing here is *resolution*: Haiku downsamples to a 1568 px long edge, Sonnet 5 to
+// thing here is *resolution*: Haiku downsamples to a 1568 px long edge, Opus 5 to
 // 2576 px, so a binary pre-filter genuinely avoids a costlier call. (The Url kind makes
 // the opposite call for the opposite reason — see WebPageReader.)
 public class TopoImageReader(

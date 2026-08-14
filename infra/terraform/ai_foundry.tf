@@ -1,9 +1,17 @@
-# Azure AI Foundry resource + three Claude deployments for the worker:
+# Azure AI Foundry resource + two Claude deployments for the worker:
 # claude-opus-5 for enrichment's search-and-extract call (RouteEnrichmentService,
-# plan 18), claude-haiku-4-5 for both cheap vision checks (enrichment's topo
-# verification and topo import's gate), and claude-sonnet-5 for topo import's
-# high-resolution extraction (RouteImportService, plan 30). All three are hosted
-# on the same Foundry account (kind = AIServices).
+# plan 18) and for both route-import extractions (a topo photo, plan 30; a page's
+# text, plan 31), and claude-haiku-4-5 for every cheap vision check (enrichment's
+# topo verification, the import gate, the URL import's image sweep). Both are
+# hosted on the same Foundry account (kind = AIServices).
+#
+# Two, not three: plans 30 and 31 specified a claude-sonnet-5 deployment for the
+# extraction calls, but this subscription has no GlobalStandard quota for
+# claude-sonnet-5 at all, so that deployment can't be created. Those calls run on
+# claude-opus-5 instead, which sits in the same high-resolution image tier
+# (2576 px long edge) the choice was actually made for — see
+# ClaudeTopoExtractionProvider. It costs more per token; the ceiling on that is
+# the route-import rate limit in the API's Program.cs, not the model pin.
 #
 # IMPORTANT: applying this auto-accepts the Anthropic Marketplace offer terms
 # via the modelProviderData block on each deployment below (see
@@ -72,9 +80,10 @@ resource "azapi_resource" "ai_foundry" {
 # re-break enrichment silently, with no diff in this file to explain it.
 #
 # claude-opus-5, replacing the claude-sonnet-4-5 deployment this account
-# originally carried. That pin existed only because the subscription had 0
-# GlobalStandard TPM quota for claude-sonnet-5; opus-5 quota is available, so
-# the workaround is gone rather than merely relaxed. The model choice is not
+# originally carried. That pin existed because the subscription has 0
+# GlobalStandard TPM quota for the sonnet family — still true, which is also why
+# plans 30/31's claude-sonnet-5 deployment doesn't exist and its two extraction
+# calls run here instead. The model choice is not
 # incidental to the search-and-extract call it serves (plan 29 §5): on
 # sonnet-4-5 that call's `web_search_20260209` tool ran without its dynamic
 # filtering (server-side, 4.6-and-later only), and `output_config.effort` was
@@ -83,9 +92,11 @@ resource "azapi_resource" "ai_foundry" {
 # worker passes it straight through as MessageCreateParams.Model
 # (IRouteEnrichmentProvider.cs), so a mismatch is a 404 at request time.
 #
-# capacity = 1 carries over from the sonnet deployment, which sustained this
+# capacity = 1 carries over from the sonnet-4-5 deployment, which sustained this
 # workload's rate. The search loop is token-heavy per request, so if the job
-# starts logging 429s from Foundry, capacity is the first thing to raise.
+# starts logging 429s from Foundry, capacity is the first thing to raise — more
+# likely now that this one deployment serves three call sites (enrichment's
+# search call plus both import extractions) rather than one.
 resource "azapi_resource" "claude_opus" {
   type                      = "Microsoft.CognitiveServices/accounts/deployments@2025-10-01-preview"
   name                      = "claude-opus-5"
@@ -113,8 +124,9 @@ resource "azapi_resource" "claude_opus" {
   }
 }
 
-# Serves two callers now: enrichment's topo verification (plan 18) and topo
-# import's gate (plan 30 §3). Also Hosted on Anthropic, for a narrower reason
+# Serves three callers now: enrichment's topo verification (plan 18), the import
+# gate (plan 30 §3) and the URL import's image sweep, which reuses that same
+# verification provider (plan 31 §5). Also Hosted on Anthropic, for a narrower reason
 # than claude_opus: neither uses server-side tools, but both use structured outputs
 # (ClaudeTopoVerificationProvider's JsonOutputFormat), which is on the same
 # Azure-hosted exclusion list. Pinning only the opus deployment would leave
@@ -161,61 +173,18 @@ resource "azapi_resource" "claude_haiku" {
   depends_on = [azapi_resource.claude_opus]
 }
 
-# The route-import extraction calls (plan 30 §3 and plan 31 §5, Acordanza.Worker's
-# ClaudeTopoExtractionProvider for a photo, ClaudePageExtractionProvider for a
-# page). Hosted on Anthropic for the same reason as
-# claude_haiku: it uses structured outputs, which is on the Azure-hosted
-# exclusion list, even though it uses no server-side tools.
-#
-# Sonnet 5 rather than reusing the haiku deployment the gate runs on, and the
-# reason is resolution, not intelligence: Claude downsamples images server-side
-# to a per-tier long edge — 1568 px on haiku-4-5, 2576 px on sonnet-5. For the
-# gate's binary "is there a line drawn on this rock" 1568 px is plenty; for
-# reading «La Loca 6b+ 25m» off the small print of a guidebook page it is very
-# possibly the difference between a correct extraction and a garbled one. The
-# split falls out of the tiers rather than out of taste. Plan 31's page
-# extraction shares this deployment and adds none of its own: reading Spanish
-# prose and deciding which route a post is principally about is a comprehension
-# judgment worth the same tier, and it carries no image at all.
-#
-# VERIFY THE VERSION BEFORE THE FIRST APPLY. "1" follows claude_opus's
-# same-generation value, but the Anthropic-hosted version id is per-model, not a
-# convention — claude-haiku-4-5's is "20251001" and has no version "1" at all, so
-# a wrong value here fails the apply outright. Confirm against the catalog with
-# the `az rest` query documented on claude_haiku above and take the version whose
-# capabilities carry `"hostedOn": "anthropic"`.
-#
-# Keep the deployment name equal to the model name: the worker passes it straight
-# through as MessageCreateParams.Model, so a mismatch is a 404 at request time.
-resource "azapi_resource" "claude_sonnet" {
-  type                      = "Microsoft.CognitiveServices/accounts/deployments@2025-10-01-preview"
-  name                      = "claude-sonnet-5"
-  parent_id                 = azapi_resource.ai_foundry.id
-  schema_validation_enabled = false
-
-  body = {
-    sku = {
-      name     = "GlobalStandard"
-      capacity = 1
-    }
-    properties = {
-      model = {
-        format  = "Anthropic"
-        name    = "claude-sonnet-5"
-        version = "1" # Hosted on Anthropic — see the comment above
-      }
-      modelProviderData = {
-        organizationName = var.claude_organization_name
-        countryCode      = var.claude_country_code
-        industry         = var.claude_industry
-      }
-      versionUpgradeOption = "NoAutoUpgrade"
-    }
-  }
-
-  # Keeps the per-account creation chain serialized, same as claude_haiku.
-  depends_on = [azapi_resource.claude_haiku]
-}
+# There is deliberately no third deployment. Plans 30 §3 and 31 §5 specified
+# claude-sonnet-5 for the two route-import extraction calls (ClaudeTopoExtractionProvider
+# for a photo, ClaudePageExtractionProvider for a page), chosen for its image
+# resolution tier — Claude downsamples images server-side to a per-tier long edge,
+# 1568 px on haiku-4-5 against 2576 px on sonnet-5, and reading «La Loca 6b+ 25m»
+# off the small print of a guidebook page is what that gap buys. This subscription
+# has no GlobalStandard quota for claude-sonnet-5, so both calls run on
+# claude_opus above instead, which is in the *same* 2576 px tier — the resolution
+# argument survives the substitution intact; only the per-token price changes.
+# Restoring a sonnet deployment here would mean re-pinning both providers' Model
+# constants in the same commit, since the worker passes the deployment name
+# straight through as MessageCreateParams.Model.
 
 # Grants the container app's managed identity (used by both the API and the
 # enrichment Container Apps Job — see container_app_job.tf) the least-privilege

@@ -53,7 +53,7 @@ public class ClaudeTopoImportGateProvider : ITopoImportGateProvider
 {
     // Same deployment ClaudeTopoVerificationProvider pins, for the same reason: a binary
     // "is there a line drawn on this rock" is a low-resolution question, and Haiku's
-    // 1568 px long edge is plenty for it. The extraction is what needs Sonnet 5's
+    // 1568 px long edge is plenty for it. The extraction is what needs Opus 5's
     // 2576 px — see ClaudeTopoExtractionProvider.
     internal const string Model = "claude-haiku-4-5";
 

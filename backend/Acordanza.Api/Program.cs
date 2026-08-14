@@ -322,8 +322,9 @@ builder.Services.AddRateLimiter(options =>
 // /route-imports is open to anyone who can create a route (see RouteImportsController),
 // so what stops a loop is a rate limit rather than a role. It is also what bounds the
 // URL kind's outbound fetches, which is a second reason the two kinds share one bucket
-// rather than getting one each. 10/hour against ~$0.05 an import is a ceiling of about
-// $0.50 an hour per caller, and comfortably above what a real session needs.
+// rather than getting one each. 10/hour against ~$0.10 an import (both extractions run
+// on claude-opus-5, not plans 30/31's sonnet-5 — see infra/terraform/ai_foundry.tf) is a
+// ceiling of about $1 an hour per caller, and comfortably above what a real session needs.
 //
 // Configurable only so the integration suite can raise it: the limiter's window is
 // process-global and partitions on an IP that's always "unknown" under

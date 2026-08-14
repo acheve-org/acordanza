@@ -30,7 +30,7 @@ namespace Acordanza.Api.Controllers;
 //
 // Gated on Permissions.RouteCreate, deliberately *not* a new permission and *not*
 // route.enrich: that one is admin-only because plan 18's spend was unbounded per run and
-// the button was an optional extra. Here the call is the feature, it costs about $0.05,
+// the button was an optional extra. Here the call is the feature, it costs about $0.10,
 // and the write lands as Pending for review — someone trusted to create a route by
 // typing it is trusted to create one by photographing it or by pasting the post about it.
 // The bound is the per-IP rate-limit policy below, which caps abuse without inventing a

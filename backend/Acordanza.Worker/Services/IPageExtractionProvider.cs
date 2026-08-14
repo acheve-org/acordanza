@@ -62,12 +62,18 @@ public class NoOpPageExtractionProvider(ILogger<NoOpPageExtractionProvider> logg
 public class ClaudePageExtractionProvider : IPageExtractionProvider
 {
     // Reading Spanish prose and deciding which route a post is principally about is a
-    // comprehension judgment worth the tier; Haiku would save two cents on a five-cent
-    // operation. Plan 30's deployment, shared — this plan adds no Foundry resource.
+    // comprehension judgment worth the tier; Haiku would save a couple of cents on a
+    // ten-cent operation. Shares whatever deployment the topo extraction runs on — this
+    // plan adds no Foundry resource of its own.
+    //
+    // Opus 5 rather than plan 31 §5's claude-sonnet-5, for the reason stated on
+    // ClaudeTopoExtractionProvider: no sonnet-family quota on this subscription. Unlike
+    // the topo call this one carries no image, so the tier is bought purely for the
+    // comprehension judgment.
     //
     // Must equal the Foundry deployment name in infra/terraform/ai_foundry.tf: the SDK
     // sends this string through as the model id, so a mismatch is a 404 at request time.
-    internal const string Model = "claude-sonnet-5";
+    internal const string Model = "claude-opus-5";
 
     private readonly IAnthropicClient _client;
     private readonly ILogger<ClaudePageExtractionProvider> _logger;
@@ -233,7 +239,12 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
         return new MessageCreateParams
         {
             Model = Model,
-            MaxTokens = 4096,
+            // Thinking plus payload, not payload alone — the request omits `thinking`,
+            // which on Opus 5 means adaptive thinking is *on*, and MaxTokens bounds
+            // reasoning and response text together (see ClaudeTopoExtractionProvider).
+            // This schema is the larger of the two: a Spanish description and a list of
+            // first ascensionists on top of the shared fields.
+            MaxTokens = 8192,
             OutputConfig = outputConfig,
             // No tools at all — we did the fetching. That means no server-side tool spend,
             // no pause_turn out of a tool loop, and structurally no way for the model to
