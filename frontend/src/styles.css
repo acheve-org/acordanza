@@ -419,11 +419,69 @@ input:focus, select:focus, textarea:focus {
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--space-md); align-items: end; }
 .modal-wide .area-map { height: 60vh; min-height: 360px; margin-top: var(--space-md); }
 
-.detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-md); }
-.detail-actions { display: flex; gap: var(--space-sm); flex-shrink: 0; }
-.detail-meta { display: flex; align-items: center; gap: var(--space-sm); color: var(--text-dim); font-size: 13px; margin: 4px 0 0; }
+/* RouteDetailModal's head: identity only (name, grade, length, sector, gear) — the
+   actions that used to sit opposite the title moved into .detail-side. */
+.detail-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xxs);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-lg);
+}
+.detail-head h2 { margin: 0; }
+.detail-head p { margin: 0; }
+/* Two justified rows — name / grade · length, then sector / gear — so the identifying facts
+   line up on the right edge instead of trailing the name at whatever width it happens to end. */
+.detail-head-row { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
+.detail-head-facts {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.detail-head-sep { color: var(--dim); }
+/* Still used by AreaTree's row buttons — not the route modal. */
+.detail-actions { display: flex; gap: var(--space-sm); flex-shrink: 0; flex-wrap: wrap; }
+.detail-meta { color: var(--text-dim); font-size: 13px; }
 .detail-desc { color: var(--text); line-height: 1.5; font-size: 16px; letter-spacing: 0.24px; }
 .detail-fa { color: var(--text-dim); font-size: 13px; }
+
+/* Two columns: everything there is to read on the left, everything there is to do on
+   the right. The rail is fixed-width so the reading column takes all the slack. */
+.detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: var(--space-lg);
+  align-items: start;
+}
+.detail-main { display: flex; flex-direction: column; gap: var(--space-md); min-width: 0; }
+/* Sticky so the actions stay reachable however long the description runs, and opaque
+   because .detail-head spans both columns and would otherwise scroll through the rail. */
+.detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+}
+.detail-side-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+.detail-side-group h3 { margin: 0; }
+.detail-side-group p { margin: 0; }
+/* Button as="label" (the topo file input) is inline by default, so full-width's
+   width: 100% wouldn't apply and its text wouldn't centre. */
+.detail-side-group label { display: inline-flex; align-items: center; justify-content: center; }
 
 /* Sectioned modal body (plan 20) — every block below the head shares this hairline-bordered
    language, the same radius.md/border DESIGN.md already uses for .route-card. */
@@ -436,6 +494,7 @@ input:focus, select:focus, textarea:focus {
   padding: var(--space-md);
 }
 .detail-section h3 { margin: 0; }
+.detail-section p { margin: 0; }
 .detail-stats { display: flex; flex-wrap: wrap; gap: var(--space-lg); }
 .detail-stat { display: flex; flex-direction: column; gap: 2px; }
 .detail-stat-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -917,9 +976,10 @@ input:focus, select:focus, textarea:focus {
   .tab-bar { overflow-x: auto; scrollbar-width: none; }
   .tab-bar::-webkit-scrollbar { display: none; }
 
-  /* Route title and its action buttons no longer fit on one row. */
-  .detail-head { flex-direction: column; align-items: stretch; }
-  .detail-actions { flex-wrap: wrap; }
+  /* The action rail can't sit beside the content on a phone: it stacks underneath it,
+     in source order, and stops sticking (a stuck rail would eat most of the screen). */
+  .detail-layout { grid-template-columns: 1fr; }
+  .detail-side { position: static; }
 
   /* Map height: min-height alone would push page content below the fold on short phones. */
   .area-map { height: 50vh; min-height: 240px; }
