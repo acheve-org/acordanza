@@ -1,8 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Acordanza.Core.Services;
-using Anthropic;
 using Anthropic.Models.Messages;
+using Microsoft.Extensions.AI;
 
 namespace Acordanza.Worker.Services;
 
@@ -57,12 +57,12 @@ public class ClaudeTopoImportGateProvider : ITopoImportGateProvider
     // 2576 px — see ClaudeTopoExtractionProvider.
     internal const string Model = "claude-haiku-4-5";
 
-    private readonly IAnthropicClient _client;
+    private readonly IChatClient _chatClient;
     private readonly TopoImportFewShotSet _fewShot;
     private readonly ILogger<ClaudeTopoImportGateProvider> _logger;
 
-    private static readonly IReadOnlyDictionary<string, JsonElement> ResultSchema = JsonSerializer
-        .Deserialize<Dictionary<string, JsonElement>>("""
+    private static readonly JsonElement ResultSchema = JsonSerializer
+        .Deserialize<JsonElement>("""
         {
           "type": "object",
           "properties": {
@@ -72,38 +72,42 @@ public class ClaudeTopoImportGateProvider : ITopoImportGateProvider
           "required": ["isTopo", "reason"],
           "additionalProperties": false
         }
-        """)!;
+        """);
 
     public ClaudeTopoImportGateProvider(
-        IConfiguration configuration, TopoImportFewShotSet fewShot, ILogger<ClaudeTopoImportGateProvider> logger)
+        IChatClient chatClient, TopoImportFewShotSet fewShot, ILogger<ClaudeTopoImportGateProvider> logger)
     {
         _logger = logger;
         _fewShot = fewShot;
-        _client = FoundryClient.Create(configuration);
+        _chatClient = chatClient;
     }
 
     public async Task<TopoImportGateResult> IsTopoAsync(TopoImportGateContext context, CancellationToken cancellationToken)
     {
         var examples = await _fewShot.GetGateExamplesAsync(cancellationToken);
-        var content = new List<ContentBlockParam>();
+
+        // The interleaving is the whole point of a few-shot block, so the order below is
+        // load-bearing: instructional text, then each example's label immediately before its
+        // image, then the image actually being classified last.
+        var content = new List<AIContent>();
 
         if (examples.Count > 0)
         {
-            content.Add(Text(
+            content.Add(new TextContent(
                 "First, some labelled examples from this catalogue. They are examples only — " +
                 "do not classify them, and do not let them be the image you answer about."));
             foreach (var example in examples)
             {
-                content.Add(Text(example.IsTopo
+                content.Add(new TextContent(example.IsTopo
                     ? "Example — this IS a climbing topo:"
                     : "Example — this is NOT a climbing topo:"));
-                content.Add(Image(example.Bytes, example.ContentType));
+                content.Add(new DataContent(example.Bytes, example.ContentType));
             }
         }
 
-        content.Add(Text("Now the image to classify:"));
-        content.Add(Image(context.ImageBytes, context.ContentType));
-        content.Add(Text("""
+        content.Add(new TextContent("Now the image to classify:"));
+        content.Add(new DataContent(context.ImageBytes, context.ContentType));
+        content.Add(new TextContent("""
             Is this image a climbing topo — a photo or drawing of a crag with route lines,
             names or grades marked on it, a topo panel at a parking, or a page from a
             climbing guidebook?
@@ -117,35 +121,35 @@ public class ClaudeTopoImportGateProvider : ITopoImportGateProvider
             by a developer tuning this prompt, never shown to the uploader.
             """));
 
-        _logger.LogInformation("topo import gate calling Messages.Create with {Examples} few-shot example(s)", examples.Count);
-        Message response;
+        _logger.LogInformation("topo import gate calling the chat client with {Examples} few-shot example(s)", examples.Count);
+        ChatResponse response;
         try
         {
-            response = await _client.Messages.Create(BuildRequestParams(content), cancellationToken);
+            response = await _chatClient.GetResponseAsync(
+                [new ChatMessage(ChatRole.User, content)], BuildOptions(), cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "topo import gate Messages.Create failed");
+            _logger.LogError(ex, "topo import gate chat call failed");
             throw;
         }
 
         _logger.LogInformation(
             "topo import gate usage input={Input} output={Output}",
-            response.Usage.InputTokens, response.Usage.OutputTokens);
+            response.Usage?.InputTokenCount ?? 0, response.Usage?.OutputTokenCount ?? 0);
 
         // Same allow-list of one as enrichment: anything but end_turn means there's no
         // trustworthy payload, and that's a Failed row (retryable), not a Discarded one.
-        var stopReason = response.StopReason?.Raw();
+        // Read raw, since FinishReason can't tell pause_turn from end_turn — see
+        // AnthropicChatExtensions.
+        var stopReason = response.RawStopReason();
         if (ClaudeRouteEnrichmentProvider.IsIncomplete(stopReason))
         {
             _logger.LogWarning("topo import gate incomplete stopReason={StopReason}", stopReason);
             return new TopoImportGateResult(false, null, Completed: false);
         }
 
-        var json = string.Concat(response.Content
-            .Select(b => b.Value as TextBlock)
-            .Where(t => t is not null)
-            .Select(t => t!.Text));
+        var json = response.Text;
         if (string.IsNullOrWhiteSpace(json))
         {
             return new TopoImportGateResult(false, null, Completed: false);
@@ -155,33 +159,15 @@ public class ClaudeTopoImportGateProvider : ITopoImportGateProvider
         return new TopoImportGateResult(parsed?.IsTopo ?? false, parsed?.Reason);
     }
 
-    internal static ContentBlockParam Text(string text) => new(new TextBlockParam { Text = text });
-
-    internal static ContentBlockParam Image(byte[] bytes, string contentType) => new(new ImageBlockParam
+    // Effort is asked for and silently skipped, exactly as in ClaudeTopoVerificationProvider:
+    // haiku-4-5 isn't in ClaudeModelCapabilities' set, and WithAnthropicRequest is the one
+    // place that decides so.
+    internal static ChatOptions BuildOptions() => new ChatOptions
     {
-        Source = new ImageBlockParamSource(new Base64ImageSource
-        {
-            MediaType = contentType,
-            Data = Convert.ToBase64String(bytes)
-        })
-    });
-
-    internal static MessageCreateParams BuildRequestParams(List<ContentBlockParam> content)
-    {
-        var outputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = ResultSchema } };
-        if (ClaudeModelCapabilities.SupportsEffort(Model))
-        {
-            outputConfig = outputConfig with { Effort = Effort.Low };
-        }
-
-        return new MessageCreateParams
-        {
-            Model = Model,
-            MaxTokens = 512,
-            OutputConfig = outputConfig,
-            Messages = [new MessageParam { Role = Role.User, Content = content }]
-        };
-    }
+        ModelId = Model,
+        MaxOutputTokens = 512,
+        ResponseFormat = ChatResponseFormat.ForJsonSchema(ResultSchema),
+    }.WithAnthropicRequest(Model, Effort.Low);
 
     private sealed record GatePayload(
         [property: JsonPropertyName("isTopo")] bool IsTopo,

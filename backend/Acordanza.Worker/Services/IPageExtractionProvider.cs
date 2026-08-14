@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Anthropic;
 using Anthropic.Models.Messages;
+using Microsoft.Extensions.AI;
 
 namespace Acordanza.Worker.Services;
 
@@ -75,14 +75,14 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
     // sends this string through as the model id, so a mismatch is a 404 at request time.
     internal const string Model = "claude-opus-5";
 
-    private readonly IAnthropicClient _client;
+    private readonly IChatClient _chatClient;
     private readonly ILogger<ClaudePageExtractionProvider> _logger;
 
     // As in plan 29 §2 and plan 30 §3, `pattern`, `minLength` and numeric bounds are NOT
     // supported by structured outputs, so every constraint on these values is enforced in
     // C# (WebPageReader.Accept), never in the schema.
-    private static readonly IReadOnlyDictionary<string, JsonElement> ResultSchema = JsonSerializer
-        .Deserialize<Dictionary<string, JsonElement>>("""
+    private static readonly JsonElement ResultSchema = JsonSerializer
+        .Deserialize<JsonElement>("""
         {
           "type": "object",
           "properties": {
@@ -108,33 +108,33 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
           "required": ["isClimbingRoute", "route", "sectorMentioned", "multipleRoutes", "reason"],
           "additionalProperties": false
         }
-        """)!;
+        """);
 
-    public ClaudePageExtractionProvider(IConfiguration configuration, ILogger<ClaudePageExtractionProvider> logger)
+    public ClaudePageExtractionProvider(IChatClient chatClient, ILogger<ClaudePageExtractionProvider> logger)
     {
         _logger = logger;
-        _client = FoundryClient.Create(configuration);
+        _chatClient = chatClient;
     }
 
     public async Task<PageExtractionResult> ExtractAsync(PageExtractionContext context, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("page extraction calling Messages.Create for url={Url}", context.Url);
-        Message response;
+        _logger.LogInformation("page extraction calling the chat client for url={Url}", context.Url);
+        ChatResponse response;
         try
         {
-            response = await _client.Messages.Create(BuildRequestParams(BuildPrompt(context)), cancellationToken);
+            response = await _chatClient.GetResponseAsync(BuildPrompt(context), BuildOptions(), cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "page extraction Messages.Create failed for url={Url}", context.Url);
+            _logger.LogError(ex, "page extraction chat call failed for url={Url}", context.Url);
             throw;
         }
 
         _logger.LogInformation(
             "page extraction usage url={Url} input={Input} output={Output}",
-            context.Url, response.Usage.InputTokens, response.Usage.OutputTokens);
+            context.Url, response.Usage?.InputTokenCount ?? 0, response.Usage?.OutputTokenCount ?? 0);
 
-        var stopReason = response.StopReason?.Raw();
+        var stopReason = response.RawStopReason();
         if (ClaudeRouteEnrichmentProvider.IsIncomplete(stopReason))
         {
             // max_tokens/refusal produce Failed, never Discarded: the model never gave us
@@ -143,10 +143,7 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
             return new PageExtractionResult(false, null, null, false, null, Completed: false);
         }
 
-        var json = string.Concat(response.Content
-            .Select(b => b.Value as TextBlock)
-            .Where(t => t is not null)
-            .Select(t => t!.Text));
+        var json = response.Text;
         if (string.IsNullOrWhiteSpace(json))
         {
             return new PageExtractionResult(false, null, null, false, null, Completed: false);
@@ -226,32 +223,22 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
         </page-text>
         """;
 
-    internal static MessageCreateParams BuildRequestParams(string prompt)
+    // Effort is Low: comprehension of one page of prose, not the multi-step "is this page
+    // about *this* route, in *this* sector" judgment enrichment runs at High. And no tools
+    // at all — we did the fetching. That means no server-side tool spend, no pause_turn out
+    // of a tool loop, and structurally no way for the model to return a URL we didn't hand
+    // it, which is why the tool list stays empty here rather than merely unused.
+    internal static ChatOptions BuildOptions() => new ChatOptions
     {
-        var outputConfig = new OutputConfig { Format = new JsonOutputFormat { Schema = ResultSchema } };
-        if (ClaudeModelCapabilities.SupportsEffort(Model))
-        {
-            // Comprehension of one page of prose, not the multi-step "is this page about
-            // *this* route, in *this* sector" judgment enrichment runs at High.
-            outputConfig = outputConfig with { Effort = Effort.Low };
-        }
-
-        return new MessageCreateParams
-        {
-            Model = Model,
-            // Thinking plus payload, not payload alone — the request omits `thinking`,
-            // which on Opus 5 means adaptive thinking is *on*, and MaxTokens bounds
-            // reasoning and response text together (see ClaudeTopoExtractionProvider).
-            // This schema is the larger of the two: a Spanish description and a list of
-            // first ascensionists on top of the shared fields.
-            MaxTokens = 8192,
-            OutputConfig = outputConfig,
-            // No tools at all — we did the fetching. That means no server-side tool spend,
-            // no pause_turn out of a tool loop, and structurally no way for the model to
-            // return a URL we didn't hand it.
-            Messages = [new MessageParam { Role = Role.User, Content = prompt }]
-        };
-    }
+        ModelId = Model,
+        // Thinking plus payload, not payload alone — the request omits `thinking`,
+        // which on Opus 5 means adaptive thinking is *on*, and the token budget bounds
+        // reasoning and response text together (see ClaudeTopoExtractionProvider).
+        // This schema is the larger of the two: a Spanish description and a list of
+        // first ascensionists on top of the shared fields.
+        MaxOutputTokens = 8192,
+        ResponseFormat = ChatResponseFormat.ForJsonSchema(ResultSchema),
+    }.WithAnthropicRequest(Model, Effort.Low);
 
     private sealed record ExtractionPayload(
         [property: JsonPropertyName("isClimbingRoute")] bool IsClimbingRoute,

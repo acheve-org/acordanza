@@ -54,8 +54,9 @@ public class RouteImportGoldenSetTests(ITestOutputHelper output)
 
         var blobStorage = new BlobStorageService(configuration);
         var fewShot = new TopoImportFewShotSet(blobStorage, configuration, NullLogger<TopoImportFewShotSet>.Instance);
-        var gate = new ClaudeTopoImportGateProvider(configuration, fewShot, NullLogger<ClaudeTopoImportGateProvider>.Instance);
-        var extraction = new ClaudeTopoExtractionProvider(configuration, NullLogger<ClaudeTopoExtractionProvider>.Instance);
+        var chatClient = FoundryClient.CreateChatClient(configuration);
+        var gate = new ClaudeTopoImportGateProvider(chatClient, fewShot, NullLogger<ClaudeTopoImportGateProvider>.Instance);
+        var extraction = new ClaudeTopoExtractionProvider(chatClient, NullLogger<ClaudeTopoExtractionProvider>.Instance);
 
         // Gate confusion matrix: "positive" is "this is a topo".
         var truePositives = 0;

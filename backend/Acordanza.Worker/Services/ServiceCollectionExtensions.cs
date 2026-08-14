@@ -3,6 +3,7 @@ using Acordanza.Core.Services;
 using Azure.Identity;
 using Azure.Storage.Queues;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -48,6 +49,10 @@ public static class ServiceCollectionExtensions
                 .SetResourceBuilder(otelResource)
                 .AddSource("Acordanza.Worker.EnrichmentQueueProcessor")
                 .AddSource("Acordanza.Worker.RouteImportQueueProcessor")
+                // OpenTelemetryChatClient's activity source (see the AddChatClient
+                // registration below). Without it every one of the five Claude call sites'
+                // spans is generated and then silently dropped.
+                .AddSource("Experimental.Microsoft.Extensions.AI")
                 .AddHttpClientInstrumentation()
                 .AddNpgsql()
                 .AddOtlpExporter())
@@ -157,6 +162,15 @@ public static class ServiceCollectionExtensions
         }
         else
         {
+            // One IChatClient for all five providers, and one place the middleware pipeline
+            // is wired (plan 32 §3) — telemetry and logging now wrap every Claude call site
+            // at once instead of being five separate concerns. Registered only on this
+            // branch: building it needs Anthropic:FoundryResource, which is exactly what
+            // this branch tests for, and the no-op providers below take no client at all.
+            services.AddChatClient(sp => FoundryClient.CreateChatClient(sp.GetRequiredService<IConfiguration>()))
+                .UseOpenTelemetry(sourceName: "acordanza-enrichment-worker")
+                .UseLogging();
+
             services.AddScoped<IRouteEnrichmentProvider, ClaudeRouteEnrichmentProvider>();
             services.AddScoped<ITopoVerificationProvider, ClaudeTopoVerificationProvider>();
             services.AddScoped<ITopoImportGateProvider, ClaudeTopoImportGateProvider>();

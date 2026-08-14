@@ -1,6 +1,14 @@
 # Move the enrichment worker onto Microsoft.Extensions.AI (`IChatClient`)
 
-Status: proposed
+Status: Done — §1–§12 implemented. Five deviations, each forced by the code as it actually stands rather than as the plan pictured it:
+
+1. **`MessageCreateParams.Model`/`MaxTokens` are `required` members**, so §4's fragment can't omit them. `WithAnthropicRequest` sets `Model = modelId` and reads the budget off `options.MaxOutputTokens` — and **throws** when that's unset, which turns §2's "worth a code-review line item" into an enforced invariant instead. Both are inert on the wire (the portable `ChatOptions` values are what ship), but the throw is the part that matters: with no default configured on the client, an omitted `max_tokens` would otherwise only fail at the first real Foundry call.
+2. **The models and budgets in §5–§9 were stale.** `main` pins topo extraction and page extraction to `claude-opus-5` (not `claude-sonnet-5`) at 4096 and 8192 tokens (not 1024 and 4096) — plans 30/31's sonnet deployment never existed on this subscription. This plan is a transport swap, so every existing model id and token budget was carried over verbatim; only §2's "three models, five budgets" framing changed (it's two models and four budgets).
+3. **The result schemas changed type, not content.** `ChatResponseFormat.ForJsonSchema` takes a `JsonElement`, so each provider's `ResultSchema` is now deserialized as one rather than as `IReadOnlyDictionary<string, JsonElement>` (what `JsonOutputFormat.Schema` needed). Byte-identical JSON.
+4. **`AddChatClient` is registered on the Foundry-configured branch only**, not unconditionally — building the client requires `Anthropic:FoundryResource`, which is exactly what that branch tests for, and the five `NoOp*` providers take no client.
+5. **Two more test files needed the constructor change** than §11 listed: `EnrichmentGoldenSetTests` and `RouteImportGoldenSetTests` construct `Claude*` providers directly (they're the `Category=Enrichment` harnesses), and now pass `FoundryClient.CreateChatClient(configuration)`. `ClaudeModelCapabilitiesTests` also gained three cases beyond §11's theory: no-effort-asked-for, the missing-budget throw, and one `[MemberData]` theory over all five providers' real `BuildOptions()` asserting each pins its model id and token budget.
+
+`dotnet test Acordanza.slnx --filter "Category!=Enrichment"` is green (62 + 225 + 209). §Testing's manual smoke run against real Foundry — all three model/tool combinations, plus the Grafana span check — is still outstanding and can only be done by a human with Foundry access.
 Issue: none
 Depends on: [22](22-worker-project-split.md) for the project shape this touches (`Acordanza.Worker/Services/`); [29](29-enrichment-quality.md), [30](30-route-from-topo.md) and [31](31-route-from-url.md), all landed on `main` since this plan was first drafted and all rewritten here to match — see §0. Worker only: no schema change, no API surface change, no frontend change, no Terraform change.
 
