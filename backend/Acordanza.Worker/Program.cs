@@ -27,6 +27,8 @@ startupLogger.LogInformation(
     providerConfig.FoundryResourceConfigured,
     providerConfig.FoundryResourceConfigured ? nameof(ClaudeRouteEnrichmentProvider) : nameof(NoOpRouteEnrichmentProvider));
 
+RouteImportDrainResult importDrain;
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -42,7 +44,23 @@ using (var scope = app.Services.CreateScope())
     await enrichmentProcessor.RunAsync();
 
     var routeImportProcessor = scope.ServiceProvider.GetRequiredService<RouteImportQueueProcessor>();
-    await routeImportProcessor.RunAsync();
+    importDrain = await routeImportProcessor.RunAsync();
 }
 
 await app.StopAsync();
+
+// A dropped route import fails the execution. Container Apps reads the container's exit
+// code and `replica_retry_limit = 0` (infra/terraform/container_app_job.tf) means a failed
+// execution stays failed rather than being re-run into a green one — so this is the signal
+// that makes a broken import pipeline visible without reading the logs. Deliberately after
+// StopAsync, not thrown from the drain: the telemetry that explains the failure has to be
+// flushed before the process leaves.
+if (importDrain.Poisoned > 0)
+{
+    startupLogger.LogError(
+        "route import dropped {Poisoned} of {Processed} message(s) as poison; failing the job execution",
+        importDrain.Poisoned, importDrain.Processed);
+    return 1;
+}
+
+return 0;
