@@ -72,22 +72,39 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
     // Note `pattern`, `minLength` and numeric bounds are NOT supported by structured
     // outputs, so every constraint on these values is enforced in C#
     // (RouteImportService.Accept), never in the schema.
+    //
+    // A nullable *object* is spelled `anyOf: [<the object>, {"type": "null"}]`, never
+    // `"type": ["object", "null"]` — and the reason is the SDK, not the API. The Messages
+    // API accepts both (the union form is what this schema shipped with before plan 32),
+    // but the portable ResponseFormat now runs through the Anthropic SDK's schema
+    // transform, which reads `type` only when it is a plain string. An array-valued `type`
+    // makes it fall through to the base keyword whitelist, which has no `properties`,
+    // `required` or `additionalProperties` — so those three get stripped off the subschema
+    // and stuffed into its `description`, and the request 400s with
+    // "output_config.format.schema: For 'object' type, 'additionalProperties' must be
+    // explicitly set to false". Scalar unions (`["integer", "null"]` below) are unharmed:
+    // they carry no keyword the whitelist would drop. See ClaudeSchemaShapeTests.
     private static readonly JsonElement ResultSchema = JsonSerializer
         .Deserialize<JsonElement>("""
         {
           "type": "object",
           "properties": {
             "route": {
-              "type": ["object", "null"],
-              "properties": {
-                "name": { "type": "string" },
-                "grade": { "type": "string" },
-                "length": { "type": ["integer", "null"] },
-                "evidence": { "type": "string" },
-                "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
-              },
-              "required": ["name", "grade", "length", "evidence", "confidence"],
-              "additionalProperties": false
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "grade": { "type": "string" },
+                    "length": { "type": ["integer", "null"] },
+                    "evidence": { "type": "string" },
+                    "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+                  },
+                  "required": ["name", "grade", "length", "evidence", "confidence"],
+                  "additionalProperties": false
+                },
+                { "type": "null" }
+              ]
             },
             "multipleRoutes": { "type": "boolean" },
             "reason": { "type": ["string", "null"] }

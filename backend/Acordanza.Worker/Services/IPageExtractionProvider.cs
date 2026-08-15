@@ -81,6 +81,12 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
     // As in plan 29 §2 and plan 30 §3, `pattern`, `minLength` and numeric bounds are NOT
     // supported by structured outputs, so every constraint on these values is enforced in
     // C# (WebPageReader.Accept), never in the schema.
+    //
+    // `route` is a nullable object, and it has to be spelled `anyOf`, not
+    // `"type": ["object", "null"]` — see the long note on the same subschema in
+    // ClaudeTopoExtractionProvider: the SDK's schema transform strips `properties`,
+    // `required` and `additionalProperties` off any subschema whose `type` is an array,
+    // and the request then 400s. ClaudeSchemaShapeTests pins the rule for all five schemas.
     private static readonly JsonElement ResultSchema = JsonSerializer
         .Deserialize<JsonElement>("""
         {
@@ -88,18 +94,23 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
           "properties": {
             "isClimbingRoute": { "type": "boolean" },
             "route": {
-              "type": ["object", "null"],
-              "properties": {
-                "name": { "type": "string" },
-                "grade": { "type": "string" },
-                "length": { "type": ["integer", "null"] },
-                "firstAscensionists": { "type": "array", "items": { "type": "string" } },
-                "description": { "type": "string" },
-                "evidence": { "type": "string" },
-                "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
-              },
-              "required": ["name", "grade", "length", "firstAscensionists", "description", "evidence", "confidence"],
-              "additionalProperties": false
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "grade": { "type": "string" },
+                    "length": { "type": ["integer", "null"] },
+                    "firstAscensionists": { "type": "array", "items": { "type": "string" } },
+                    "description": { "type": "string" },
+                    "evidence": { "type": "string" },
+                    "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
+                  },
+                  "required": ["name", "grade", "length", "firstAscensionists", "description", "evidence", "confidence"],
+                  "additionalProperties": false
+                },
+                { "type": "null" }
+              ]
             },
             "sectorMentioned": { "type": ["string", "null"] },
             "multipleRoutes": { "type": "boolean" },
