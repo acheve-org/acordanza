@@ -145,6 +145,36 @@ public class RouteImportsController(
             .ToList();
     }
 
+    // Cleanup, not undo (plan 33): the row is the only thing removed, never the route/
+    // topo/link it may have produced — RouteImport.Route is already SetNull on delete, so
+    // the schema already assumes an import can vanish without taking its route with it.
+    // Only Discarded/Failed are deletable: Pending might still be mid-flight in the
+    // worker, and Completed is the only record of how a route/attachment came to exist.
+    // Unlike TicksController's silent no-op, a wrong-status row gets a distinct 409 rather
+    // than folding into "not found" — the frontend only ever shows the button on rows this
+    // will accept, so either non-2xx here should only mean a stale UI, not a real choice.
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> DeleteImport(int id)
+    {
+        var userId = userManager.GetUserId(User)!;
+        var import = await db.RouteImports.FirstOrDefaultAsync(i => i.Id == id && i.SubmittedByUserId == userId);
+        if (import is null) return NotFound();
+
+        if (import.Status is RouteImportStatus.Pending or RouteImportStatus.Completed)
+        {
+            return Conflict(new { error = "No se puede eliminar una importación pendiente o completada" });
+        }
+
+        // DeleteAsync is DeleteIfExistsAsync underneath, so this is safe whether the blob
+        // is still staged (a Failed Image row) or already gone (a Discarded one, whose
+        // BlobName DiscardAsync deletes but never clears) or was never set (a Url row).
+        if (import.BlobName is { } blobName) await blobStorage.DeleteAsync(blobName);
+
+        db.RouteImports.Remove(import);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
     // The half both kinds share: persist the row, enqueue it, and unwind completely if
     // the enqueue fails — the same call RoutesController.EnrichRoute makes, since nothing
     // else usefully happened in the request and a row nobody will ever drain would sit
