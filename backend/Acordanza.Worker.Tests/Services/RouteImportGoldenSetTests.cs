@@ -29,7 +29,8 @@ public class RouteImportGoldenSetTests(ITestOutputHelper output)
         [property: JsonPropertyName("isTopo")] bool IsTopo,
         [property: JsonPropertyName("areaBreadcrumb")] string AreaBreadcrumb,
         [property: JsonPropertyName("expectedName")] string? ExpectedName,
-        [property: JsonPropertyName("expectedGrade")] string? ExpectedGrade);
+        [property: JsonPropertyName("expectedGrade")] string? ExpectedGrade,
+        [property: JsonPropertyName("expectedGear")] string? ExpectedGear);
 
     private sealed record GoldenSet([property: JsonPropertyName("images")] List<GoldenImage> Images);
 
@@ -66,6 +67,12 @@ public class RouteImportGoldenSetTests(ITestOutputHelper output)
         // Extraction, over the entries the gate let through and that are really topos.
         var extractionAttempted = 0;
         var extractionCorrect = 0;
+
+        // Gear's own match rate (plan 33) — reported alongside, not folded into
+        // extractionCorrect, since gear carries no confidence gate of its own and a miss
+        // here shouldn't read as a name/grade regression.
+        var gearAttempted = 0;
+        var gearCorrect = 0;
 
         foreach (var image in set.Images)
         {
@@ -108,13 +115,23 @@ public class RouteImportGoldenSetTests(ITestOutputHelper output)
                   string.Equals(candidate.Grade, GradeValidatorNormalize(image.ExpectedGrade), StringComparison.OrdinalIgnoreCase);
             if (correct) extractionCorrect++;
 
+            if (candidate is not null)
+            {
+                gearAttempted++;
+                if (string.Equals(candidate.Gear, image.ExpectedGear, StringComparison.OrdinalIgnoreCase)) gearCorrect++;
+            }
+
             output.WriteLine(
                 $"    {(correct ? "OK  " : "MISS")} extracted=" +
                 (candidate is null
                     ? $"(discarded: {discardReason})"
                     : $"'{candidate.Name}' {candidate.Grade} {candidate.Length}m") +
                 $" expected=" + (image.ExpectedName is null ? "(discard)" : $"'{image.ExpectedName}' {image.ExpectedGrade}"));
-            if (candidate is not null) output.WriteLine($"         evidence: {candidate.Evidence}");
+            if (candidate is not null)
+            {
+                output.WriteLine($"         evidence: {candidate.Evidence}");
+                output.WriteLine($"         gear: '{candidate.Gear}' expected='{image.ExpectedGear}'");
+            }
         }
 
         var gatePredictedPositive = truePositives + falsePositives;
@@ -124,6 +141,7 @@ public class RouteImportGoldenSetTests(ITestOutputHelper output)
         output.WriteLine($"gate precision: {(gatePredictedPositive == 0 ? "n/a" : $"{truePositives}/{gatePredictedPositive} = {(double)truePositives / gatePredictedPositive:P0}")}");
         output.WriteLine($"gate recall:    {(gateActualPositive == 0 ? "n/a" : $"{truePositives}/{gateActualPositive} = {(double)truePositives / gateActualPositive:P0}")}");
         output.WriteLine($"extraction accuracy: {(extractionAttempted == 0 ? "n/a" : $"{extractionCorrect}/{extractionAttempted} = {(double)extractionCorrect / extractionAttempted:P0}")}");
+        output.WriteLine($"gear match rate: {(gearAttempted == 0 ? "n/a" : $"{gearCorrect}/{gearAttempted} = {(double)gearCorrect / gearAttempted:P0}")}");
 
         // No threshold assertion, for the same reason EnrichmentGoldenSetTests has none:
         // this is a measurement, a run reporting a drop is as useful as one reporting a

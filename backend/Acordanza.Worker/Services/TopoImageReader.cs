@@ -119,6 +119,7 @@ public class TopoImageReader(
             grade.Grade,
             RouteImportService.AcceptableLength(route.Length),
             route.Evidence!.Trim(),
-            ObligatoryGrade: grade.ObligatoryGrade), null);
+            ObligatoryGrade: grade.ObligatoryGrade,
+            Gear: GearText.Truncate(route.Gear)), null);
     }
 }

@@ -55,7 +55,8 @@ public record RouteCandidate(
     string Description = "",
     IReadOnlyList<string>? FirstAscensionists = null,
     string? SectorMentioned = null,
-    string? ObligatoryGrade = null);
+    string? ObligatoryGrade = null,
+    string? Gear = null);
 
 // An image the reader has already vision-verified as a topo of *this* route. Bytes rather
 // than a URL or a blob name, because the two kinds get here by different routes (a staged

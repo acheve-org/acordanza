@@ -1,7 +1,7 @@
 # Read gear off an imported topo or page, into `RecommendedGear`
 
-Status: Proposed
-Issue: not filed yet — file one and link it here before the `plan:` commit
+Status: Done
+Issue: [#217](https://github.com/acheve-org/acordanza/issues/217)
 Depends on: [30](30-route-from-topo.md) and [31](31-route-from-url.md) for the whole route-import pipeline this extends — `TopoImageReader`/`WebPageReader`, their extraction providers, `RouteCandidate`, `RouteImportService`'s match-or-create; [29](29-enrichment-quality.md) for the evidence/confidence schema pattern this reuses; [32](32-worker-microsoft-extensions-ai.md) for the `IChatClient`/`WithAnthropicRequest` transport both extraction providers already use. No new dependency, no migration (`ClimbingRoute.RecommendedGear` already exists — `AddClimbingRouteSlug`), no new Foundry deployment, no new queue message. Worker-only except for the golden-set fixtures.
 
 ## Problem
