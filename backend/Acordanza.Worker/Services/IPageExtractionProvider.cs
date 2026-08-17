@@ -18,6 +18,7 @@ public record ExtractedPageRoute(
     string? Name,
     string? Grade,
     int? Length,
+    string? Gear,
     IReadOnlyList<string>? FirstAscensionists,
     string? Description,
     string? Evidence,
@@ -101,12 +102,13 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
                     "name": { "type": "string" },
                     "grade": { "type": "string" },
                     "length": { "type": ["integer", "null"] },
+                    "gear": { "type": ["string", "null"] },
                     "firstAscensionists": { "type": "array", "items": { "type": "string" } },
                     "description": { "type": "string" },
                     "evidence": { "type": "string" },
                     "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
                   },
-                  "required": ["name", "grade", "length", "firstAscensionists", "description", "evidence", "confidence"],
+                  "required": ["name", "grade", "length", "gear", "firstAscensionists", "description", "evidence", "confidence"],
                   "additionalProperties": false
                 },
                 { "type": "null" }
@@ -162,7 +164,7 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
 
         var parsed = JsonSerializer.Deserialize<ExtractionPayload>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         var route = parsed?.Route is { } r
-            ? new ExtractedPageRoute(r.Name, r.Grade, r.Length, r.FirstAscensionists, r.Description, r.Evidence, r.Confidence)
+            ? new ExtractedPageRoute(r.Name, r.Grade, r.Length, r.Gear, r.FirstAscensionists, r.Description, r.Evidence, r.Confidence)
             : null;
 
         return new PageExtractionResult(
@@ -205,6 +207,13 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
           them here loses the obligatory grade for good.
         - `length`: the route's length in metres if the page states it, otherwise null. Do
           not estimate it.
+        - `gear`: any climbing gear the source states is needed or recommended for this
+          route — quickdraw/express count, rope length, specific protection like friends or
+          slings, bolt spacing if stated as a warning. Copy it close to as written, in a
+          short line or list, not a paragraph — a few words to one short sentence. Null if
+          the source says nothing about gear; do not infer it from the grade or the route's
+          apparent style (e.g. do not write "sport climbing gear" just because the route is
+          bolted).
         - `firstAscensionists`: the names of the openers as written, or an empty array.
           Names only — no roles, dates or clubs.
         - `description`: one or two sentences in **Spanish**, in your own words, describing
@@ -265,6 +274,7 @@ public class ClaudePageExtractionProvider : IPageExtractionProvider
         [property: JsonPropertyName("name")] string? Name,
         [property: JsonPropertyName("grade")] string? Grade,
         [property: JsonPropertyName("length")] int? Length,
+        [property: JsonPropertyName("gear")] string? Gear,
         [property: JsonPropertyName("firstAscensionists")] List<string>? FirstAscensionists,
         [property: JsonPropertyName("description")] string? Description,
         [property: JsonPropertyName("evidence")] string? Evidence,

@@ -20,9 +20,10 @@ public class WebPageAcceptanceTests
         bool multipleRoutes = false,
         string? sectorMentioned = null,
         IReadOnlyList<string>? openers = null,
-        string description = "Placa técnica de 25 metros.") =>
+        string description = "Placa técnica de 25 metros.",
+        string? gear = null) =>
         new(isClimbingRoute,
-            new ExtractedPageRoute(name, grade, length, openers ?? ["Pedro Pons"], description, evidence, confidence),
+            new ExtractedPageRoute(name, grade, length, gear, openers ?? ["Pedro Pons"], description, evidence, confidence),
             sectorMentioned,
             multipleRoutes,
             null);
@@ -39,6 +40,28 @@ public class WebPageAcceptanceTests
         candidate.Length.ShouldBe(25);
         candidate.Description.ShouldBe("Placa técnica de 25 metros.");
         candidate.FirstAscensionists.ShouldBe(["Pedro Pons"]);
+        candidate.Gear.ShouldBeNull();
+    }
+
+    // Gear is additive here too (plan 33 §1) — a stated gear line lands on the candidate,
+    // trimmed, and its absence never affects acceptance.
+    [Fact]
+    public void A_stated_gear_line_lands_on_the_candidate()
+    {
+        var (candidate, _) = WebPageReader.Accept(CleanRead(gear: "  6 exprés  "));
+
+        candidate.ShouldNotBeNull();
+        candidate.Gear.ShouldBe("6 exprés");
+    }
+
+    [Fact]
+    public void No_stated_gear_does_not_affect_acceptance()
+    {
+        var (candidate, reason) = WebPageReader.Accept(CleanRead(gear: null));
+
+        reason.ShouldBeNull();
+        candidate.ShouldNotBeNull();
+        candidate.Gear.ShouldBeNull();
     }
 
     // The gate, as a field rather than a cheap pre-call: both calls would carry the same

@@ -126,7 +126,8 @@ public class WebPageReader(
             // note in Outcome and nothing else, because crag naming is inconsistent enough
             // that a false discard here would be both infuriating and frequent.
             string.IsNullOrWhiteSpace(result.SectorMentioned) ? null : result.SectorMentioned.Trim(),
-            grade.ObligatoryGrade), null);
+            grade.ObligatoryGrade,
+            GearText.Truncate(route.Gear)), null);
     }
 
     // Candidates in order, first hit wins, the rest never downloaded. Worst case is eight

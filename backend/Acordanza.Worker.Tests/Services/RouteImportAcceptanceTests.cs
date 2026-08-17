@@ -16,8 +16,8 @@ public class RouteImportAcceptanceTests
 {
     private static TopoExtractionResult CleanRead(
         string name = "La Loca", string grade = "6b+", int? length = 25,
-        string evidence = "La Loca 6b+ 25m", string confidence = "high") =>
-        new(new ExtractedRoute(name, grade, length, evidence, confidence), false, null);
+        string evidence = "La Loca 6b+ 25m", string confidence = "high", string? gear = null) =>
+        new(new ExtractedRoute(name, grade, length, gear, evidence, confidence), false, null);
 
     [Fact]
     public void A_clean_high_confidence_read_is_accepted()
@@ -30,6 +30,30 @@ public class RouteImportAcceptanceTests
         candidate.Grade.ShouldBe("6b+");
         candidate.Length.ShouldBe(25);
         candidate.Evidence.ShouldBe("La Loca 6b+ 25m");
+        candidate.Gear.ShouldBeNull();
+    }
+
+    // Gear is additive and carries no confidence of its own (plan 33 §1) — a clean read
+    // with a stated gear line lands it on the candidate, trimmed.
+    [Fact]
+    public void A_stated_gear_line_lands_on_the_candidate()
+    {
+        var (candidate, _) = TopoImageReader.Accept(CleanRead(gear: "  12 exprés y cuerda de 70 m  "));
+
+        candidate.ShouldNotBeNull();
+        candidate.Gear.ShouldBe("12 exprés y cuerda de 70 m");
+    }
+
+    // Gear alone never triggers a discard — confidence/evidence checks are unaffected by
+    // its presence or absence, and a null gear is exactly as acceptable as any other read.
+    [Fact]
+    public void No_stated_gear_does_not_affect_acceptance()
+    {
+        var (candidate, reason) = TopoImageReader.Accept(CleanRead(gear: null));
+
+        reason.ShouldBeNull();
+        candidate.ShouldNotBeNull();
+        candidate.Gear.ShouldBeNull();
     }
 
     // Confidence and evidence are the model's own admission of doubt, and this is where it
