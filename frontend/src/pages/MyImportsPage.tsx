@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Chip, EmptyState, List, ListRow } from 'acordanza-design-system';
+import { Button, Chip, ConfirmModal, EmptyState, List, ListRow } from 'acordanza-design-system';
 import type { ChipStatus } from 'acordanza-design-system';
 import * as routeImportsApi from '../api/routeImports';
 import { queryKeys } from '../api/queryKeys';
@@ -35,10 +35,16 @@ export function MyImportsPage() {
   const [url, setUrl] = useState('');
   const [areaId, setAreaId] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [deleting, setDeleting] = useState<RouteImport | null>(null);
 
   const { data: imports, error } = useQuery({
     queryKey: queryKeys.myRouteImports(),
     queryFn: routeImportsApi.listMyRouteImports,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => routeImportsApi.deleteRouteImport(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['route-imports'] }),
   });
 
   const submitMutation = useMutation({
@@ -176,7 +182,11 @@ export function MyImportsPage() {
       <section className="settings-section">
         {error ? (
           <p className="error-text">{errorMessage(error, 'No se pudieron cargar tus importaciones')}</p>
-        ) : imports && imports.length > 0 ? (
+        ) : null}
+        {deleteMutation.isError && (
+          <p className="error-text">{errorMessage(deleteMutation.error, 'No se pudo eliminar la importación')}</p>
+        )}
+        {imports && imports.length > 0 ? (
           <List>
             {imports.map((item) => (
               <ListRow
@@ -190,16 +200,33 @@ export function MyImportsPage() {
                         Volver a intentarlo
                       </Button>
                     )}
+                    {/* Only the two states the backend will actually accept — a rejection
+                        from here should mean a stale list, not a real user choice. */}
+                    {(item.status === 'discarded' || item.status === 'failed') && (
+                      <Button variant="ghost" small danger type="button" onClick={() => setDeleting(item)}>
+                        Eliminar
+                      </Button>
+                    )}
                     <Chip status={chipStatus[item.status]}>{routeImportStatusLabels[item.status]}</Chip>
                   </>
                 }
               />
             ))}
           </List>
-        ) : (
+        ) : !error ? (
           <EmptyState>Todavía no has importado ninguna vía</EmptyState>
-        )}
+        ) : null}
       </section>
+
+      {deleting && (
+        <ConfirmModal
+          message="¿Eliminar esta importación?"
+          confirmLabel="Eliminar"
+          danger
+          onConfirm={() => deleteMutation.mutate(deleting.id)}
+          onClose={() => setDeleting(null)}
+        />
+      )}
     </>
   );
 }

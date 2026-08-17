@@ -21,3 +21,10 @@ export function createUrlImport(url: string, areaId: number): Promise<RouteImpor
 export function listMyRouteImports(): Promise<RouteImport[]> {
   return api.get<RouteImport[]>('/route-imports/mine');
 }
+
+// Only a Discarded/Failed row is deletable server-side (plan 33) — the caller only ever
+// shows this on those rows, so a rejection here should mean a stale list, not a real
+// choice.
+export function deleteRouteImport(id: number): Promise<void> {
+  return api.delete<void>(`/route-imports/${id}`);
+}

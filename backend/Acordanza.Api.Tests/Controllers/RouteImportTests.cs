@@ -356,6 +356,110 @@ public class RouteImportTests(ApiFixture fixture) : IntegrationTestBase(fixture)
         rows.Single(r => r.Kind == "image").SourceUrl.ShouldBeNull();
     }
 
+    // --- Delete (plan 33) -----------------------------------------------------------
+
+    private async Task<RouteImport> SeedImportAsync(string userId, Area area, RouteImportStatus status, string? blobName = null)
+    {
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var import = new RouteImport
+        {
+            Kind = blobName is null ? RouteImportKind.Url : RouteImportKind.Image,
+            SourceUrl = blobName is null ? "https://blog.example.com/la-loca" : null,
+            BlobName = blobName,
+            ContentType = blobName is null ? null : "image/jpeg",
+            FileName = blobName is null ? null : "topo.jpg",
+            AreaId = area.Id,
+            SubmittedByUserId = userId,
+            Status = status,
+            Outcome = "No parece un topo de escalada"
+        };
+        db.RouteImports.Add(import);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        return import;
+    }
+
+    [Fact]
+    public async Task Deleting_a_discarded_row_returns_204_and_removes_it()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var area = await SeedAreaAsync();
+        var import = await SeedImportAsync(user.UserId, area, RouteImportStatus.Discarded);
+
+        var response = await user.Client.DeleteAsync($"/api/route-imports/{import.Id}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.RouteImports.AnyAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Deleting_a_failed_image_row_deletes_its_staged_blob()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var area = await SeedAreaAsync();
+
+        var blobStorage = Factory.Services.GetRequiredService<BlobStorageService>();
+        var blobName = $"{RouteImportKeys.StagingPrefix}{Guid.NewGuid():N}.jpg";
+        await blobStorage.UploadAsync(blobName, new MemoryStream(ImageBytes), "image/jpeg");
+
+        var import = await SeedImportAsync(user.UserId, area, RouteImportStatus.Failed, blobName);
+
+        var response = await user.Client.DeleteAsync($"/api/route-imports/{import.Id}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        (await blobStorage.DownloadAsync(blobName)).ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(RouteImportStatus.Pending)]
+    [InlineData(RouteImportStatus.Completed)]
+    public async Task Deleting_a_pending_or_completed_row_409s_and_keeps_it(RouteImportStatus status)
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var area = await SeedAreaAsync();
+        var import = await SeedImportAsync(user.UserId, area, status);
+
+        var response = await user.Client.DeleteAsync($"/api/route-imports/{import.Id}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var body = await response.Content.ReadFromJsonAsync<ErrorResponse>(TestContext.Current.CancellationToken);
+        body!.Error.ShouldBe("No se puede eliminar una importación pendiente o completada");
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.RouteImports.AnyAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Deleting_another_users_row_404s_and_keeps_it()
+    {
+        using var owner = await TestUsers.CreateAsync(Factory, Roles.User);
+        using var other = await TestUsers.CreateAsync(Factory, Roles.User);
+        var area = await SeedAreaAsync();
+        var import = await SeedImportAsync(owner.UserId, area, RouteImportStatus.Discarded);
+
+        var response = await other.Client.DeleteAsync($"/api/route-imports/{import.Id}", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.RouteImports.AnyAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Deleting_a_nonexistent_row_404s()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+
+        var response = await user.Client.DeleteAsync("/api/route-imports/999999", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
     private async Task AssertNothingHappenedAsync()
     {
         using var scope = Factory.Services.CreateScope();

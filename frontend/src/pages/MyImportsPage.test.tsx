@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
@@ -144,6 +144,73 @@ describe('MyImportsPage', () => {
 
     const link = await screen.findByRole('link', { name: 'La Loca' });
     expect(link).toHaveAttribute('href', '/routes/pena-rua/sector-1/la-loca');
+  });
+
+  // Only the two states the backend will actually accept a delete for (plan 33) — showing
+  // it elsewhere would just invite a 409 the user can't do anything useful with.
+  it('offers delete only on discarded and failed rows', async () => {
+    mockImports([
+      makeRouteImport({ id: 1, status: 'pending' }),
+      makeRouteImport({ id: 2, status: 'completed', routeId: 7, routeName: 'La Loca' }),
+      makeRouteImport({ id: 3, status: 'discarded', outcome: 'No parece un topo de escalada' }),
+      makeRouteImport({ id: 4, status: 'failed' }),
+    ]);
+
+    renderWithProviders(<MyImportsPage />);
+    await screen.findByText('Leyendo');
+
+    expect(screen.getAllByRole('button', { name: 'Eliminar' })).toHaveLength(2);
+  });
+
+  it('deletes a discarded row after confirming, and the row disappears', async () => {
+    mockImports([
+      makeRouteImport({ id: 1, status: 'discarded', outcome: 'No parece un topo de escalada', fileName: 'malo.jpg' }),
+    ]);
+
+    let deleteCalled = false;
+    server.use(
+      http.delete(`${API_URL}/route-imports/1`, () => {
+        deleteCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    renderWithProviders(<MyImportsPage />);
+    await screen.findByText('malo.jpg');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('¿Eliminar esta importación?')).toBeInTheDocument();
+
+    mockImports([]);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Eliminar' }));
+
+    await waitFor(() => expect(deleteCalled).toBe(true));
+    expect(await screen.findByText('Todavía no has importado ninguna vía')).toBeInTheDocument();
+  });
+
+  it('cancelling the confirmation makes no request', async () => {
+    mockImports([
+      makeRouteImport({ id: 1, status: 'failed', fileName: 'malo.jpg' }),
+    ]);
+
+    let deleteCalled = false;
+    server.use(
+      http.delete(`${API_URL}/route-imports/:id`, () => {
+        deleteCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+    );
+
+    renderWithProviders(<MyImportsPage />);
+    await screen.findByText('malo.jpg');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Eliminar' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(deleteCalled).toBe(false);
   });
 
   it('shows the empty state when nothing has been imported', async () => {
