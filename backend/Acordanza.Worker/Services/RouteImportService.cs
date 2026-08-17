@@ -149,6 +149,16 @@ public class RouteImportService(
             }
         }
 
+        // Filling a gap, not contesting an answer: unlike Grade/ObligatoryGrade, an empty
+        // RecommendedGear on a matched route is simply unanswered, not a human's data a
+        // photo could disagree with — so this is one step more permissive than
+        // ObligatoryGrade's create-only rule, and silent either way (no note, whether it
+        // fills the field or skips it because one was already there).
+        if (!created && string.IsNullOrWhiteSpace(route.RecommendedGear) && candidate.Gear is { } gear)
+        {
+            route.RecommendedGear = gear;
+        }
+
         if (!created && GradeDisagreement(candidate, route, import.Kind) is { } disagreement)
         {
             notes.Add(disagreement);
@@ -210,6 +220,7 @@ public class RouteImportService(
             // below exists to avoid doing.
             ObligatoryGrade = candidate.ObligatoryGrade,
             Length = candidate.Length,
+            RecommendedGear = candidate.Gear,
             // Empty for the Image kind — a photo of a topo says nothing a summary could be
             // written from. A page does.
             Description = candidate.Description,

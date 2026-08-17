@@ -52,8 +52,8 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
 
     // The model returning a clean, high-confidence read — the shape every test that isn't
     // specifically about the acceptance filter starts from.
-    private static TopoExtractionResult CleanRead(string name = "La Loca", string grade = "6b+", int? length = 25) =>
-        new(new ExtractedRoute(name, grade, length, "La Loca 6b+ 25m", "high"), false, null);
+    private static TopoExtractionResult CleanRead(string name = "La Loca", string grade = "6b+", int? length = 25, string? gear = null) =>
+        new(new ExtractedRoute(name, grade, length, gear, "La Loca 6b+ 25m", "high"), false, null);
 
     // The Image kind's reader, wired with fakes and handed to the spine as the only
     // registered reader — the same shape production builds, minus Foundry.
@@ -180,6 +180,38 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
     }
 
     [Fact]
+    public async Task A_clean_extraction_with_gear_writes_it_to_the_created_route()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await CreateAreaAsync(db);
+        var import = await SeedImportAsync(db, area, user.Id);
+
+        await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(CleanRead(gear: "12 exprés y cuerda de 70 m")))
+            .ImportAsync(import.Id, TestContext.Current.CancellationToken);
+
+        var route = await db.Routes.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken);
+        route.RecommendedGear.ShouldBe("12 exprés y cuerda de 70 m");
+    }
+
+    [Fact]
+    public async Task A_clean_extraction_with_no_stated_gear_leaves_the_created_routes_gear_null()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await CreateAreaAsync(db);
+        var import = await SeedImportAsync(db, area, user.Id);
+
+        await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(CleanRead()))
+            .ImportAsync(import.Id, TestContext.Current.CancellationToken);
+
+        var route = await db.Routes.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken);
+        route.RecommendedGear.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task The_staged_blob_is_promoted_to_the_routes_own_prefix()
     {
         using var scope = Fixture.Services.CreateScope();
@@ -254,6 +286,55 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         reloaded.Outcome.ShouldBe("La vía ya existía. El topo indica 6b+ y la ficha 6a");
 
         (await db.Topos.CountAsync(t => t.RouteId == existing.Id, TestContext.Current.CancellationToken)).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_match_with_no_existing_gear_gets_it_filled_from_the_topo()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await CreateAreaAsync(db);
+
+        var existing = new ClimbingRoute
+        {
+            Name = "La Loca", Slug = "la-loca", AreaId = area.Id, Grade = "6b+", Length = 25,
+            AddedByUserId = user.Id, ValidationStatus = ReviewStatus.Approved
+        };
+        db.Routes.Add(existing);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var import = await SeedImportAsync(db, area, user.Id);
+        await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(CleanRead(gear: "6 exprés")))
+            .ImportAsync(import.Id, TestContext.Current.CancellationToken);
+
+        var reloadedRoute = await db.Routes.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken);
+        reloadedRoute.RecommendedGear.ShouldBe("6 exprés");
+    }
+
+    [Fact]
+    public async Task A_match_with_existing_gear_is_not_overwritten()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await CreateAreaAsync(db);
+
+        var existing = new ClimbingRoute
+        {
+            Name = "La Loca", Slug = "la-loca", AreaId = area.Id, Grade = "6b+", Length = 25,
+            AddedByUserId = user.Id, ValidationStatus = ReviewStatus.Approved,
+            RecommendedGear = "Ya anotado a mano"
+        };
+        db.Routes.Add(existing);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var import = await SeedImportAsync(db, area, user.Id);
+        await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(CleanRead(gear: "6 exprés")))
+            .ImportAsync(import.Id, TestContext.Current.CancellationToken);
+
+        var reloadedRoute = await db.Routes.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken);
+        reloadedRoute.RecommendedGear.ShouldBe("Ya anotado a mano");
     }
 
     [Fact]

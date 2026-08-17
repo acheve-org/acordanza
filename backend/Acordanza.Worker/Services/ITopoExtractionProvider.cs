@@ -15,7 +15,7 @@ public record TopoExtractionContext(byte[] ImageBytes, string ContentType, strin
 // exactly what the model returned, unvalidated. RouteImportService.Accept is what turns
 // it into something writable, so the acceptance rules live in one testable place rather
 // than being half-enforced by the type.
-public record ExtractedRoute(string? Name, string? Grade, int? Length, string? Evidence, string? Confidence);
+public record ExtractedRoute(string? Name, string? Grade, int? Length, string? Gear, string? Evidence, string? Confidence);
 
 // MultipleRoutes with no dominant route is a discard, not a coin flip (§3): trad topos
 // are usually single-route, which is what makes one-route-per-import the right model, but
@@ -97,10 +97,11 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
                     "name": { "type": "string" },
                     "grade": { "type": "string" },
                     "length": { "type": ["integer", "null"] },
+                    "gear": { "type": ["string", "null"] },
                     "evidence": { "type": "string" },
                     "confidence": { "type": "string", "enum": ["high", "medium", "low"] }
                   },
-                  "required": ["name", "grade", "length", "evidence", "confidence"],
+                  "required": ["name", "grade", "length", "gear", "evidence", "confidence"],
                   "additionalProperties": false
                 },
                 { "type": "null" }
@@ -158,7 +159,7 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
 
         var parsed = JsonSerializer.Deserialize<ExtractionPayload>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         var route = parsed?.Route is { } r
-            ? new ExtractedRoute(r.Name, r.Grade, r.Length, r.Evidence, r.Confidence)
+            ? new ExtractedRoute(r.Name, r.Grade, r.Length, r.Gear, r.Evidence, r.Confidence)
             : null;
 
         return new TopoExtractionResult(route, parsed?.MultipleRoutes ?? false, parsed?.Reason);
@@ -184,6 +185,13 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
           them here loses the obligatory grade for good.
         - `length`: the route's length in metres if the topo states it, otherwise null. Do
           not estimate it from the photo.
+        - `gear`: any climbing gear the source states is needed or recommended for this
+          route — quickdraw/express count, rope length, specific protection like friends or
+          slings, bolt spacing if stated as a warning. Copy it close to as written, in a
+          short line or list, not a paragraph — a few words to one short sentence. Null if
+          the source says nothing about gear; do not infer it from the grade or the route's
+          apparent style (e.g. do not write "sport climbing gear" just because the route is
+          bolted).
         - `evidence`: the text you read the name and grade from, copied verbatim off the
           image. Not a paraphrase, not a description of where it appears.
         - `confidence`: "high" only when you can read the name and grade clearly enough
@@ -229,6 +237,7 @@ public class ClaudeTopoExtractionProvider : ITopoExtractionProvider
         [property: JsonPropertyName("name")] string? Name,
         [property: JsonPropertyName("grade")] string? Grade,
         [property: JsonPropertyName("length")] int? Length,
+        [property: JsonPropertyName("gear")] string? Gear,
         [property: JsonPropertyName("evidence")] string? Evidence,
         [property: JsonPropertyName("confidence")] string? Confidence);
 }
