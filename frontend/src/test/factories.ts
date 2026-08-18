@@ -2,6 +2,7 @@ import type { components } from '../api/generated';
 import type {
   AreaDetail,
   AreaSummary,
+  AreaTreeNode,
   Contribution,
   FirstAscensionistProfile,
   RouteDetail,
@@ -24,6 +25,7 @@ import type {
 type RouteDto = RouteSummary;
 type RouteDetailDto = RouteDetail;
 type AreaDto = AreaSummary;
+type AreaTreeNodeDto = AreaTreeNode;
 type AreaNodeDto = components['schemas']['AreaNodeDto'];
 type PagedAreaNodesResponse = components['schemas']['PagedAreaNodesResponse'];
 type FirstAscensionistDto = components['schemas']['FirstAscensionistDto'];
@@ -174,6 +176,15 @@ export const makeArea = (o: Partial<AreaDto> = {}): AreaDto => ({
   decidedAt: null,
   decidedByName: null,
   rejectionReason: null,
+  ...o,
+});
+
+export const makeAreaTreeNode = (o: Partial<AreaTreeNodeDto> = {}): AreaTreeNodeDto => ({
+  id: 1,
+  name: 'Peña Rúa',
+  parentAreaId: null,
+  routeCount: 0,
+  validationStatus: 'approved',
   ...o,
 });
 

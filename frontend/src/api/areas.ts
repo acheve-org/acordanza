@@ -5,6 +5,7 @@ import type {
   AreaNode,
   AreaPending,
   AreaSummary,
+  AreaTreeNode,
   GeoPoint,
   PagedAreaNodes,
   TopoSummary,
@@ -40,6 +41,12 @@ export function listAreas(bounds?: AreaBounds, includeUnvalidated = false): Prom
 // The review queue's view of not-yet-decided areas — GET /areas/pending.
 export function listPendingAreas(): Promise<AreaPending[]> {
   return api.get<AreaPending[]>('/areas/pending');
+}
+
+// The whole area tree, flat and geometry-free — AreaPicker holds this client-side and
+// browses/filters it in memory (plan 35 §1) instead of paying a request per interaction.
+export function listAreaTree(): Promise<AreaTreeNode[]> {
+  return api.get<AreaTreeNode[]>('/areas/tree');
 }
 
 export function createArea(name: string, parentAreaId: number | null): Promise<AreaSummary> {
@@ -80,15 +87,4 @@ export function uploadAreaMedia(areaId: number, file: File): Promise<TopoSummary
 
 export function deleteAreaMedia(id: number): Promise<{ ok: true }> {
   return api.delete<{ ok: true }>(`/area-media/${id}`);
-}
-
-// Builds the "Padre › Hijo › Nieto" breadcrumb for an area given a lookup of all areas by id.
-export function areaPath(area: AreaSummary, byId: Map<number, AreaSummary>): string {
-  const parts: string[] = [];
-  let current: AreaSummary | undefined = area;
-  while (current) {
-    parts.unshift(current.name);
-    current = current.parentAreaId !== null ? byId.get(current.parentAreaId) : undefined;
-  }
-  return parts.join(' › ');
 }

@@ -26,6 +26,12 @@ export interface AreaBounds {
 
 export type AreaNode = components['schemas']['AreaNodeDto'];
 
+// GET /areas/tree — the whole area tree, flat and geometry-free, that AreaPicker holds
+// client-side (plan 35 §1). RouteCount is the area's own routes only.
+export type AreaTreeNode = Omit<components['schemas']['AreaTreeNodeDto'], 'validationStatus'> & {
+  validationStatus: RequestStatus;
+};
+
 export type PagedAreaNodes = components['schemas']['PagedAreaNodesResponse'];
 
 export type AreaAncestor = components['schemas']['AreaAncestorDto'];
