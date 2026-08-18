@@ -21,7 +21,7 @@ export function RequestAreaExpertModal({ excludedAreaIds, onClose, onRequested }
   // The area list is only needed to populate this picker, so it's fetched when the modal
   // opens rather than on the page behind it.
   const { data: areas, isLoading, error: fetchError } = useQuery({
-    queryKey: queryKeys.areaList(),
+    queryKey: queryKeys.areaOptions(),
     queryFn: () => areasApi.listAreas(),
   });
 

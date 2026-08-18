@@ -26,7 +26,10 @@ export const queryKeys = {
   pendingFirstAscensionists: () => ['first-ascensionists', 'pending'] as const,
   areaBySlugPath: (path: string) => ['areas', 'by-slug-path', path] as const,
   routesByArea: (areaId: number) => ['routes', 'by-area', areaId] as const,
-  areaList: (refreshToken?: number) => ['areas', 'list', refreshToken ?? null] as const,
+  areaTree: () => ['areas', 'tree'] as const,
+  // RequestAreaExpertModal's own root-area picker — a plain <select>, not AreaPicker, so it
+  // keeps calling GET /areas directly rather than moving to the area tree.
+  areaOptions: () => ['areas', 'list'] as const,
   firstAscensionistList: () => ['first-ascensionists', 'list'] as const,
   firstAscensionistLinkCandidates: (q: string) => ['first-ascensionists', 'link-candidates', q] as const,
   areaChildren: (areaId: number) => ['areas', 'children', areaId] as const,

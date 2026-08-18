@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeArea, makeRouteDetail } from '../test/factories';
+import { makeAreaTreeNode, makeRouteDetail } from '../test/factories';
 import { RouteFormPage } from './RouteFormPage';
 
 // The save handler always follows up its POST/PUT with a GET /routes/{id} to learn the
@@ -42,7 +42,7 @@ function renderEditForm(routeId: number, onLocation: (pathname: string) => void 
 
 async function selectArea(user: ReturnType<typeof userEvent.setup>, areaName: string) {
   await user.click(screen.getByPlaceholderText('Buscar sector…'));
-  await user.click(await screen.findByRole('button', { name: areaName }));
+  await user.click(await screen.findByRole('treeitem', { name: areaName }));
 }
 
 describe('RouteFormPage', () => {
@@ -62,8 +62,8 @@ describe('RouteFormPage', () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, async ({ request }) => {
         postedBody = (await request.json()) as Record<string, unknown>;
@@ -98,8 +98,8 @@ describe('RouteFormPage', () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, async ({ request }) => {
         postedBody = (await request.json()) as Record<string, unknown>;
@@ -126,8 +126,8 @@ describe('RouteFormPage', () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, async ({ request }) => {
         postedBody = (await request.json()) as Record<string, unknown>;
@@ -162,8 +162,8 @@ describe('RouteFormPage', () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, async ({ request }) => {
         postedBody = (await request.json()) as Record<string, unknown>;
@@ -197,8 +197,8 @@ describe('RouteFormPage', () => {
   it('creating a route navigates to its own detail URL, not the plain list', async () => {
     const user = userEvent.setup();
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, () => HttpResponse.json({ id: 1 })),
     );
@@ -224,8 +224,8 @@ describe('RouteFormPage', () => {
     const routeDetail = makeRouteDetail({ id: 7, areaId: 1, areaSlugPath: 'pena-rua', slug: 'travesia-renombrada' });
     server.use(
       http.get(`${API_URL}/routes/7`, () => HttpResponse.json(routeDetail)),
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
       ),
       http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(routeDetail.firstAscensionists)),
       http.put(`${API_URL}/routes/7`, () => HttpResponse.json({ ok: true })),
@@ -260,8 +260,8 @@ describe('RouteFormPage', () => {
     });
     server.use(
       http.get(`${API_URL}/routes/7`, () => HttpResponse.json(routeDetail)),
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
       ),
       http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(routeDetail.firstAscensionists)),
     );
@@ -282,8 +282,8 @@ describe('RouteFormPage', () => {
     const user = userEvent.setup();
     let posted = false;
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, () => {
         posted = true;
@@ -313,8 +313,8 @@ describe('RouteFormPage', () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, async ({ request }) => {
         postedBody = (await request.json()) as Record<string, unknown>;
@@ -346,8 +346,8 @@ describe('RouteFormPage', () => {
     const routeDetail = makeRouteDetail({ id: 7, areaId: 1, grade: '6a' });
     server.use(
       http.get(`${API_URL}/routes/7`, () => HttpResponse.json(routeDetail)),
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
       ),
       http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(routeDetail.firstAscensionists)),
     );
@@ -377,8 +377,8 @@ describe('RouteFormPage', () => {
     });
     server.use(
       http.get(`${API_URL}/routes/7`, () => HttpResponse.json(routeDetail)),
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
       ),
       http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json([])),
     );
@@ -394,8 +394,8 @@ describe('RouteFormPage', () => {
     const user = userEvent.setup();
     let posted = false;
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, () => {
         posted = true;
@@ -421,8 +421,8 @@ describe('RouteFormPage', () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;
     server.use(
-      http.get(`${API_URL}/areas`, () =>
-        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      http.get(`${API_URL}/areas/tree`, () =>
+        HttpResponse.json([makeAreaTreeNode({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
       ),
       http.post(`${API_URL}/routes`, async ({ request }) => {
         postedBody = (await request.json()) as Record<string, unknown>;

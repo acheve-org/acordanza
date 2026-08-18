@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeArea, makeRouteImport } from '../test/factories';
+import { makeAreaTreeNode, makeRouteImport } from '../test/factories';
 import { MyImportsPage } from './MyImportsPage';
 
 type RouteImport = ReturnType<typeof makeRouteImport>;
@@ -14,15 +14,15 @@ function mockImports(items: RouteImport[]) {
 
 function mockAreas() {
   server.use(
-    http.get(`${API_URL}/areas`, () =>
-      HttpResponse.json([makeArea({ id: 3, name: 'Peña Rúa', validationStatus: 'approved' })]),
+    http.get(`${API_URL}/areas/tree`, () =>
+      HttpResponse.json([makeAreaTreeNode({ id: 3, name: 'Peña Rúa', validationStatus: 'approved' })]),
     ),
   );
 }
 
 function pickTheSector() {
   fireEvent.focus(screen.getByPlaceholderText('Buscar sector…'));
-  return screen.findByRole('button', { name: 'Peña Rúa' });
+  return screen.findByRole('treeitem', { name: 'Peña Rúa' });
 }
 
 describe('MyImportsPage', () => {
