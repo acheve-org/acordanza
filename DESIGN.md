@@ -163,10 +163,10 @@ against whatever's behind it.
 
 ## Components
 
-Source of truth for implementation is `design-system/src/` (12 components: `Button`,
+Source of truth for implementation is `design-system/src/` (13 components: `Button`,
 `Chip`, `EmptyState`, `GradePill`, `Modal`/`ModalActions`, `Pagination`, `List`/`ListRow`,
-`Badge`, `RemoveButton`, `Combobox`, `CompassRose`/`CompassPicker`) — read the component
-CSS there for exact rules.
+`Badge`, `RemoveButton`, `Combobox`, `CompassRose`/`CompassPicker`, `TreeSelect`) — read
+the component CSS there for exact rules.
 This section documents intent, not a duplicate spec. `design-system/` carries its own
 Vitest + Testing Library setup (`bun run test` from `design-system/`, wired into CI
 alongside `frontend/`'s), covering keyboard/focus behaviour that a screenshot can't
@@ -244,6 +244,28 @@ CSS grid (`role`/keyboard behaviour comes from the native control, not hand-roll
 `wedgePath`/`needlePath` geometry in `compass.ts` — the ordering *is* the geometry,
 so it lives with the component, and `frontend/src/api/types.ts` re-exports
 `orientationLabels`/`orientations` from here rather than keeping its own copy.
+
+**`TreeSelect`** (plan 35 §2) — a tree-first, filter-in-place combobox for browsing
+*and* filtering a hierarchy in one widget, for data sized like the area tree
+(hundreds to low thousands of nodes, held entirely client-side). The popup always
+shows a tree, never swaps to a flat results list: typing prunes that same tree via
+`treeFilter.ts` (`buildIndex`/`normalise`/`matches`/`prune`, kept pure and unit-tested
+beside the component the way `compass.ts` is) — a match's ancestors stay visible as
+de-emphasized, still-selectable context, auto-expanded down to reveal it, and a
+matching node's own children come along too, everything else drops. With an empty
+query it shows `headNodes` (up to 8 caller-chosen rows, e.g. recents) rather than
+every root, with a "Ver todas las zonas" row beneath that reveals the full,
+alphabetically-grouped root list on demand — at hundreds of roots, an unfiltered dump
+is a scrollbar, not a way to find anything. Follows the WAI-ARIA
+combobox-with-tree-popup pattern by hand (`role="combobox"` input,
+`role="tree"`/`role="treeitem"` popup, roving `aria-activedescendant` — focus never
+leaves the input, so typing and arrow-key browsing compose instead of fighting each
+other); `Combobox` above stays a flat list with no keyboard model of its own and is
+left alone rather than widened into this. `onCreateChild` renders a contextual "+" per
+row plus one at the popup's foot, so the parent is implied by where you clicked rather
+than needing a second picker to choose it. Dropdown on desktop; under `styles.css`'s
+720px breakpoint the same markup becomes a full-screen sheet (the `nav-popup`
+technique) rather than a cramped scroll well under a phone's on-screen keyboard.
 
 ## Do's and Don'ts
 
