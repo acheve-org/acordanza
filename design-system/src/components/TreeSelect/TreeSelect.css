@@ -1,0 +1,123 @@
+.tree-select { position: relative; }
+.tree-select input[role='combobox'] { width: 100%; }
+
+.tree-select-popup {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xs);
+}
+
+.tree-select-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+}
+.tree-select-row:hover,
+.tree-select-row.is-active { background: var(--bg-card-hover); }
+.tree-select-row.is-dimmed { color: var(--text-dim); opacity: 0.7; }
+.tree-select-row-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-select-suffix { color: var(--text-dim); }
+.tree-select-meta { color: var(--text-dim); font-size: 12px; flex-shrink: 0; }
+
+.tree-select-leading { font-weight: 600; }
+.tree-select-show-all { color: var(--accent); font-weight: 600; }
+
+.tree-select-toggle,
+.tree-select-add {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0;
+}
+.tree-select-toggle:hover,
+.tree-select-add:hover { background: var(--bg-card-hover); color: var(--text); }
+
+.tree-select-group-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-card);
+  padding: var(--space-xxs) var(--space-md);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.tree-select-loading,
+.tree-select-empty,
+.tree-select-head-hint {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.tree-select-create-root {
+  margin-top: var(--space-xs);
+  border-top: 1px solid var(--border);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  color: var(--accent);
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+}
+.tree-select-create-root:hover { background: var(--bg-card-hover); }
+
+/* The package's first media query — 720px must match frontend/src/styles.css's single
+   breakpoint and Modal.css's own copy of the same literal (see that file's comment on
+   why this can't be a custom property). Below it the dropdown becomes a full-screen
+   sheet: same markup as the desktop popup, just repositioned — a 320px-tall scrolling
+   tree inside a phone viewport the keyboard has already eaten isn't usable. */
+@media (max-width: 720px) {
+  .tree-select.is-open {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    background: var(--bg-card);
+    padding: var(--space-md);
+  }
+  .tree-select.is-open .tree-select-popup {
+    position: static;
+    flex: 1;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+  }
+}

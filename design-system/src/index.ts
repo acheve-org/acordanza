@@ -37,6 +37,9 @@ export type { RemoveButtonProps, RemoveButtonVariant } from './components/Remove
 export { Combobox } from './components/Combobox/Combobox'
 export type { ComboboxProps, ComboboxOption } from './components/Combobox/Combobox'
 
+export { TreeSelect } from './components/TreeSelect/TreeSelect'
+export type { TreeSelectProps, TreeSelectNode } from './components/TreeSelect/TreeSelect'
+
 export { CompassRose } from './components/Compass/CompassRose'
 export type { CompassRoseProps } from './components/Compass/CompassRose'
 export { CompassPicker } from './components/Compass/CompassPicker'
