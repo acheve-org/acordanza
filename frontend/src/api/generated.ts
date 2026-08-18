@@ -462,6 +462,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/areas/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["AreaTreeNodeDto"][];
+                        "application/json": components["schemas"]["AreaTreeNodeDto"][];
+                        "text/json": components["schemas"]["AreaTreeNodeDto"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/areas/roots": {
         parameters: {
             query?: never;
@@ -3031,6 +3068,16 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             addedByName: null | string;
+        };
+        AreaTreeNodeDto: {
+            /** Format: int32 */
+            id: number;
+            name: string;
+            /** Format: int32 */
+            parentAreaId: null | number;
+            /** Format: int32 */
+            routeCount: number;
+            validationStatus: string;
         };
         AssertionOptions: {
             /** Format: byte */
