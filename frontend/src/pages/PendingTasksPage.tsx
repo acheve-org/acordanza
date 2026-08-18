@@ -139,7 +139,7 @@ export function PendingTasksPage() {
                 <ListRow
                   key={r.id}
                   title={r.name}
-                  subtitle={`${r.areaPath} · ${r.grade}`}
+                  subtitle={[r.areaPath, r.grade].filter(Boolean).join(' · ')}
                   onClick={() => handleSelectRoute(r)}
                 />
               ))}

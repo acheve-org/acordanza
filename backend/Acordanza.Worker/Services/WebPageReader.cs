@@ -102,12 +102,14 @@ public class WebPageReader(
             return (null, RouteImportOutcomes.LowConfidence);
         }
 
-        // As printed, which on a multi-pitch post is «MD+ 6c (6a+ obl)» rather than «6c» —
-        // see PrintedGrade for what that means and how narrowly it is pulled apart.
-        if (PrintedGrade.Parse(route.Grade) is not { } grade)
-        {
-            return (null, RouteImportOutcomes.UnreadableGradeOnPage);
-        }
+        // As printed, which on a multi-pitch post is «MD+ 6c (6a+ obl)» rather than «6c», or
+        // «6c/A1» where the route isn't fully free — see PrintedGrade for what that means
+        // and how narrowly it is pulled apart. A grade PrintedGrade can't resolve (plan 34)
+        // is no longer a discard: the raw string goes in the outcome instead (GradeNote).
+        var parsed = PrintedGrade.Parse(route.Grade);
+        var gradeNote = parsed is null && !string.IsNullOrWhiteSpace(route.Grade)
+            ? RouteImportOutcomes.GradeNotUnderstood(route.Grade)
+            : null;
 
         var openers = (route.FirstAscensionists ?? [])
             .Select(name => name.Trim())
@@ -117,7 +119,7 @@ public class WebPageReader(
 
         return (new RouteCandidate(
             route.Name.Trim(),
-            grade.Grade,
+            parsed?.Grade,
             RouteImportService.AcceptableLength(route.Length),
             route.Evidence!.Trim(),
             (route.Description ?? "").Trim(),
@@ -126,8 +128,10 @@ public class WebPageReader(
             // note in Outcome and nothing else, because crag naming is inconsistent enough
             // that a false discard here would be both infuriating and frequent.
             string.IsNullOrWhiteSpace(result.SectorMentioned) ? null : result.SectorMentioned.Trim(),
-            grade.ObligatoryGrade,
-            GearText.Truncate(route.Gear)), null);
+            parsed?.ObligatoryGrade,
+            GearText.Truncate(route.Gear),
+            AidGrade: parsed?.AidGrade,
+            GradeNote: gradeNote), null);
     }
 
     // Candidates in order, first hit wins, the rest never downloaded. Worst case is eight

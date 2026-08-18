@@ -101,8 +101,8 @@ export function RouteDetailModal({
           <div className="detail-head-row">
             <h2>{route.name}</h2>
             <span className="detail-head-facts">
-              <GradePill grade={route.grade} obligatoryGrade={route.obligatoryGrade} />
-              {route.length > 0 && (
+              <GradePill grade={route.grade} aidGrade={route.aidGrade} obligatoryGrade={route.obligatoryGrade} />
+              {route.length != null && (
                 <Fragment>
                   <span className="detail-head-sep" aria-hidden="true">
                     ·

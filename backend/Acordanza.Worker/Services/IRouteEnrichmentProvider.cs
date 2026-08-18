@@ -19,10 +19,10 @@ namespace Acordanza.Worker.Services;
 // disambiguate the breadcrumb (Spain has more than one "Peña Rubia").
 public record RouteEnrichmentContext(
     string Name,
-    string Grade,
+    string? Grade,
     string AreaBreadcrumb,
     IReadOnlyList<string> FirstAscensionists,
-    int Length,
+    int? Length,
     string? Orientation,
     string? Gear,
     double? Lat,

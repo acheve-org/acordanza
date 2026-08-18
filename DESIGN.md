@@ -109,7 +109,7 @@ reserved for `GradePill` and success/positive states.
 - **Grade Orange** (`{colors.grade-orange}` — `#b45309`): `GradePill`'s foreground for French grade 6, plus its low-opacity fill/border.
 - **Grade Purple** (`{colors.grade-purple}` — `#6b21a8`): `GradePill`'s foreground for French grades 8–9, plus its low-opacity fill/border. Deliberately not `{colors.primary}` — the brand cobalt means "loudest action" and must not start also meaning "hard route".
 
-`GradePill` colours itself by French-scale band (issue #152), one of four:
+`GradePill` colours itself by French-scale band (issue #152), one of five:
 
 | Band | Hue | Token |
 |---|---|---|
@@ -117,10 +117,15 @@ reserved for `GradePill` and success/positive states.
 | 6 | orange | `{colors.grade-orange}` |
 | 7 | red | `{colors.danger}` |
 | 8–9 | purple | `{colors.grade-purple}` |
+| Sin grado | muted, no fill/border | `{colors.text-dim}` |
 
 Band 7 reuses `{colors.danger}` rather than introducing a second red — a grade pill
 (mono-face, `{rounded.sm}`, card header) and a rejected `Chip` (Inter, `{rounded.full}`,
-carries the word "Rechazado") never sit close enough to be confused.
+carries the word "Rechazado") never sit close enough to be confused. The four-band rule
+itself is unchanged (plan 34): an aid grade (A0–A5/C0–C5) composed into the pill alongside
+the free grade gets no fifth hue of its own — aid difficulty carries no ordering the reader
+already knows the way French bands do, so it inherits whatever band the free grade sets (or
+the default teal, if the route has no free grade at all).
 
 ## Typography
 
@@ -182,10 +187,14 @@ three visual states: `pending` (default, neutral `{colors.chip-bg}` fill), `appr
 (`{colors.accent-teal}` fill/border), or `rejected` (`{colors.danger}` fill/border).
 
 **`GradePill`** — a small monospace badge for climbing grades, the only place
-JetBrains Mono appears. Takes a grade string (`children: string`) and colours
-itself by French-scale band (see Colors § Semantic above) — 1–5 teal, 6 orange,
-7 red, 8–9 purple. A string that isn't a valid French grade (e.g. a legacy
-non-conforming value) falls back to the plain teal look rather than throwing.
+JetBrains Mono appears. Composes up to three facts: `grade` (French scale, nullable),
+`aidGrade` (A0–A5/C0–C5, nullable) and `obligatoryGrade` — `6c` alone, `6c/A1` when both
+scales apply, `A2` when only the aid grade does, `6c/A1 (6a+)` with all three, and a muted
+`Sin grado` pill when neither `grade` nor `aidGrade` is set (plan 34 — a route nobody has
+graded yet is a legitimate, actionable state, not a rendering gap). Colours itself by
+French-scale band (see Colors § Semantic above) — 1–5 teal, 6 orange, 7 red, 8–9 purple —
+from `grade` only; an aid-only pill and a string that isn't a valid French grade both fall
+back to the plain teal look rather than throwing.
 
 **`EmptyState`** — a dashed `{colors.hairline-strong}` box, `{rounded.lg}`, for
 zero-result states.

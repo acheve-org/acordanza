@@ -157,8 +157,10 @@ public class UrlImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fixtu
 
         var reloaded = await db.RouteImports.AsNoTracking().FirstAsync(i => i.Id == import.Id, Ct);
         reloaded.RouteWasCreated.ShouldBeFalse();
-        // The disagreement is recorded for a human to decide on, not acted on.
-        reloaded.Outcome.ShouldBe("La vía ya existía. La página indica 6b+ y la ficha 6a");
+        // The disagreement is recorded for a human to decide on, not acted on. Plan 34:
+        // Length gets the same three-way gap-filling treatment as Grade, so the existing
+        // route's 30 m disagreeing with the candidate's 25 m adds a second note.
+        reloaded.Outcome.ShouldBe("La vía ya existía. La página indica 6b+ y la ficha 6a. La página indica 25 m y la ficha 30 m");
     }
 
     [Fact]

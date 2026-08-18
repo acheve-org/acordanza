@@ -103,15 +103,68 @@ public class PrintedGradeTests
 
     // Two different grades outside the brackets is a range or a pitch list, and this log
     // stores one grade. A stated failure the submitter can act on beats a coin flip —
-    // the same call TopoImageReader.Accept makes on multipleRoutes.
+    // the same call TopoImageReader.Accept makes on multipleRoutes. «6c/A1» used to be a
+    // discard here too, before plan 34 gave '/' exactly one recognised meaning — see the
+    // Split_grade tests below for what it resolves to now.
     [Theory]
     [InlineData("6a/6b")]
     [InlineData("6a a 6c")]
     [InlineData("L1 6a L2 6c")]
-    [InlineData("6c/A1")]
     [InlineData("(6a+ obl)")]
     public void An_ambiguous_or_absent_free_grade_is_not_resolved(string printed) =>
         PrintedGrade.Parse(printed).ShouldBeNull();
+
+    // Plan 34 §11: '/' gets exactly one recognised meaning — one French grade and one aid
+    // grade, in either order. «6c/A1» is a route with both, not a range.
+    [Theory]
+    [InlineData("6c/A1", "6c", "A1")]
+    [InlineData("A1/6c", "6c", "A1")]
+    [InlineData("6c/a1", "6c", "A1")]
+    public void A_combined_free_and_aid_token_splits_into_both_grades(string printed, string grade, string aidGrade)
+    {
+        var parsed = PrintedGrade.Parse(printed);
+
+        parsed.ShouldNotBeNull();
+        parsed.Grade.ShouldBe(grade);
+        parsed.AidGrade.ShouldBe(aidGrade);
+        parsed.ObligatoryGrade.ShouldBeNull();
+    }
+
+    // An aid grade alone — no free grade at all.
+    [Theory]
+    [InlineData("A2")]
+    [InlineData(" a2 ")]
+    [InlineData("C1")]
+    [InlineData("A3+")]
+    public void An_aid_only_token_yields_no_free_grade(string printed)
+    {
+        var parsed = PrintedGrade.Parse(printed);
+
+        parsed.ShouldNotBeNull();
+        parsed.Grade.ShouldBeNull();
+        parsed.AidGrade.ShouldBe(printed.Trim().ToUpperInvariant());
+    }
+
+    // Two French grades stay a range even when one side reads like it could combine —
+    // «6a/6b» states no single grade on either scale, and this log stores one.
+    [Fact]
+    public void Two_french_grades_over_a_slash_still_resolve_to_nothing()
+    {
+        PrintedGrade.Parse("6a/6b").ShouldBeNull();
+    }
+
+    // The multi-pitch case with all three facts present at once: alpine difficulty
+    // dropped, free grade, aid grade and obligatory grade all recovered.
+    [Fact]
+    public void A_multi_pitch_line_with_a_combined_grade_yields_all_three_facts()
+    {
+        var parsed = PrintedGrade.Parse("MD+ 6c/A1 (6a+ obl)");
+
+        parsed.ShouldNotBeNull();
+        parsed.Grade.ShouldBe("6c");
+        parsed.AidGrade.ShouldBe("A1");
+        parsed.ObligatoryGrade.ShouldBe("6a+");
+    }
 
     // Repetition isn't ambiguity.
     [Fact]

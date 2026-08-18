@@ -106,20 +106,25 @@ public class TopoImageReader(
 
         // The model is told to copy the grade and never to convert it, so what arrives is
         // whatever the topo prints where a grade goes — often «MD+ 6c (6a+ obl)» rather
-        // than «6c». PrintedGrade pulls the French grade (and any obligatory grade) out of
-        // that; a string it can't resolve to exactly one is an unconvertible grade, which
-        // is a discard with a reason, not a best effort.
-        if (PrintedGrade.Parse(route.Grade) is not { } grade)
-        {
-            return (null, RouteImportOutcomes.UnreadableGrade);
-        }
+        // than «6c», or «6c/A1» where the route isn't fully free. PrintedGrade pulls the
+        // French grade, the aid grade and any obligatory grade out of that. A string it
+        // can't resolve to any of those (plan 34) is no longer a discard: a human may save
+        // a route with no grade, so a photo of one must not be thrown away either — the
+        // raw string goes in the outcome (GradeNotUnderstood) so the reviewer fixes it in
+        // one edit instead of re-importing.
+        var parsed = PrintedGrade.Parse(route.Grade);
+        var gradeNote = parsed is null && !string.IsNullOrWhiteSpace(route.Grade)
+            ? RouteImportOutcomes.GradeNotUnderstood(route.Grade)
+            : null;
 
         return (new RouteCandidate(
             route.Name.Trim(),
-            grade.Grade,
+            parsed?.Grade,
             RouteImportService.AcceptableLength(route.Length),
             route.Evidence!.Trim(),
-            ObligatoryGrade: grade.ObligatoryGrade,
-            Gear: GearText.Truncate(route.Gear)), null);
+            ObligatoryGrade: parsed?.ObligatoryGrade,
+            Gear: GearText.Truncate(route.Gear),
+            AidGrade: parsed?.AidGrade,
+            GradeNote: gradeNote), null);
     }
 }

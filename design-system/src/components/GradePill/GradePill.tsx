@@ -2,16 +2,26 @@ import { gradeBand } from './gradeBand'
 import './GradePill.css'
 
 export interface GradePillProps {
-  grade: string
+  grade: string | null
+  aidGrade?: string | null
   obligatoryGrade?: string | null
 }
 
-export function GradePill({ grade, obligatoryGrade }: GradePillProps) {
-  const band = gradeBand(grade)
-  const className = ['grade-pill', band && band !== '1-5' ? `grade-band-${band}` : undefined]
+// The band comes from the free grade only — the four bands mean French difficulty and
+// nothing else, so an aid-only route keeps the default teal rather than inventing a fifth
+// hue for a scale that carries no ordering the reader already knows.
+export function GradePill({ grade, aidGrade, obligatoryGrade }: GradePillProps) {
+  const band = grade ? gradeBand(grade) : null
+  const className = [
+    'grade-pill',
+    band && band !== '1-5' ? `grade-band-${band}` : undefined,
+    !grade && !aidGrade ? 'grade-pill-empty' : undefined,
+  ]
     .filter(Boolean)
     .join(' ')
-  const text = obligatoryGrade ? `${grade} (${obligatoryGrade})` : grade
+
+  const combined = [grade, aidGrade].filter(Boolean).join('/') || 'Sin grado'
+  const text = obligatoryGrade ? `${combined} (${obligatoryGrade})` : combined
 
   return <span className={className}>{text}</span>
 }

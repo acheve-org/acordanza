@@ -2215,6 +2215,7 @@ export interface paths {
                     q?: string;
                     areaId?: number;
                     grade?: string;
+                    aidGrade?: string;
                     orientation?: string[];
                     gear?: string;
                     hasTopo?: boolean;
@@ -2273,6 +2274,43 @@ export interface paths {
         trace?: never;
     };
     "/api/routes/grades": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": string[];
+                        "application/json": string[];
+                        "text/json": string[];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/routes/aid-grades": {
         parameters: {
             query?: never;
             header?: never;
@@ -3284,11 +3322,12 @@ export interface components {
             areaName: string;
             areaPath: string;
             areaSlugPath: string;
-            grade: string;
+            grade: null | string;
+            aidGrade: null | string;
             orientation: null | string;
             gear: null | string;
             /** Format: int32 */
-            length: number;
+            length: null | number;
             date: string;
             /** Format: int32 */
             rating: null | number;
@@ -3396,12 +3435,13 @@ export interface components {
             areaName: string;
             areaPath: string;
             areaSlugPath: string;
-            grade: string;
+            grade: null | string;
+            aidGrade: null | string;
             orientation: null | string;
             gear: null | string;
             description: string;
             /** Format: int32 */
-            length: number;
+            length: null | number;
             obligatoryGrade: null | string;
             recommendedGear: null | string;
             optionalGear: null | string;
@@ -3431,12 +3471,13 @@ export interface components {
             areaName: string;
             areaPath: string;
             areaSlugPath: string;
-            grade: string;
+            grade: null | string;
+            aidGrade: null | string;
             orientation: null | string;
             gear: null | string;
             description: string;
             /** Format: int32 */
-            length: number;
+            length: null | number;
             obligatoryGrade: null | string;
             recommendedGear: null | string;
             optionalGear: null | string;
@@ -3487,7 +3528,7 @@ export interface components {
             slug: string;
             areaPath: string;
             areaSlugPath: string;
-            grade: string;
+            grade: null | string;
             /** Format: date-time */
             createdAt: string;
             addedByName: string;
@@ -3519,12 +3560,13 @@ export interface components {
             name: string;
             /** Format: int32 */
             areaId: number;
-            grade: string;
+            grade: null | string;
+            aidGrade: null | string;
             orientation: null | string;
             gear: null | string;
             description: null | string;
             /** Format: int32 */
-            length: number;
+            length: null | number;
             obligatoryGrade: null | string;
             recommendedGear: null | string;
             optionalGear: null | string;

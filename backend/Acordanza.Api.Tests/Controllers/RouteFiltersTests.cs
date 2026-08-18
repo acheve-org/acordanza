@@ -5,6 +5,7 @@ using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
 using Acordanza.Core.Models;
 using Acordanza.Api.Tests.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using Xunit;
@@ -163,6 +164,80 @@ public class RouteFiltersTests(ApiFixture fixture) : IntegrationTestBase(fixture
         await SeedAsync();
 
         (await GetRouteNamesAsync($"?firstAscensionistId={_alphaFirstAscensionistId}")).ShouldBe([Alpha]);
+    }
+
+    // Plan 34: "none" is the "Sin grado" sentinel — a gradeless route seeded alongside the
+    // three graded fixture routes must be the only one it returns.
+    [Fact]
+    public async Task Grade_none_returns_only_gradeless_routes()
+    {
+        await SeedAsync();
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using var admin = await TestUsers.CreateAsync(Factory, Roles.Admin);
+        var root = await db.Areas.FirstAsync(a => a.Id == _rootAreaId, TestContext.Current.CancellationToken);
+        await SeedData.CreateRouteAsync(db, root, admin.UserId, name: "Ungraded Route", grade: null);
+
+        (await GetRouteNamesAsync("?grade=none")).ShouldBe(["Ungraded Route"]);
+    }
+
+    [Fact]
+    public async Task AidGrade_filters_exactly()
+    {
+        await SeedAsync();
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using var admin = await TestUsers.CreateAsync(Factory, Roles.Admin);
+        var root = await db.Areas.FirstAsync(a => a.Id == _rootAreaId, TestContext.Current.CancellationToken);
+        await SeedData.CreateRouteAsync(db, root, admin.UserId, name: "Aid Route", grade: null, aidGrade: "A1");
+
+        (await GetRouteNamesAsync("?aidGrade=A1")).ShouldBe(["Aid Route"]);
+    }
+
+    // GET /routes/grades must omit nulls, or the filter dropdown grows a blank entry.
+    [Fact]
+    public async Task GetGrades_omits_nulls()
+    {
+        await SeedAsync();
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using var admin = await TestUsers.CreateAsync(Factory, Roles.Admin);
+        var root = await db.Areas.FirstAsync(a => a.Id == _rootAreaId, TestContext.Current.CancellationToken);
+        await SeedData.CreateRouteAsync(db, root, admin.UserId, name: "Ungraded Route", grade: null);
+
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var grades = await user.Client.GetFromJsonAsync<List<string>>(
+            "/api/routes/grades", TestContext.Current.CancellationToken);
+
+        grades.ShouldNotBeNull();
+        grades!.ShouldNotContain((string?)null!);
+        grades.ShouldBe(["6a", "6b"], ignoreOrder: true);
+    }
+
+    // GET /routes/aid-grades mirrors GetGrades over AidGrade — [] when nothing has one,
+    // and the aid grades in use once something does.
+    [Fact]
+    public async Task GetAidGrades_returns_empty_then_the_aid_grades_in_use()
+    {
+        await SeedAsync();
+
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var beforeAid = await user.Client.GetFromJsonAsync<List<string>>(
+            "/api/routes/aid-grades", TestContext.Current.CancellationToken);
+        beforeAid.ShouldBeEmpty();
+
+        using var scope = Factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        using var admin = await TestUsers.CreateAsync(Factory, Roles.Admin);
+        var root = await db.Areas.FirstAsync(a => a.Id == _rootAreaId, TestContext.Current.CancellationToken);
+        await SeedData.CreateRouteAsync(db, root, admin.UserId, name: "Aid Route", grade: null, aidGrade: "A1");
+
+        var afterAid = await user.Client.GetFromJsonAsync<List<string>>(
+            "/api/routes/aid-grades", TestContext.Current.CancellationToken);
+        afterAid.ShouldBe(["A1"]);
     }
 
     [Fact]

@@ -115,6 +115,7 @@ export interface RouteFilters {
   q: string;
   areaId: string;
   grade: string;
+  aidGrade: string;
   orientation: Orientation[];
   gear: string;
   hasTopo: string;
@@ -124,6 +125,7 @@ export const emptyRouteFilters: RouteFilters = {
   q: '',
   areaId: '',
   grade: '',
+  aidGrade: '',
   orientation: [],
   gear: '',
   hasTopo: '',

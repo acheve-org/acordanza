@@ -32,7 +32,8 @@ public class RoutesController(
 
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
-        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string[]? orientation,
+        [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string? aidGrade,
+        [FromQuery] string[]? orientation,
         [FromQuery] string? gear, [FromQuery] bool? hasTopo,
         [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false, [FromQuery] bool openedByMe = false)
     {
@@ -75,7 +76,18 @@ public class RoutesController(
         }
         if (!string.IsNullOrWhiteSpace(grade))
         {
-            query = query.Where(r => r.Grade == grade);
+            // "none" is the "Sin grado" dropdown option (Filters.tsx). Safe as a sentinel
+            // rather than a separate query param because no legal French grade is
+            // spellable as "none" — and a separate boolean param would be a second
+            // control that can contradict this one (grade=6a AND ungraded=true has no
+            // meaning).
+            query = grade == "none"
+                ? query.Where(r => r.Grade == null)
+                : query.Where(r => r.Grade == grade);
+        }
+        if (!string.IsNullOrWhiteSpace(aidGrade))
+        {
+            query = query.Where(r => r.AidGrade == aidGrade);
         }
         if (orientation is { Length: > 0 })
         {
@@ -113,7 +125,7 @@ public class RoutesController(
 
         var dtos = routes.Select(r => new RouteDto(
             r.Id, r.Name, r.Slug, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId), areas.SlugPath(r.AreaId),
-            r.Grade, r.Orientation, r.Gear, r.Description,
+            r.Grade, r.AidGrade, r.Orientation, r.Gear, r.Description,
             r.Length, r.ObligatoryGrade, r.RecommendedGear, r.OptionalGear,
             r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
             r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
@@ -134,12 +146,31 @@ public class RoutesController(
         var userId = userManager.GetUserId(User)!;
         var grades = await db.Routes.AsNoTracking()
             .Where(ValidationVisibility.Routes(userId))
-            .Select(r => r.Grade)
+            .Where(r => r.Grade != null)
+            .Select(r => r.Grade!)
             .Distinct()
             .OrderBy(g => g)
             .ToListAsync();
 
         return Ok(grades);
+    }
+
+    // Mirrors GetGrades exactly, over AidGrade instead — no "sin grado artificial" option
+    // (nearly every route in the log has no aid grade, so that filter would select almost
+    // everything and answer nothing).
+    [HttpGet("aid-grades")]
+    public async Task<ActionResult<List<string>>> GetAidGrades()
+    {
+        var userId = userManager.GetUserId(User)!;
+        var aidGrades = await db.Routes.AsNoTracking()
+            .Where(ValidationVisibility.Routes(userId))
+            .Where(r => r.AidGrade != null)
+            .Select(r => r.AidGrade!)
+            .Distinct()
+            .OrderBy(g => g)
+            .ToListAsync();
+
+        return Ok(aidGrades);
     }
 
     // The review queue's view of not-yet-decided routes. No policy attribute — narrowed
@@ -249,7 +280,7 @@ public class RoutesController(
         return new RouteDetailDto(
             route.Id, route.Name, route.Slug, route.AreaId, areas[route.AreaId].Name, areas.NamePath(route.AreaId),
             areas.SlugPath(route.AreaId),
-            route.Grade, route.Orientation, route.Gear, route.Description,
+            route.Grade, route.AidGrade, route.Orientation, route.Gear, route.Description,
             route.Length, route.ObligatoryGrade, route.RecommendedGear, route.OptionalGear,
             route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
             route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
@@ -264,19 +295,25 @@ public class RoutesController(
     [HttpPost]
     public async Task<ActionResult> CreateRoute(UpsertRouteRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Grade))
+        if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { error = "el nombre y el grado son obligatorios" });
+            return BadRequest(new { error = "el nombre es obligatorio" });
         }
 
+        if (request.AreaId == 0) return BadRequest(new { error = "el sector es obligatorio" });
         if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
         {
             return BadRequest(new { error = "el sector no existe" });
         }
 
-        if (!GradeValidator.IsValid(request.Grade))
+        // Absent is legal now (plan 34); present-but-wrong still isn't.
+        if (!string.IsNullOrWhiteSpace(request.Grade) && !GradeValidator.IsValid(request.Grade))
         {
             return BadRequest(new { error = "el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)" });
+        }
+        if (!string.IsNullOrWhiteSpace(request.AidGrade) && !AidGradeValidator.IsValid(request.AidGrade))
+        {
+            return BadRequest(new { error = "el grado artificial debe ser A0–A5 o C0–C5 (por ejemplo A1, C2, A3+)" });
         }
 
         var orientationError = ValidateOrientation(request.Orientation);
@@ -307,7 +344,8 @@ public class RoutesController(
             Name = request.Name,
             Slug = slug,
             AreaId = request.AreaId,
-            Grade = GradeValidator.Normalize(request.Grade),
+            Grade = NormalizeOptionalGrade(request.Grade),
+            AidGrade = NormalizeOptionalAidGrade(request.AidGrade),
             Orientation = request.Orientation,
             Gear = request.Gear,
             Description = request.Description ?? "",
@@ -347,14 +385,24 @@ public class RoutesController(
 
         var userId = userManager.GetUserId(User)!;
 
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { error = "el nombre es obligatorio" });
+        }
+
         if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
         {
             return BadRequest(new { error = "el sector no existe" });
         }
 
-        if (!GradeValidator.IsValid(request.Grade))
+        // Absent is legal now (plan 34); present-but-wrong still isn't.
+        if (!string.IsNullOrWhiteSpace(request.Grade) && !GradeValidator.IsValid(request.Grade))
         {
             return BadRequest(new { error = "el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)" });
+        }
+        if (!string.IsNullOrWhiteSpace(request.AidGrade) && !AidGradeValidator.IsValid(request.AidGrade))
+        {
+            return BadRequest(new { error = "el grado artificial debe ser A0–A5 o C0–C5 (por ejemplo A1, C2, A3+)" });
         }
 
         var orientationError = ValidateOrientation(request.Orientation);
@@ -378,12 +426,14 @@ public class RoutesController(
         var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
         if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
 
-        var normalizedGrade = GradeValidator.Normalize(request.Grade);
+        var normalizedGrade = NormalizeOptionalGrade(request.Grade);
+        var normalizedAidGrade = NormalizeOptionalAidGrade(request.AidGrade);
         var newFirstAscensionistIds = firstAscensionists!.Select(fa => fa.Id).ToHashSet();
         var newLinkUrls = links!.ToHashSet();
         var changed = route.Name != request.Name ||
             route.AreaId != request.AreaId ||
             route.Grade != normalizedGrade ||
+            route.AidGrade != normalizedAidGrade ||
             (route.Orientation ?? "") != (request.Orientation ?? "") ||
             (route.Gear ?? "") != (request.Gear ?? "") ||
             route.Description != (request.Description ?? "") ||
@@ -406,6 +456,7 @@ public class RoutesController(
         route.Name = request.Name;
         route.AreaId = request.AreaId;
         route.Grade = normalizedGrade;
+        route.AidGrade = normalizedAidGrade;
         route.Orientation = request.Orientation;
         route.Gear = request.Gear;
         route.Description = request.Description ?? "";
@@ -626,8 +677,8 @@ public class RoutesController(
             ? "el tipo de equipamiento no es válido"
             : null;
 
-    private static string? ValidateLength(int length) =>
-        length is > 5 and < 3000 ? null : "la longitud debe ser mayor que 5 y menor que 3000";
+    private static string? ValidateLength(int? length) =>
+        length is null or (> 5 and < 3000) ? null : "la longitud debe ser mayor que 5 y menor que 3000";
 
     private const int ObligatoryGradeMaxLength = 20;
     private const int GearNoteMaxLength = 500;
@@ -637,6 +688,12 @@ public class RoutesController(
 
     private static string? NormalizeOptionalText(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? NormalizeOptionalGrade(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : GradeValidator.Normalize(value);
+
+    private static string? NormalizeOptionalAidGrade(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : AidGradeValidator.Normalize(value);
 
     private async Task<(List<FirstAscensionist>? FirstAscensionists, string? Error)> ResolveFirstAscensionistsAsync(List<int>? firstAscensionistIds)
     {

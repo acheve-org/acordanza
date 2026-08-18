@@ -16,6 +16,7 @@ export function listRoutes(filters: RouteFilters, exactArea?: boolean): Promise<
   if (filters.q) params.set('q', filters.q);
   if (filters.areaId) params.set('areaId', filters.areaId);
   if (filters.grade) params.set('grade', filters.grade);
+  if (filters.aidGrade) params.set('aidGrade', filters.aidGrade);
   for (const o of filters.orientation) params.append('orientation', o);
   if (filters.gear) params.set('gear', filters.gear);
   if (filters.hasTopo) params.set('hasTopo', filters.hasTopo);
@@ -40,6 +41,12 @@ export function listMyOpenings(): Promise<RouteSummary[]> {
 // The grades actually in use, for the search filter's dropdown.
 export function listGrades(): Promise<string[]> {
   return api.get<string[]>('/routes/grades');
+}
+
+// Mirrors listGrades over AidGrade — the aid-grade filter's dropdown, empty when no
+// route in the log carries one yet.
+export function listAidGrades(): Promise<string[]> {
+  return api.get<string[]>('/routes/aid-grades');
 }
 
 // The review queue's view of not-yet-decided routes — narrowed server-side to the ones

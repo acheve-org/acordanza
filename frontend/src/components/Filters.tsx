@@ -15,11 +15,14 @@ interface Props {
 
 export function Filters({ filters, onChange, onAddRoute }: Props) {
   const { hasPermission } = useAuth();
-  // Grades are free text on the backend, so the options are whichever ones are in use.
+  // Grade/aid grade are optional and validated against a fixed scale on the backend
+  // (plan 34), so the options are whichever ones are actually in use.
   const [grades, setGrades] = useState<string[]>([]);
+  const [aidGrades, setAidGrades] = useState<string[]>([]);
 
   useEffect(() => {
     routesApi.listGrades().then(setGrades);
+    routesApi.listAidGrades().then(setAidGrades);
   }, []);
 
   function set<K extends keyof RouteFilters>(key: K, value: RouteFilters[K]) {
@@ -46,12 +49,27 @@ export function Filters({ filters, onChange, onAddRoute }: Props) {
       <label className="field-label">Grado</label>
       <select value={filters.grade} onChange={(e) => set('grade', e.target.value)}>
         <option value="">Cualquiera</option>
+        <option value="none">Sin grado</option>
         {grades.map((grade) => (
           <option key={grade} value={grade}>
             {grade}
           </option>
         ))}
       </select>
+
+      {aidGrades.length > 0 && (
+        <>
+          <label className="field-label">Grado artificial</label>
+          <select value={filters.aidGrade} onChange={(e) => set('aidGrade', e.target.value)}>
+            <option value="">Cualquiera</option>
+            {aidGrades.map((aidGrade) => (
+              <option key={aidGrade} value={aidGrade}>
+                {aidGrade}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
 
       <label className="field-label">Orientación</label>
       <CompassPicker value={filters.orientation} onChange={(orientation) => set('orientation', orientation)} />

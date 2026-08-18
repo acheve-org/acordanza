@@ -26,3 +26,11 @@ describe('TickedRouteCard meta line', () => {
     expect(container.querySelector('.rc-meta')).not.toBeInTheDocument();
   });
 });
+
+describe('TickedRouteCard grade pill', () => {
+  // Plan 34: a ticked route can have no grade too — MyTickDto.grade/aidGrade are nullable.
+  it('renders "Sin grado" for a gradeless tick', () => {
+    render(<TickedRouteCard tick={makeTickedRoute({ grade: null, aidGrade: null })} onSelect={() => {}} />);
+    expect(screen.getByText('Sin grado')).toBeInTheDocument();
+  });
+});

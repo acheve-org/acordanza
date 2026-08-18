@@ -17,11 +17,25 @@ public class ClimbingRoute : IValidatable
 
     public int AreaId { get; set; }
     public Area Area { get; set; } = null!;
-    public required string Grade { get; set; }
+
+    // The free-climbing grade, French scale (GradeValidator) — null when nobody has graded
+    // the route, or when it isn't free-climbed at all and only AidGrade applies.
+    public string? Grade { get; set; }
+
+    // The artificial (aid) grade, A0–A5 / C0–C5 (AidGradeValidator). Independent of Grade,
+    // not a replacement for it: «6c/A1» is a route with both, «A2» is a route with only
+    // this one, and most routes in this log have neither.
+    public string? AidGrade { get; set; }
+
     public string? Orientation { get; set; }
     public string? Gear { get; set; }
     public string Description { get; set; } = "";
-    public int Length { get; set; }
+
+    // Null when unknown. Was a non-nullable int whose 0 the import worker used as an
+    // "unknown" sentinel — see the OptionalRouteGradeAndLength migration, which turns
+    // those 0s into nulls.
+    public int? Length { get; set; }
+
     public string? ObligatoryGrade { get; set; }
     public string? RecommendedGear { get; set; }
     public string? OptionalGear { get; set; }

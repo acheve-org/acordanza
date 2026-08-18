@@ -157,6 +157,17 @@ describe('DetailModal new sections (plan 20)', () => {
     expect(screen.queryByText(/Material opcional/)).not.toBeInTheDocument();
     expect(screen.queryByText('Enlaces')).not.toBeInTheDocument();
   });
+
+  // Plan 34: grade and length are both optional now — a gradeless route renders the muted
+  // "Sin grado" pill rather than nothing, and a null length still omits the length stat
+  // (the guard moved from `> 0` to `!= null`, but the observable behaviour for null is
+  // the same as it was for 0).
+  it('renders "Sin grado" for a gradeless route and omits the length stat for a null length', () => {
+    renderModal([], { grade: null, aidGrade: null, length: null });
+
+    expect(screen.getByText('Sin grado')).toBeInTheDocument();
+    expect(screen.queryByText('Longitud')).not.toBeInTheDocument();
+  });
 });
 
 // The two-column split: the left column is what there is to read, the rail is what there

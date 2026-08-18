@@ -271,6 +271,9 @@ namespace Acordanza.Core.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("AidGrade")
+                        .HasColumnType("text");
+
                     b.Property<int>("AreaId")
                         .HasColumnType("integer");
 
@@ -294,10 +297,9 @@ namespace Acordanza.Core.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Grade")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("Length")
+                    b.Property<int?>("Length")
                         .HasColumnType("integer");
 
                     b.Property<string>("Name")

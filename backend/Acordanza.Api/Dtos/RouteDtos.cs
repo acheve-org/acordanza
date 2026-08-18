@@ -15,11 +15,12 @@ public record RouteDto(
     string AreaName,
     string AreaPath,
     string AreaSlugPath,
-    string Grade,
+    string? Grade,
+    string? AidGrade,
     string? Orientation,
     string? Gear,
     string Description,
-    int Length,
+    int? Length,
     string? ObligatoryGrade,
     string? RecommendedGear,
     string? OptionalGear,
@@ -44,11 +45,12 @@ public record RouteDetailDto(
     string AreaName,
     string AreaPath,
     string AreaSlugPath,
-    string Grade,
+    string? Grade,
+    string? AidGrade,
     string? Orientation,
     string? Gear,
     string Description,
-    int Length,
+    int? Length,
     string? ObligatoryGrade,
     string? RecommendedGear,
     string? OptionalGear,
@@ -69,11 +71,12 @@ public record RouteDetailDto(
 public record UpsertRouteRequest(
     string Name,
     int AreaId,
-    string Grade,
+    string? Grade,
+    string? AidGrade,
     string? Orientation,
     string? Gear,
     string? Description,
-    int Length,
+    int? Length,
     string? ObligatoryGrade,
     string? RecommendedGear,
     string? OptionalGear,
@@ -85,4 +88,4 @@ public record UpsertRouteRequest(
 // AreaSlugPath let PendingTasksPage navigate straight to the shared route-detail
 // overlay (plan 21) without a second round-trip.
 public record RoutePendingDto(
-    int Id, string Name, string Slug, string AreaPath, string AreaSlugPath, string Grade, DateTimeOffset CreatedAt, string AddedByName);
+    int Id, string Name, string Slug, string AreaPath, string AreaSlugPath, string? Grade, DateTimeOffset CreatedAt, string AddedByName);

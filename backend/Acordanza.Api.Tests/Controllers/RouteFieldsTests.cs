@@ -75,8 +75,11 @@ public class RouteFieldsTests(ApiFixture fixture) : IntegrationTestBase(fixture)
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    // Plan 34 inverts this: Length is now int?, so an omitted "length" key binds to null
+    // rather than the non-nullable-int default of 0 — which is now a legal "unknown"
+    // length, not a rejection.
     [Fact]
-    public async Task Omitting_length_from_the_request_body_is_rejected_not_silently_stored_as_zero()
+    public async Task Omitting_length_from_the_request_body_is_accepted_and_reads_back_null()
     {
         using var user = await TestUsers.CreateAsync(Factory, Roles.User);
         var areaId = await SeedAreaAsync();
@@ -87,6 +90,42 @@ public class RouteFieldsTests(ApiFixture fixture) : IntegrationTestBase(fixture)
             areaId,
             grade = "6a"
         }, TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.Length.ShouldBeNull();
+    }
+
+    // length: null explicitly is likewise accepted (plan 34) — distinct from the omission
+    // case above, which relies on model-binding default rather than an explicit null.
+    [Fact]
+    public async Task Length_null_is_accepted_and_reads_back_null()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes", RouteBody(areaId, length: null), TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.Length.ShouldBeNull();
+    }
+
+    // length: 3 is below ValidateLength's floor (> 5) and still 400s — nullability widens
+    // what's *absent*, not what's *present but out of range*.
+    [Fact]
+    public async Task Length_3_is_still_rejected()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes", RouteBody(areaId, length: 3), TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
@@ -225,7 +264,7 @@ public class RouteFieldsTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 
         var putResponse = await moderator.Client.PutAsJsonAsync(
             $"/api/routes/{created!.Id}",
-            new UpsertRouteRequest("New Route", areaId, "6a", null, null, null, 100, null, null, null,
+            new UpsertRouteRequest("New Route", areaId, "6a", null, null, null, null, 100, null, null, null,
                 ["https://example.com/a"], []),
             TestContext.Current.CancellationToken);
         putResponse.EnsureSuccessStatusCode();

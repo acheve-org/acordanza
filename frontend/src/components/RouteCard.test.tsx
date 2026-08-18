@@ -44,6 +44,14 @@ describe('RouteCard grade band', () => {
     const { container } = render(<RouteCard route={makeRoute({ grade: '8a' })} onClick={() => {}} />);
     expect(container.querySelector('.route-card')).toHaveClass('grade-band-8-9');
   });
+
+  // Plan 34: grade is optional now — a gradeless route renders a muted "Sin grado" pill,
+  // not a rendering gap, and carries no band class on the card either.
+  it('renders "Sin grado" and no band class for a gradeless route', () => {
+    const { container } = render(<RouteCard route={makeRoute({ grade: null, aidGrade: null })} onClick={() => {}} />);
+    expect(screen.getByText('Sin grado')).toBeInTheDocument();
+    expect(container.querySelector('.route-card')?.className).not.toMatch(/grade-band-/);
+  });
 });
 
 describe('RouteCard meta line', () => {

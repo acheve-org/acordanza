@@ -47,16 +47,23 @@ public record RouteReading(
 // ObligatoryGrade is the one field here that is optional in the *source* rather than in
 // one of the two kinds: both kinds fill it when the artifact printed one (see
 // PrintedGrade), and most artifacts don't.
+// Grade/AidGrade/Length are all nullable now (plan 34): a human may save a route with none
+// of them, so a photo or page that doesn't state one must not be discarded either.
+// GradeNote carries PrintedGrade's raw, unreadable input through to the outcome when Grade
+// and AidGrade are both null but the source printed *something* in the grade slot — a gap
+// the reviewer can fix in one edit rather than a re-import.
 public record RouteCandidate(
     string Name,
-    string Grade,
-    int Length,
+    string? Grade,
+    int? Length,
     string Evidence,
     string Description = "",
     IReadOnlyList<string>? FirstAscensionists = null,
     string? SectorMentioned = null,
     string? ObligatoryGrade = null,
-    string? Gear = null);
+    string? Gear = null,
+    string? AidGrade = null,
+    string? GradeNote = null);
 
 // An image the reader has already vision-verified as a topo of *this* route. Bytes rather
 // than a URL or a blob name, because the two kinds get here by different routes (a staged

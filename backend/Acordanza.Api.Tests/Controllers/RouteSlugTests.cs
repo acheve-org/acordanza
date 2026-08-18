@@ -19,7 +19,7 @@ namespace Acordanza.Api.Tests.Controllers;
 public class RouteSlugTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 {
     private static UpsertRouteRequest UpsertRequest(string name, int areaId, List<int>? firstAscensionistIds = null) =>
-        new(name, areaId, "6a", null, null, null, 100, null, null, null, null, firstAscensionistIds);
+        new(name, areaId, "6a", null, null, null, null, 100, null, null, null, null, firstAscensionistIds);
 
     private async Task<(int Id, string Slug)> CreateAsync(TestUser user, string name, int areaId)
     {

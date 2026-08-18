@@ -307,6 +307,116 @@ describe('RouteFormPage', () => {
     expect(posted).toBe(false);
   });
 
+  // Plan 34: only sector + name are required now, everything else — including
+  // grade/aidGrade/length — is optional and sits behind the "Más detalles" disclosure.
+  it('saving with only sector and name posts null grade/aidGrade/length', async () => {
+    const user = userEvent.setup();
+    let postedBody: Record<string, unknown> | undefined;
+    server.use(
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      ),
+      http.post(`${API_URL}/routes`, async ({ request }) => {
+        postedBody = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ id: 1 });
+      }),
+    );
+    mockSavedRouteDetail(1);
+
+    renderCreateForm();
+
+    await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
+    await selectArea(user, 'Peña Rúa');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar vía' }));
+
+    await waitFor(() => expect(postedBody).toBeDefined());
+    expect(postedBody).toMatchObject({ grade: null, aidGrade: null, length: null });
+  });
+
+  it('the "Más detalles" disclosure is closed by default on /routes/new', () => {
+    renderCreateForm();
+
+    const details = screen.getByText('Más detalles').closest('details');
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute('open');
+  });
+
+  it('the "Más detalles" disclosure opens by default when editing a route with a detail field set', async () => {
+    const routeDetail = makeRouteDetail({ id: 7, areaId: 1, grade: '6a' });
+    server.use(
+      http.get(`${API_URL}/routes/7`, () => HttpResponse.json(routeDetail)),
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
+      ),
+      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(routeDetail.firstAscensionists)),
+    );
+
+    renderEditForm(7);
+
+    await screen.findByDisplayValue(routeDetail.name);
+    const details = screen.getByText('Más detalles').closest('details');
+    expect(details).toHaveAttribute('open');
+  });
+
+  it('the "Más detalles" disclosure stays closed by default when editing a route with no detail field set', async () => {
+    const routeDetail = makeRouteDetail({
+      id: 7,
+      areaId: 1,
+      grade: null,
+      aidGrade: null,
+      length: null,
+      orientation: null,
+      gear: null,
+      description: '',
+      obligatoryGrade: null,
+      recommendedGear: null,
+      optionalGear: null,
+      links: [],
+      firstAscensionists: [],
+    });
+    server.use(
+      http.get(`${API_URL}/routes/7`, () => HttpResponse.json(routeDetail)),
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
+      ),
+      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json([])),
+    );
+
+    renderEditForm(7);
+
+    await screen.findByDisplayValue(routeDetail.name);
+    const details = screen.getByText('Más detalles').closest('details');
+    expect(details).not.toHaveAttribute('open');
+  });
+
+  it('a bad aid grade shows the Spanish error and issues no POST', async () => {
+    const user = userEvent.setup();
+    let posted = false;
+    server.use(
+      http.get(`${API_URL}/areas`, () =>
+        HttpResponse.json([makeArea({ id: 5, name: 'Peña Rúa', validationStatus: 'approved' })]),
+      ),
+      http.post(`${API_URL}/routes`, () => {
+        posted = true;
+        return HttpResponse.json({ id: 1 });
+      }),
+    );
+
+    renderCreateForm();
+
+    await user.type(screen.getByLabelText('Nombre'), 'Travesía del Gato');
+    await user.type(screen.getByLabelText('Grado artificial'), 'A9');
+    await selectArea(user, 'Peña Rúa');
+
+    await user.click(screen.getByRole('button', { name: 'Guardar vía' }));
+
+    expect(
+      await screen.findByText('el grado artificial debe ser A0–A5 o C0–C5 (por ejemplo A1, C2, A3+)'),
+    ).toBeInTheDocument();
+    expect(posted).toBe(false);
+  });
+
   it('a mixed-case grade is lowercased before it is posted', async () => {
     const user = userEvent.setup();
     let postedBody: Record<string, unknown> | undefined;

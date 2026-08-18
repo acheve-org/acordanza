@@ -3,7 +3,7 @@ import { gearLabels } from '../api/types';
 
 interface Props {
   orientation: string | null;
-  length: number;
+  length: number | null;
   gear: string | null;
   bottomAligned?: boolean;
 }
