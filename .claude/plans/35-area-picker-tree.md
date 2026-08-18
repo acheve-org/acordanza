@@ -1,6 +1,6 @@
 # Make `AreaPicker` a tree you can browse *and* filter
 
-Status: proposed
+Status: done — implemented across three PRs as planned: backend [#223](https://github.com/acheve-org/acordanza/pull/223), design-system `TreeSelect` [#224](https://github.com/acheve-org/acordanza/pull/224), `AreaPicker` rewrite [#225](https://github.com/acheve-org/acordanza/pull/225).
 Depends on: [11](11-show-only-validated-items.md) for the approved-or-mine visibility rule the new endpoint must honour; [25](25-finish-react-query-migration.md) for the query-key/invalidation discipline; [28](28-orientation-compass-rose.md) as the shape this copies — a generic, data-agnostic component in the design system plus a thin app-side wrapper that owns fetching, permissions and Spanish domain labels. One new backend endpoint, no migration, no data-model change.
 
 ## Problem
