@@ -1,4 +1,4 @@
-import { needlePath, orientations, wedgePath } from './compass'
+import { labelPoint, needlePath, orientations, wedgePath } from './compass'
 
 // Parses the two arc endpoints out of a `wedgePath`/`needlePath` `d` string — cheap
 // enough to just regex the numbers back out rather than a real SVG path parser.
@@ -47,5 +47,25 @@ describe('needlePath', () => {
   it('produces a distinct path for each of the eight sectors', () => {
     const paths = orientations.map((_, i) => needlePath(i, 50, 50, 40))
     expect(new Set(paths).size).toBe(8)
+  })
+})
+
+describe('labelPoint', () => {
+  it('sector 0 (north) sits directly above the centre', () => {
+    const { x, y } = labelPoint(0, 50, 50, 34)
+    expect(x).toBeCloseTo(50, 5)
+    expect(y).toBeLessThan(50)
+  })
+
+  it('sector 2 (east) sits directly right of the centre', () => {
+    const { x, y } = labelPoint(2, 50, 50, 34)
+    expect(y).toBeCloseTo(50, 5)
+    expect(x).toBeGreaterThan(50)
+  })
+
+  it('produces a distinct point for each of the eight sectors', () => {
+    const points = orientations.map((_, i) => labelPoint(i, 50, 50, 34))
+    const unique = new Set(points.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`))
+    expect(unique.size).toBe(8)
   })
 })

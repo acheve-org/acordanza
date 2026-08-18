@@ -1,5 +1,5 @@
 import { useId, type CSSProperties } from 'react'
-import { orientationLabels, orientations, wedgePath, type Orientation } from './compass'
+import { labelPoint, orientationAbbr, orientationLabels, orientations, wedgePath, type Orientation } from './compass'
 import './Compass.css'
 
 type MultiProps = {
@@ -50,26 +50,40 @@ export function CompassPicker(props: CompassPickerProps) {
     }
   }
 
+  const selected = multiple ? props.value : props.value ? [props.value] : []
+  const summary = orientations
+    .filter((o) => selected.includes(o))
+    .map((o) => orientationLabels[o])
+    .join(' · ')
+
   return (
-    <div className="compass-picker">
-      {orientations.map((o, i) => {
-        const { row, col } = GRID[o]
-        return (
-          <label key={o} className="compass-cell" style={{ '--r': row, '--c': col } as CSSProperties}>
-            <input
-              type={multiple ? 'checkbox' : 'radio'}
-              name={name}
-              value={o}
-              checked={isChecked(o)}
-              aria-label={orientationLabels[o]}
-              onChange={(e) => handleChange(o, e.target.checked)}
-            />
-            <svg viewBox="0 0 100 100" aria-hidden="true">
-              <path className="compass-wedge" d={wedgePath(i, 50, 50, 46, 22)} />
-            </svg>
-          </label>
-        )
-      })}
+    <div className="compass-picker-field">
+      <div className="compass-picker">
+        {orientations.map((o, i) => {
+          const { row, col } = GRID[o]
+          const { x, y } = labelPoint(i, 50, 50, 34)
+          return (
+            <label key={o} className="compass-cell" style={{ '--r': row, '--c': col } as CSSProperties}>
+              <input
+                type={multiple ? 'checkbox' : 'radio'}
+                name={name}
+                value={o}
+                checked={isChecked(o)}
+                aria-label={orientationLabels[o]}
+                onChange={(e) => handleChange(o, e.target.checked)}
+              />
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <path className="compass-wedge" d={wedgePath(i, 50, 50, 46, 22)} />
+                <text className="compass-wedge-label" x={x} y={y} textAnchor="middle" dominantBaseline="central">
+                  {orientationAbbr[o]}
+                </text>
+              </svg>
+            </label>
+          )
+        })}
+      </div>
+      {multiple && <p className="compass-picker-hint">Puedes elegir varias.</p>}
+      {summary && <p className="compass-picker-summary">{summary}</p>}
     </div>
   )
 }

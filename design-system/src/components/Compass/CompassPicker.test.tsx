@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CompassPicker } from './CompassPicker'
-import { orientationLabels, orientations } from './compass'
+import { orientationAbbr, orientationLabels, orientations } from './compass'
 
 describe('CompassPicker (multiple)', () => {
   it('renders eight checkboxes named in Spanish', () => {
@@ -46,6 +46,29 @@ describe('CompassPicker (multiple)', () => {
       expect(screen.getByRole('checkbox', { name: orientationLabels[o] })).toHaveFocus()
     }
   })
+
+  it('renders the eight abbreviations as text without changing the accessible names', () => {
+    const { container } = render(<CompassPicker value={[]} onChange={() => {}} />)
+    for (const o of orientations) {
+      expect(container.querySelector(`.compass-wedge-label`)).toBeTruthy()
+      expect(screen.getByRole('checkbox', { name: orientationLabels[o] })).toBeInTheDocument()
+    }
+    const labels = [...container.querySelectorAll('.compass-wedge-label')].map((el) => el.textContent)
+    expect(labels).toEqual(orientations.map((o) => orientationAbbr[o]))
+  })
+
+  it('renders the multiple-only hint', () => {
+    render(<CompassPicker value={[]} onChange={() => {}} />)
+    expect(screen.getByText('Puedes elegir varias.')).toBeInTheDocument()
+  })
+
+  it('renders a summary of the selected labels in compass order, empty when nothing is selected', () => {
+    const { rerender } = render(<CompassPicker value={['east', 'north']} onChange={() => {}} />)
+    expect(screen.getByText('Norte · Este')).toBeInTheDocument()
+
+    rerender(<CompassPicker value={[]} onChange={() => {}} />)
+    expect(screen.queryByText('Norte')).not.toBeInTheDocument()
+  })
 })
 
 describe('CompassPicker (multiple={false})', () => {
@@ -70,5 +93,15 @@ describe('CompassPicker (multiple={false})', () => {
   it('toBeChecked() reflects value', () => {
     render(<CompassPicker value="west" onChange={() => {}} multiple={false} />)
     expect(screen.getByRole('radio', { name: 'Oeste' })).toBeChecked()
+  })
+
+  it('does not render the multiple-only hint', () => {
+    render(<CompassPicker value="west" onChange={() => {}} multiple={false} />)
+    expect(screen.queryByText('Puedes elegir varias.')).not.toBeInTheDocument()
+  })
+
+  it('renders a summary of the single selected label', () => {
+    render(<CompassPicker value="west" onChange={() => {}} multiple={false} />)
+    expect(screen.getByText('Oeste')).toBeInTheDocument()
   })
 })
