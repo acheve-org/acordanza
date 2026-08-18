@@ -16,7 +16,6 @@ public static class RouteImportOutcomes
     public const string NotATopo = "No parece un topo de escalada";
     public const string NoRouteName = "El topo no indica el nombre de la vía";
     public const string MultipleRoutes = "El topo muestra varias vías y ninguna es claramente la principal";
-    public const string UnreadableGrade = "No se pudo leer un grado válido (escala francesa)";
     public const string ImageGone = "La imagen ya no está disponible, vuelve a subirla";
 
     // Url kind (plan 31).
@@ -25,7 +24,6 @@ public static class RouteImportOutcomes
     public const string NotAboutARoute = "La página no habla de una vía de escalada";
     public const string MultipleRoutesOnPage = "La página describe varias vías y ninguna es claramente la principal";
     public const string NoRouteNameOnPage = "No se pudo leer el nombre de la vía";
-    public const string UnreadableGradeOnPage = "No se pudo leer un grado válido";
 
     // Both kinds.
     public const string LowConfidence = "No se pudo leer con suficiente claridad";
@@ -35,6 +33,16 @@ public static class RouteImportOutcomes
     // The same fact, without the reassuring half, for when there are notes to follow it:
     // «La vía ya existía. El topo indica 6b+ y la ficha 6a».
     public const string RouteExisted = "La vía ya existía";
+
+    // Was: a discard (UnreadableGrade/UnreadableGradeOnPage) — the whole import thrown
+    // away. Now (plan 34): a human may save a route with no grade at all, so a photo or
+    // page whose grade PrintedGrade can't parse is a gap, not a failure — the raw string
+    // goes in the outcome so the reviewer fixes it in one edit instead of re-importing.
+    // The only outcome that interpolates raw model output. Truncated because the model was
+    // told to copy what's printed and a page can print anything — same defensive clamp
+    // GearText.Truncate applies for the same reason.
+    public static string GradeNotUnderstood(string raw) =>
+        $"No se pudo interpretar el grado «{GearText.Truncate(raw, 30)}»; la vía se ha creado sin grado";
 }
 
 // The spine both import kinds converge on (plan 31 §2): take a RouteReading from whichever
@@ -127,6 +135,13 @@ public class RouteImportService(
         var notes = new List<string>();
         var areas = await areaHierarchy.GetAsync();
 
+        // A grade the source printed but PrintedGrade couldn't resolve to a French/aid
+        // grade — the route was still created/matched with a gap the reviewer can fill.
+        if (candidate.GradeNote is { } gradeNote)
+        {
+            notes.Add(gradeNote);
+        }
+
         if (reading.Topo is { } topo)
         {
             var attached = await AttachTopoAsync(import, route, areas.SlugPath(route.AreaId), topo, cancellationToken);
@@ -159,9 +174,9 @@ public class RouteImportService(
             route.RecommendedGear = gear;
         }
 
-        if (!created && GradeDisagreement(candidate, route, import.Kind) is { } disagreement)
+        if (!created)
         {
-            notes.Add(disagreement);
+            notes.AddRange(FillOrNoteGaps(candidate, route, import.Kind));
         }
 
         import.RouteId = route.Id;
@@ -177,14 +192,10 @@ public class RouteImportService(
         LogStages(import, "completed", extracted: true, matched: !created, created: created);
     }
 
-    // ClimbingRoute.Length is a non-nullable int with no "unknown" value, so an artifact
-    // that doesn't state a length leaves the column default of 0. Note that 0 is *below*
-    // RoutesController.ValidateLength's floor (> 5): a reviewer opening such a route in
-    // the edit form has to supply a length before they can save it. That is the intended
-    // behaviour — the source didn't say, so a human must — but it is why both extraction
-    // prompts ask for null rather than an estimate, and why an out-of-range value the
-    // model did return is dropped here rather than written through.
-    internal static int AcceptableLength(int? length) => length is > 5 and < 3000 ? length.Value : 0;
+    // ClimbingRoute.Length is nullable (plan 34) — null means "the source didn't state
+    // one", and a reviewer can save the route as-is. An out-of-range value the model did
+    // return is still dropped rather than written through.
+    internal static int? AcceptableLength(int? length) => length is > 5 and < 3000 ? length : null;
 
     private async Task<RouteImport?> FindEarlierImportAsync(RouteImport import, CancellationToken cancellationToken) =>
         await db.RouteImports
@@ -214,6 +225,7 @@ public class RouteImportService(
             Slug = await RouteSlugs.GenerateUniqueAsync(db, import.AreaId, candidate.Name, cancellationToken: cancellationToken),
             AreaId = import.AreaId,
             Grade = candidate.Grade,
+            AidGrade = candidate.AidGrade,
             // Null unless the source printed one next to the grade («MD+ 6c (6a+ obl)»).
             // Set only here, on create: filling it on a matched route would be editing a
             // human's route data from a photograph, which is the thing GradeDisagreement
@@ -237,7 +249,7 @@ public class RouteImportService(
         await db.SaveChangesAsync(cancellationToken);
         logger.LogInformation(
             "route import created route {RouteId} '{Name}' ({Grade}) in area {AreaId}",
-            route.Id, route.Name, route.Grade, route.AreaId);
+            route.Id, route.Name, route.Grade ?? "sin grado", route.AreaId);
         return route;
     }
 
@@ -328,18 +340,56 @@ public class RouteImportService(
             : $"La página menciona \"{mentioned}\" y el sector elegido es \"{breadcrumb}\" — revísalo";
     }
 
-    // A grade disagreement does not block the match and does not rewrite the route:
-    // silently correcting a human-entered grade from a photograph or a blog post is the
-    // wrong default in a catalogue whose whole point is that people entered it. Record it
-    // and let a human decide. ValidationStatus is likewise untouched — adding a photo or a
-    // link is not an edit of the route's data, and UploadTopo doesn't invalidate a route
-    // today either.
-    private static string? GradeDisagreement(RouteCandidate candidate, ClimbingRoute route, RouteImportKind kind)
+    // A matched route's empty fields get filled from the candidate; its populated ones
+    // don't get silently overwritten. Grade/AidGrade/Length now split into three cases
+    // each (plan 34): candidate null → nothing; route null, candidate not → fill it and
+    // say so (the concrete win: someone logs a name-only route from the crag, then imports
+    // the topo, and the route completes itself); both set and different → note the
+    // disagreement, change nothing, same as before. ValidationStatus is untouched either
+    // way — adding a photo or a link is not an edit of the route's data, and UploadTopo
+    // doesn't invalidate a route today either.
+    private static IEnumerable<string> FillOrNoteGaps(RouteCandidate candidate, ClimbingRoute route, RouteImportKind kind)
     {
-        if (string.Equals(candidate.Grade, route.Grade, StringComparison.OrdinalIgnoreCase)) return null;
-
         var source = kind == RouteImportKind.Image ? "El topo" : "La página";
-        return $"{source} indica {candidate.Grade} y la ficha {route.Grade}";
+
+        if (candidate.Grade is { } grade)
+        {
+            if (route.Grade is null)
+            {
+                route.Grade = grade;
+                yield return $"{source} indica el grado {grade}; se ha añadido a la ficha";
+            }
+            else if (!string.Equals(candidate.Grade, route.Grade, StringComparison.OrdinalIgnoreCase))
+            {
+                yield return $"{source} indica {grade} y la ficha {route.Grade}";
+            }
+        }
+
+        if (candidate.AidGrade is { } aidGrade)
+        {
+            if (route.AidGrade is null)
+            {
+                route.AidGrade = aidGrade;
+                yield return $"{source} indica el grado artificial {aidGrade}; se ha añadido a la ficha";
+            }
+            else if (!string.Equals(candidate.AidGrade, route.AidGrade, StringComparison.OrdinalIgnoreCase))
+            {
+                yield return $"{source} indica el grado artificial {aidGrade} y la ficha {route.AidGrade}";
+            }
+        }
+
+        if (candidate.Length is { } length)
+        {
+            if (route.Length is null)
+            {
+                route.Length = length;
+                yield return $"{source} indica una longitud de {length} m; se ha añadido a la ficha";
+            }
+            else if (candidate.Length != route.Length)
+            {
+                yield return $"{source} indica {length} m y la ficha {route.Length} m";
+            }
+        }
     }
 
     // Blob Storage has no rename, so an Image import's promotion is really re-upload +

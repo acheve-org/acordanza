@@ -54,4 +54,42 @@ describe('GradePill', () => {
     const pill = screen.getByText('7a (6b)')
     expect(pill).toHaveClass('grade-band-7')
   })
+
+  // Plan 34 §7's composition table.
+  describe('grade/aidGrade/obligatoryGrade composition', () => {
+    it('renders just the free grade when nothing else is present', () => {
+      render(<GradePill grade="6c" />)
+      expect(screen.getByText('6c')).toBeInTheDocument()
+    })
+
+    it('renders grade/aidGrade joined with a slash', () => {
+      render(<GradePill grade="6c" aidGrade="A1" />)
+      expect(screen.getByText('6c/A1')).toBeInTheDocument()
+    })
+
+    it('renders just the aid grade when there is no free grade', () => {
+      render(<GradePill grade={null} aidGrade="A2" />)
+      const pill = screen.getByText('A2')
+      expect(pill).toBeInTheDocument()
+      expect(pill.className).not.toMatch(/grade-band-/)
+    })
+
+    it('renders grade/aidGrade with the obligatory grade in parentheses', () => {
+      render(<GradePill grade="6c" aidGrade="A1" obligatoryGrade="6a+" />)
+      expect(screen.getByText('6c/A1 (6a+)')).toBeInTheDocument()
+    })
+
+    it('renders the muted "Sin grado" pill when both grades are absent', () => {
+      render(<GradePill grade={null} />)
+      const pill = screen.getByText('Sin grado')
+      expect(pill).toBeInTheDocument()
+      expect(pill).toHaveClass('grade-pill-empty')
+    })
+
+    it('carries no band class for an aid-only pill', () => {
+      render(<GradePill grade={null} aidGrade="A1" />)
+      const pill = screen.getByText('A1')
+      expect(pill.className).not.toMatch(/grade-band-/)
+    })
+  })
 })

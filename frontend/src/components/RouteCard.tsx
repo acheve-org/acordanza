@@ -16,7 +16,7 @@ export function RouteCard({ route, onClick }: Props) {
     <div className={`route-card${bandClass}`} onClick={onClick}>
       <div className="rc-top">
         <div className="rc-name" title={route.name}>{route.name}</div>
-        <GradePill grade={route.grade} obligatoryGrade={route.obligatoryGrade} />
+        <GradePill grade={route.grade} aidGrade={route.aidGrade} obligatoryGrade={route.obligatoryGrade} />
       </div>
       <div className="rc-main">
         <div className="rc-sub">{route.areaPath}</div>

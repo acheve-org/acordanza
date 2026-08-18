@@ -96,8 +96,10 @@ public class RouteGradeTests(ApiFixture fixture) : IntegrationTestBase(fixture)
         putResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    // Plan 34: grade is no longer required, so a blank grade on PUT is a legal "clear the
+    // grade" edit, not a rejection — inverted from the pre-plan-34 assertion.
     [Fact]
-    public async Task PUT_with_a_blank_grade_is_rejected()
+    public async Task PUT_with_a_blank_grade_is_accepted_and_clears_the_grade()
     {
         using var moderator = await TestUsers.CreateAsync(Factory, Roles.Moderator);
         var areaId = await SeedAreaAsync();
@@ -109,8 +111,93 @@ public class RouteGradeTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 
         var putResponse = await moderator.Client.PutAsJsonAsync(
             $"/api/routes/{created!.Id}", RouteBody(areaId, ""), TestContext.Current.CancellationToken);
+        putResponse.EnsureSuccessStatusCode();
 
-        putResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var detail = await moderator.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created.Id}", TestContext.Current.CancellationToken);
+        detail!.Grade.ShouldBeNull();
+    }
+
+    // Same inversion on the create side: a blank grade at POST time is legal now, and the
+    // route reads back with a null grade rather than 400ing.
+    [Fact]
+    public async Task POST_with_a_blank_grade_is_accepted_and_reads_back_null()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes", RouteBody(areaId, ""), TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.Grade.ShouldBeNull();
+    }
+
+    private static object RouteBodyWithAidGrade(int areaId, string? grade, string? aidGrade) => new
+    {
+        name = "New Route",
+        areaId,
+        grade,
+        aidGrade,
+        orientation = (string?)null,
+        gear = (string?)null,
+        description = (string?)null,
+        length = 100,
+        obligatoryGrade = (string?)null,
+        recommendedGear = (string?)null,
+        optionalGear = (string?)null,
+        links = (List<string>?)null,
+        firstAscensionistIds = (List<int>?)null
+    };
+
+    [Fact]
+    public async Task POST_normalizes_aid_grade_case()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes", RouteBodyWithAidGrade(areaId, null, "a1"), TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.AidGrade.ShouldBe("A1");
+    }
+
+    [Fact]
+    public async Task POST_with_an_invalid_aid_grade_is_rejected_with_the_spanish_message()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes", RouteBodyWithAidGrade(areaId, null, "A6"), TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadFromJsonAsync<ErrorResponse>(TestContext.Current.CancellationToken);
+        body!.Error.ShouldBe("el grado artificial debe ser A0–A5 o C0–C5 (por ejemplo A1, C2, A3+)");
+    }
+
+    [Fact]
+    public async Task Both_grades_round_trip_on_one_route()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes", RouteBodyWithAidGrade(areaId, "6c", "A1"), TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
+
+        var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
+            $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
+        detail!.Grade.ShouldBe("6c");
+        detail.AidGrade.ShouldBe("A1");
     }
 
     [Fact]

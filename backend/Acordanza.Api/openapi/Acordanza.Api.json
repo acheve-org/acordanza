@@ -2406,6 +2406,13 @@
             }
           },
           {
+            "name": "aidGrade",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "orientation",
             "in": "query",
             "schema": {
@@ -2518,6 +2525,44 @@
       }
     },
     "/api/routes/grades": {
+      "get": {
+        "tags": [
+          "Routes"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/routes/aid-grades": {
       "get": {
         "tags": [
           "Routes"
@@ -4661,6 +4706,7 @@
           "areaPath",
           "areaSlugPath",
           "grade",
+          "aidGrade",
           "orientation",
           "gear",
           "length",
@@ -4699,7 +4745,16 @@
             "type": "string"
           },
           "grade": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aidGrade": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "orientation": {
             "type": [
@@ -4714,7 +4769,10 @@
             ]
           },
           "length": {
-            "type": "integer",
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           },
           "date": {
@@ -5049,6 +5107,7 @@
           "areaPath",
           "areaSlugPath",
           "grade",
+          "aidGrade",
           "orientation",
           "gear",
           "description",
@@ -5095,7 +5154,16 @@
             "type": "string"
           },
           "grade": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aidGrade": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "orientation": {
             "type": [
@@ -5113,7 +5181,10 @@
             "type": "string"
           },
           "length": {
-            "type": "integer",
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           },
           "obligatoryGrade": {
@@ -5206,6 +5277,7 @@
           "areaPath",
           "areaSlugPath",
           "grade",
+          "aidGrade",
           "orientation",
           "gear",
           "description",
@@ -5251,7 +5323,16 @@
             "type": "string"
           },
           "grade": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aidGrade": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "orientation": {
             "type": [
@@ -5269,7 +5350,10 @@
             "type": "string"
           },
           "length": {
-            "type": "integer",
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           },
           "obligatoryGrade": {
@@ -5483,7 +5567,10 @@
             "type": "string"
           },
           "grade": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "createdAt": {
             "type": "string",
@@ -5583,6 +5670,7 @@
           "name",
           "areaId",
           "grade",
+          "aidGrade",
           "orientation",
           "gear",
           "description",
@@ -5603,7 +5691,16 @@
             "format": "int32"
           },
           "grade": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "aidGrade": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "orientation": {
             "type": [
@@ -5624,7 +5721,10 @@
             ]
           },
           "length": {
-            "type": "integer",
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           },
           "obligatoryGrade": {

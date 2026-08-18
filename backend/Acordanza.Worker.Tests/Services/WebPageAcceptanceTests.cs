@@ -127,18 +127,32 @@ public class WebPageAcceptanceTests
     }
 
     // The model is told to copy the grade and never convert it, so a UIAA or YDS grade
-    // arrives verbatim and is discarded with a reason rather than guessed at.
+    // arrives verbatim. Plan 34: no longer a discard — the candidate is accepted with a
+    // null grade and the raw string preserved in GradeNote for a reviewer to fix.
     [Theory]
     [InlineData("V+")]
     [InlineData("5.11a")]
     [InlineData("difícil")]
-    [InlineData("")]
-    public void A_grade_this_log_cannot_accept_is_discarded(string grade)
+    public void A_grade_this_log_cannot_parse_is_accepted_with_a_null_grade_and_a_note(string grade)
     {
         var (candidate, reason) = WebPageReader.Accept(CleanRead(grade: grade));
 
-        candidate.ShouldBeNull();
-        reason.ShouldBe(RouteImportOutcomes.UnreadableGradeOnPage);
+        reason.ShouldBeNull();
+        candidate.ShouldNotBeNull();
+        candidate.Grade.ShouldBeNull();
+        candidate.GradeNote.ShouldBe(RouteImportOutcomes.GradeNotUnderstood(grade));
+    }
+
+    // A blank grade states nothing at all — accepted with a null grade and no note.
+    [Fact]
+    public void A_blank_grade_is_accepted_with_no_note()
+    {
+        var (candidate, reason) = WebPageReader.Accept(CleanRead(grade: ""));
+
+        reason.ShouldBeNull();
+        candidate.ShouldNotBeNull();
+        candidate.Grade.ShouldBeNull();
+        candidate.GradeNote.ShouldBeNull();
     }
 
     [Fact]
@@ -161,18 +175,18 @@ public class WebPageAcceptanceTests
         candidate.ObligatoryGrade.ShouldBe("6a+");
     }
 
-    // 0 is below RoutesController.ValidateLength's floor on purpose: the page didn't say,
-    // so a reviewer has to before they can save.
+    // Length is nullable (plan 34) — the page not stating one, or stating something
+    // implausible, leaves the field null rather than a sentinel a reviewer has to notice.
     [Theory]
     [InlineData(null)]
     [InlineData(0)]
     [InlineData(4)]
     [InlineData(5000)]
-    public void An_absent_or_implausible_length_falls_back_to_zero(int? length)
+    public void An_absent_or_implausible_length_is_null(int? length)
     {
         var (candidate, _) = WebPageReader.Accept(CleanRead(length: length));
 
-        candidate!.Length.ShouldBe(0);
+        candidate!.Length.ShouldBeNull();
     }
 
     [Fact]

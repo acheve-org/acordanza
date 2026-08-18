@@ -20,6 +20,7 @@ export { GradePill } from './components/GradePill/GradePill'
 export type { GradePillProps } from './components/GradePill/GradePill'
 export { gradeBand } from './components/GradePill/gradeBand'
 export type { GradeBand } from './components/GradePill/gradeBand'
+export { isAidGrade } from './components/GradePill/aidGrade'
 
 export { Chip } from './components/Chip/Chip'
 export type { ChipProps, ChipStatus } from './components/Chip/Chip'

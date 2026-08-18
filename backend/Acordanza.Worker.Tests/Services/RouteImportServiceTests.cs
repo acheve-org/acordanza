@@ -283,9 +283,66 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         reloaded.RouteWasCreated.ShouldBeFalse();
         reloaded.RouteId.ShouldBe(existing.Id);
         // The disagreement is recorded for a human to decide on, not acted on.
-        reloaded.Outcome.ShouldBe("La vía ya existía. El topo indica 6b+ y la ficha 6a");
+        // Plan 34: Length now gets the same three-way gap-filling treatment as Grade — the
+        // existing route's 30 m disagrees with the candidate's 25 m, so a second note joins
+        // the grade one, and neither field is rewritten.
+        reloaded.Outcome.ShouldBe("La vía ya existía. El topo indica 6b+ y la ficha 6a. El topo indica 25 m y la ficha 30 m");
 
         (await db.Topos.CountAsync(t => t.RouteId == existing.Id, TestContext.Current.CancellationToken)).ShouldBe(1);
+    }
+
+    // Plan 34 §11's gap-filling: a matched route with no grade at all gets the candidate's
+    // grade written in, and the outcome says so — the concrete win of someone logging a
+    // name-only route from the crag, then importing the topo.
+    [Fact]
+    public async Task A_match_with_a_null_grade_gets_it_filled_and_the_outcome_says_so()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await CreateAreaAsync(db);
+
+        var existing = new ClimbingRoute
+        {
+            Name = "La Loca", Slug = "la-loca", AreaId = area.Id, Grade = null, Length = null,
+            AddedByUserId = user.Id, ValidationStatus = ReviewStatus.Approved
+        };
+        db.Routes.Add(existing);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var import = await SeedImportAsync(db, area, user.Id);
+        await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(CleanRead()))
+            .ImportAsync(import.Id, TestContext.Current.CancellationToken);
+
+        var reloadedRoute = await db.Routes.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken);
+        reloadedRoute.Grade.ShouldBe("6b+");
+        reloadedRoute.Length.ShouldBe(25);
+
+        var reloaded = await db.RouteImports.AsNoTracking()
+            .FirstAsync(i => i.Id == import.Id, TestContext.Current.CancellationToken);
+        reloaded.Outcome.ShouldBe(
+            "La vía ya existía. El topo indica el grado 6b+; se ha añadido a la ficha. " +
+            "El topo indica una longitud de 25 m; se ha añadido a la ficha");
+    }
+
+    // A created route carries the candidate's AidGrade through, not just Grade/Length.
+    [Fact]
+    public async Task A_created_route_carries_the_aid_grade()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await CreateAreaAsync(db);
+        var import = await SeedImportAsync(db, area, user.Id);
+
+        var read = new TopoExtractionResult(
+            new ExtractedRoute("La Loca", "6c/A1", 25, null, "La Loca 6c/A1 25m", "high"), false, null);
+        await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(read))
+            .ImportAsync(import.Id, TestContext.Current.CancellationToken);
+
+        var route = await db.Routes.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken);
+        route.Grade.ShouldBe("6c");
+        route.AidGrade.ShouldBe("A1");
     }
 
     [Fact]
@@ -507,6 +564,26 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
 
         extraction.LastContext.ShouldNotBeNull();
         extraction.LastContext.AreaBreadcrumb.ShouldBe(area.Name);
+    }
+
+    // Plan 34: AcceptableLength is int? now — null in, and out-of-range in, both come back
+    // null rather than falling back to the old 0 sentinel.
+    [Fact]
+    public void AcceptableLength_of_null_is_null()
+    {
+        RouteImportService.AcceptableLength(null).ShouldBeNull();
+    }
+
+    [Fact]
+    public void AcceptableLength_of_3_is_null()
+    {
+        RouteImportService.AcceptableLength(3).ShouldBeNull();
+    }
+
+    [Fact]
+    public void AcceptableLength_of_a_plausible_value_is_kept()
+    {
+        RouteImportService.AcceptableLength(25).ShouldBe(25);
     }
 
     // A provider blowing up must propagate, so the queue processor can retry it and, at

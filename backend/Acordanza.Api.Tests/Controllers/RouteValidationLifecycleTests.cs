@@ -58,7 +58,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
     }
 
     private static UpsertRouteRequest BaseRequest(Scenario s, int areaId) => new(
-        "Base Route", areaId, "6a", "north", "bolted", "base desc", 100, null, null, null, null, [s.Fa1Id, s.Fa2Id]);
+        "Base Route", areaId, "6a", null, "north", "bolted", "base desc", 100, null, null, null, null, [s.Fa1Id, s.Fa2Id]);
 
     private async Task<DateTimeOffset?> PutAndGetValidatedAtAsync(Scenario s, UpsertRouteRequest request)
     {
@@ -216,7 +216,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
 
         var createRequest = new UpsertRouteRequest(
-            "New Route", area.Id, "6a", null, null, null, 100, null, null, null,
+            "New Route", area.Id, "6a", null, null, null, null, 100, null, null, null,
             ["https://example.com/a", "https://example.com/b"], []);
         var createResponse = await moderator.Client.PostAsJsonAsync(
             "/api/routes", createRequest, TestContext.Current.CancellationToken);
@@ -275,7 +275,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
 
-        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, 100, null, null, null, null, []);
+        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, null, 100, null, null, null, null, []);
         var response = await moderator.Client.PostAsJsonAsync("/api/routes", request, TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
@@ -294,7 +294,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
 
-        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, 100, null, null, null, null, []);
+        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, null, 100, null, null, null, null, []);
         var response = await user.Client.PostAsJsonAsync("/api/routes", request, TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
@@ -313,7 +313,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
         using var expert = await TestUsers.CreateAreaExpertAsync(Factory, area.Id);
 
-        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, 100, null, null, null, null, []);
+        var request = new UpsertRouteRequest("New Route", area.Id, "6a", null, null, null, null, 100, null, null, null, null, []);
         var response = await expert.Client.PostAsJsonAsync("/api/routes", request, TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
@@ -332,7 +332,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         var otherArea = await SeedData.CreateAreaAsync(db, $"Other Area {Guid.NewGuid():N}");
         using var expert = await TestUsers.CreateAreaExpertAsync(Factory, ownArea.Id);
 
-        var request = new UpsertRouteRequest("New Route", otherArea.Id, "6a", null, null, null, 100, null, null, null, null, []);
+        var request = new UpsertRouteRequest("New Route", otherArea.Id, "6a", null, null, null, null, 100, null, null, null, null, []);
         var response = await expert.Client.PostAsJsonAsync("/api/routes", request, TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
         var created = await response.Content.ReadFromJsonAsync<CreatedRouteResponse>(TestContext.Current.CancellationToken);
@@ -360,7 +360,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
         route.DecidedByUserId = admin.UserId;
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var request = new UpsertRouteRequest("Admin's Route Renamed", area.Id, "6a", null, null, null, 100, null, null, null, null, []);
+        var request = new UpsertRouteRequest("Admin's Route Renamed", area.Id, "6a", null, null, null, null, 100, null, null, null, null, []);
         var putResponse = await admin.Client.PutAsJsonAsync(
             $"/api/routes/{route.Id}", request, TestContext.Current.CancellationToken);
         putResponse.EnsureSuccessStatusCode();

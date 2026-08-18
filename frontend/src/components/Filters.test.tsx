@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
@@ -11,6 +11,7 @@ import { Filters } from './Filters';
 
 beforeEach(() => {
   server.use(http.get(`${API_URL}/routes/grades`, () => HttpResponse.json([])));
+  server.use(http.get(`${API_URL}/routes/aid-grades`, () => HttpResponse.json([])));
 });
 
 describe('Filters permission gating', () => {
@@ -77,5 +78,42 @@ describe('Filters orientation picker', () => {
     expect(onChange).toHaveBeenCalledWith({ ...emptyRouteFilters, orientation: [] });
     rerender(<Filters filters={emptyRouteFilters} onChange={onChange} onAddRoute={() => {}} />);
     expect(screen.queryByRole('button', { name: 'Cualquiera' })).not.toBeInTheDocument();
+  });
+});
+
+describe('Filters grade/aid-grade selects', () => {
+  // Filters uses plain <label>/<select> pairs, not htmlFor/id — match by DOM position, the
+  // same convention SearchPage.test.tsx uses for the same reason.
+  function gradeSelect() {
+    return screen.getByText('Grado').nextElementSibling as HTMLSelectElement;
+  }
+
+  it('selecting "Sin grado" sets filters.grade to "none"', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithProviders(<Filters filters={emptyRouteFilters} onChange={onChange} onAddRoute={() => {}} />);
+
+    await user.selectOptions(gradeSelect(), 'Sin grado');
+
+    expect(onChange).toHaveBeenCalledWith({ ...emptyRouteFilters, grade: 'none' });
+  });
+
+  it('hides the aid-grade select when GET /routes/aid-grades returns []', async () => {
+    renderWithProviders(<Filters filters={emptyRouteFilters} onChange={() => {}} onAddRoute={() => {}} />);
+
+    await waitFor(() => expect(gradeSelect()).toBeInTheDocument());
+    expect(screen.queryByText('Grado artificial')).not.toBeInTheDocument();
+  });
+
+  it('shows the aid-grade select when GET /routes/aid-grades returns a non-empty list', async () => {
+    server.use(http.get(`${API_URL}/routes/aid-grades`, () => HttpResponse.json(['A1', 'C2'])));
+
+    renderWithProviders(<Filters filters={emptyRouteFilters} onChange={() => {}} onAddRoute={() => {}} />);
+
+    const aidLabel = await screen.findByText('Grado artificial');
+    const select = aidLabel.nextElementSibling as HTMLSelectElement;
+    expect(select).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'A1' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'C2' })).toBeInTheDocument();
   });
 });

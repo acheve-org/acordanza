@@ -34,6 +34,7 @@ function renderApp(initialPath: string) {
 function mockRouteList() {
   server.use(
     http.get(`${API_URL}/routes/grades`, () => HttpResponse.json([])),
+    http.get(`${API_URL}/routes/aid-grades`, () => HttpResponse.json([])),
     http.get(`${API_URL}/routes`, () =>
       HttpResponse.json([
         makeRoute({ id: 7, name: 'Travesía del Gato', slug: 'travesia-del-gato', areaSlugPath: 'pena-rua' }),

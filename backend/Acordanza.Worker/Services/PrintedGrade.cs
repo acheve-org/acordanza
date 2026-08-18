@@ -3,10 +3,12 @@ using Acordanza.Core.Models;
 
 namespace Acordanza.Worker.Services;
 
-// The French grade a source printed, plus the obligatory grade printed next to it when
-// there was one. ObligatoryGrade is null far more often than not — it is a multi-pitch
-// convention, and most single-pitch topos and blog posts print one number.
-public record ParsedGrade(string Grade, string? ObligatoryGrade);
+// The French grade and/or aid grade a source printed, plus the obligatory grade printed
+// next to it when there was one. ObligatoryGrade is null far more often than not — it is a
+// multi-pitch convention, and most single-pitch topos and blog posts print one number.
+// AidGrade is likewise null far more often than not — «6c/A1» (both) and «A2» (aid only)
+// are the exceptions, not the rule.
+public record ParsedGrade(string? Grade, string? AidGrade, string? ObligatoryGrade);
 
 // Both extraction prompts tell the model to copy the grade **exactly as printed** and
 // never to convert between scales, which is the right instruction (a converted grade is a
@@ -45,6 +47,12 @@ public static partial class PrintedGrade
     [GeneratedRegex(@"^[1-9][a-c]\+?$")]
     private static partial Regex FrenchGrade { get; }
 
+    // The artificial (aid) grade scale, lowercase form — Parse works on text already
+    // GradeValidator.Normalize'd (trim + lowercase), unlike AidGradeValidator's own
+    // uppercase canonical form.
+    [GeneratedRegex(@"^[ac][0-5]\+?$")]
+    private static partial Regex AidGradeToken { get; }
+
     // Same grade with the marker glued on — «6a+obl.», which is how it comes off a topo
     // set in a narrow column.
     [GeneratedRegex(@"^([1-9][a-c]\+?)[.\-]?(ob|obl|oblig|obligado|obligatorio)\.?$")]
@@ -82,7 +90,10 @@ public static partial class PrintedGrade
 
         // Overwhelmingly the common case: the source printed one clean French grade, and
         // this costs one regex before any of the machinery below.
-        if (GradeValidator.IsValid(text)) return new ParsedGrade(text, null);
+        if (GradeValidator.IsValid(text)) return new ParsedGrade(text, null, null);
+
+        // The other single-token case: an aid-only route, printed as just «A2».
+        if (AidGradeToken.IsMatch(text)) return new ParsedGrade(null, AidGradeValidator.Normalize(text), null);
 
         string? parenthesised = null;
         foreach (Match match in Parenthetical.Matches(text))
@@ -92,13 +103,30 @@ public static partial class PrintedGrade
 
         // Balanced groups are gone; a stray unclosed '(' is handled by Separators, so
         // «6c (6a+ obl» reads the same as the closed form rather than failing on "(6a+".
-        var (grade, alongside) = MainGradeIn(Tokenize(Parenthetical.Replace(text, " ")));
+        var (grade, aidGrade, alongside) = MainGradeIn(Tokenize(Parenthetical.Replace(text, " ")));
 
-        return grade is null ? null : new ParsedGrade(grade, parenthesised ?? alongside);
+        return grade is null && aidGrade is null
+            ? null
+            : new ParsedGrade(grade, aidGrade is null ? null : AidGradeValidator.Normalize(aidGrade), parenthesised ?? alongside);
     }
 
-    // Strict: exactly one French grade, and every other token accounted for.
-    private static (string? Grade, string? Obligatory) MainGradeIn(List<string> tokens)
+    // A token stating both scales at once — «6c/a1» or «a1/6c» — the '/' shape §11 of plan
+    // 34 gives exactly one meaning to: one free grade and one aid grade, in either order.
+    // Anything else with a '/' (a range like «6a/6b») fails both checks and falls through
+    // to being an ordinary unrecognised token.
+    private static (string Grade, string AidGrade)? SplitCombined(string token)
+    {
+        var parts = token.Split('/');
+        if (parts.Length != 2) return null;
+
+        if (FrenchGrade.IsMatch(parts[0]) && AidGradeToken.IsMatch(parts[1])) return (parts[0], parts[1]);
+        if (AidGradeToken.IsMatch(parts[0]) && FrenchGrade.IsMatch(parts[1])) return (parts[1], parts[0]);
+        return null;
+    }
+
+    // Strict: exactly one French grade, at most one aid grade, and every other token
+    // accounted for.
+    private static (string? Grade, string? AidGrade, string? Obligatory) MainGradeIn(List<string> tokens)
     {
         // Which grade each «obl» is claiming. The marker need not be bracketed — «6c 6a+
         // obl» prints the same two facts as «6c (6a+ obl)» — and it binds *forwards* when
@@ -116,6 +144,7 @@ public static partial class PrintedGrade
         }
 
         string? grade = null;
+        string? aidGrade = null;
         string? obligatory = null;
 
         for (var i = 0; i < tokens.Count; i++)
@@ -126,7 +155,23 @@ public static partial class PrintedGrade
                 continue;
             }
 
-            if (GradeIn(token) is not { } candidate) return (null, null);
+            if (SplitCombined(token) is { } combo)
+            {
+                if (grade is not null && grade != combo.Grade) return (null, null, null);
+                if (aidGrade is not null && aidGrade != combo.AidGrade) return (null, null, null);
+                grade = combo.Grade;
+                aidGrade = combo.AidGrade;
+                continue;
+            }
+
+            if (AidGradeToken.IsMatch(token))
+            {
+                if (aidGrade is not null && aidGrade != token) return (null, null, null);
+                aidGrade = token;
+                continue;
+            }
+
+            if (GradeIn(token) is not { } candidate) return (null, null, null);
 
             if (claimed[i])
             {
@@ -134,11 +179,11 @@ public static partial class PrintedGrade
                 continue;
             }
 
-            if (grade is not null && grade != candidate) return (null, null);
+            if (grade is not null && grade != candidate) return (null, null, null);
             grade = candidate;
         }
 
-        return (grade, obligatory);
+        return (grade, aidGrade, obligatory);
     }
 
     // Lenient: anything unrecognised in here is prose, not a failure. Requires the label,

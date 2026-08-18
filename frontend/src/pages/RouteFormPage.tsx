@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, CompassPicker, gradeBand, ModalActions, RemoveButton, type Orientation } from 'acordanza-design-system';
+import { Button, CompassPicker, gradeBand, isAidGrade, ModalActions, RemoveButton, type Orientation } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import { errorMessage } from '../api/errorMessage';
 import type { RouteDetail, UpsertRouteInput } from '../api/types';
@@ -9,15 +9,29 @@ import { gearLabels } from '../api/types';
 import { AreaPicker } from '../components/AreaPicker';
 import { FirstAscensionistPicker } from '../components/FirstAscensionistPicker';
 
-// UpsertRouteInput's orientation/gear/description/obligatoryGrade/recommendedGear/
-// optionalGear/links/firstAscensionistIds accept null on the wire (the backend DTO
-// fields are nullable), but the form itself never holds null for them — it always
-// starts from and edits real strings/arrays, only trimmed/assembled into
-// UpsertRouteInput on submit.
+// UpsertRouteInput's grade/aidGrade/length/orientation/gear/description/obligatoryGrade/
+// recommendedGear/optionalGear/links/firstAscensionistIds accept null on the wire (the
+// backend DTO fields are nullable), but the form itself never holds null for them — it
+// always starts from and edits real strings/arrays, only trimmed/assembled (and, for
+// grade/aidGrade/length, converted back to null when blank) into UpsertRouteInput on
+// submit.
 type RouteFormState = Omit<
   UpsertRouteInput,
-  'orientation' | 'gear' | 'description' | 'obligatoryGrade' | 'recommendedGear' | 'optionalGear' | 'links' | 'firstAscensionistIds'
+  | 'grade'
+  | 'aidGrade'
+  | 'length'
+  | 'orientation'
+  | 'gear'
+  | 'description'
+  | 'obligatoryGrade'
+  | 'recommendedGear'
+  | 'optionalGear'
+  | 'links'
+  | 'firstAscensionistIds'
 > & {
+  grade: string;
+  aidGrade: string;
+  length: string;
   orientation: string;
   gear: string;
   description: string;
@@ -32,10 +46,11 @@ const emptyForm: RouteFormState = {
   name: '',
   areaId: 0,
   grade: '',
+  aidGrade: '',
   orientation: '',
   gear: '',
   description: '',
-  length: 0,
+  length: '',
   obligatoryGrade: '',
   recommendedGear: '',
   optionalGear: '',
@@ -53,6 +68,7 @@ export function RouteFormPage() {
   const [loadError, setLoadError] = useState('');
   const [error, setError] = useState('');
   const [form, setForm] = useState<RouteFormState>(emptyForm);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (!editing) return;
@@ -63,11 +79,12 @@ export function RouteFormPage() {
         setForm({
           name: r.name,
           areaId: r.areaId,
-          grade: r.grade,
+          grade: r.grade ?? '',
+          aidGrade: r.aidGrade ?? '',
           orientation: r.orientation ?? '',
           gear: r.gear ?? '',
           description: r.description,
-          length: r.length,
+          length: r.length != null ? String(r.length) : '',
           obligatoryGrade: r.obligatoryGrade ?? '',
           recommendedGear: r.recommendedGear ?? '',
           optionalGear: r.optionalGear ?? '',
@@ -77,6 +94,23 @@ export function RouteFormPage() {
           links: r.links.map((l) => l.url),
           firstAscensionistIds: r.firstAscensionists.map((o) => o.id),
         });
+        // Opens by default when the route already has any of these fields set — otherwise
+        // an editor opening the form sees just two fields and concludes the data is gone.
+        setDetailsOpen(
+          Boolean(
+            r.grade ||
+              r.aidGrade ||
+              r.length ||
+              r.orientation ||
+              r.gear ||
+              r.description ||
+              r.obligatoryGrade ||
+              r.recommendedGear ||
+              r.optionalGear ||
+              r.links.length ||
+              r.firstAscensionists.length,
+          ),
+        );
       })
       .catch((err) => {
         setLoadError(errorMessage(err, 'No se pudo cargar la vía'));
@@ -135,17 +169,24 @@ export function RouteFormPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (gradeBand(form.grade) === null) {
+    // Present-only now (plan 34): grade and aid grade are both optional, but a value that
+    // is present still has to be legal.
+    if (form.grade.trim() && gradeBand(form.grade) === null) {
       setError('el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)');
+      return;
+    }
+    if (form.aidGrade.trim() && !isAidGrade(form.aidGrade)) {
+      setError('el grado artificial debe ser A0–A5 o C0–C5 (por ejemplo A1, C2, A3+)');
       return;
     }
     setError('');
     const input: UpsertRouteInput = {
       ...form,
       name: form.name.trim(),
-      grade: form.grade.trim().toLowerCase(),
+      grade: form.grade.trim() ? form.grade.trim().toLowerCase() : null,
+      aidGrade: form.aidGrade.trim() ? form.aidGrade.trim().toUpperCase() : null,
       description: form.description.trim(),
-      length: Number(form.length),
+      length: form.length === '' ? null : Number(form.length),
       obligatoryGrade: form.obligatoryGrade.trim(),
       recommendedGear: form.recommendedGear.trim(),
       optionalGear: form.optionalGear.trim(),
@@ -171,111 +212,147 @@ export function RouteFormPage() {
           {error && <p className="error-text">{error}</p>}
           <div className="grid-2">
             <label>
-              Nombre
-              <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} />
-            </label>
-            <label>
-              Equipamiento
-              <select value={form.gear} onChange={(e) => set('gear', e.target.value)}>
-                <option value="">Sin especificar</option>
-                {Object.entries(gearLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="grid-3">
-            <label>
-              Grado
-              <input
-                type="text"
-                required
-                placeholder="6a, 7c+, 8a…"
-                value={form.grade}
-                onChange={(e) => set('grade', e.target.value)}
-              />
-            </label>
-            <label>
-              Grado obligatorio
-              <input
-                type="text"
-                placeholder="V+, 6a, E2 5b…"
-                value={form.obligatoryGrade}
-                onChange={(e) => set('obligatoryGrade', e.target.value)}
-              />
-            </label>
-            <label>
-              Longitud (metros)
-              <input
-                type="number"
-                required
-                min={6}
-                max={2999}
-                step={1}
-                value={form.length}
-                onChange={(e) => set('length', Number(e.target.value))}
-              />
-            </label>
-          </div>
-          <div className="grid-2">
-            <label>
               Sector
               <AreaPicker value={form.areaId || null} onChange={(areaId) => set('areaId', areaId ?? 0)} allowCreate />
             </label>
             <label>
-              Orientación
-              <div className="picker-stack">
-                <CompassPicker
-                  multiple={false}
-                  value={(form.orientation || null) as Orientation | null}
-                  onChange={(o) => set('orientation', o ?? '')}
+              Nombre
+              <input type="text" required value={form.name} onChange={(e) => set('name', e.target.value)} />
+            </label>
+          </div>
+
+          <details className="route-form-details" open={detailsOpen} onToggle={(e) => setDetailsOpen(e.currentTarget.open)}>
+            <summary>Más detalles</summary>
+
+            <div className="grid-2">
+              <label>
+                Equipamiento
+                <select value={form.gear} onChange={(e) => set('gear', e.target.value)}>
+                  <option value="">Sin especificar</option>
+                  {Object.entries(gearLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Orientación
+                <div className="picker-stack">
+                  <CompassPicker
+                    multiple={false}
+                    value={(form.orientation || null) as Orientation | null}
+                    onChange={(o) => set('orientation', o ?? '')}
+                  />
+                  {form.orientation && (
+                    <Button variant="ghost" small type="button" onClick={() => set('orientation', '')}>
+                      Sin especificar
+                    </Button>
+                  )}
+                </div>
+              </label>
+            </div>
+            <div className="grid-3">
+              <label>
+                Grado
+                <input
+                  type="text"
+                  placeholder="6a, 7c+, 8a…"
+                  value={form.grade}
+                  onChange={(e) => set('grade', e.target.value)}
                 />
-                {form.orientation && (
-                  <Button variant="ghost" small type="button" onClick={() => set('orientation', '')}>
-                    Sin especificar
-                  </Button>
-                )}
-              </div>
-            </label>
-          </div>
-          <div className="grid-2">
+              </label>
+              <label>
+                Grado artificial
+                <input
+                  type="text"
+                  placeholder="A1, C2, A3+…"
+                  value={form.aidGrade}
+                  onChange={(e) => set('aidGrade', e.target.value)}
+                />
+              </label>
+              <label>
+                Grado obligatorio
+                <input
+                  type="text"
+                  placeholder="V+, 6a, E2 5b…"
+                  value={form.obligatoryGrade}
+                  onChange={(e) => set('obligatoryGrade', e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="grid-2">
+              <label>
+                Longitud (metros)
+                <input
+                  type="number"
+                  min={6}
+                  max={2999}
+                  step={1}
+                  value={form.length}
+                  onChange={(e) => set('length', e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="grid-2">
+              <label>
+                Material recomendado
+                <input
+                  type="text"
+                  placeholder="12 cintas, cuerda de 60 m…"
+                  value={form.recommendedGear}
+                  onChange={(e) => set('recommendedGear', e.target.value)}
+                />
+              </label>
+              <label>
+                Material opcional
+                <input
+                  type="text"
+                  placeholder="friends medianos, empotradores…"
+                  value={form.optionalGear}
+                  onChange={(e) => set('optionalGear', e.target.value)}
+                />
+              </label>
+            </div>
             <label>
-              Material recomendado
-              <input
-                type="text"
-                placeholder="12 cintas, cuerda de 60 m…"
-                value={form.recommendedGear}
-                onChange={(e) => set('recommendedGear', e.target.value)}
+              Descripción
+              <textarea
+                rows={3}
+                placeholder="Reseña, carácter de la vía…"
+                value={form.description}
+                onChange={(e) => set('description', e.target.value)}
               />
             </label>
             <label>
-              Material opcional
-              <input
-                type="text"
-                placeholder="friends medianos, empotradores…"
-                value={form.optionalGear}
-                onChange={(e) => set('optionalGear', e.target.value)}
+              Apertura
+              <FirstAscensionistPicker
+                value={form.firstAscensionistIds}
+                onChange={(firstAscensionistIds) => set('firstAscensionistIds', firstAscensionistIds)}
               />
             </label>
-          </div>
-          <label>
-            Descripción
-            <textarea
-              rows={3}
-              placeholder="Reseña, carácter de la vía…"
-              value={form.description}
-              onChange={(e) => set('description', e.target.value)}
-            />
-          </label>
-          <label>
-            Apertura
-            <FirstAscensionistPicker
-              value={form.firstAscensionistIds}
-              onChange={(firstAscensionistIds) => set('firstAscensionistIds', firstAscensionistIds)}
-            />
-          </label>
+            <div>
+              <label>
+                Enlaces
+                <div className="picker-stack">
+                  {form.links.map((link, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
+                      <input
+                        type="url"
+                        placeholder="https://…"
+                        value={link}
+                        onChange={(e) => updateLink(i, e.target.value)}
+                      />
+                      <RemoveButton label="Eliminar enlace" onClick={() => removeLink(i)} />
+                    </div>
+                  ))}
+                </div>
+              </label>
+              <Button variant="ghost" small type="button" style={{ marginTop: 'var(--space-xs)' }} onClick={addLink}>
+                + Añadir enlace
+              </Button>
+            </div>
+          </details>
+
           <ModalActions>
             <Button as={Link} variant="ghost" to="/routes">
               Cancelar
@@ -284,27 +361,6 @@ export function RouteFormPage() {
               Guardar vía
             </Button>
           </ModalActions>
-          <div>
-            <label>
-              Enlaces
-              <div className="picker-stack">
-                {form.links.map((link, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 'var(--space-sm)', alignItems: 'center' }}>
-                    <input
-                      type="url"
-                      placeholder="https://…"
-                      value={link}
-                      onChange={(e) => updateLink(i, e.target.value)}
-                    />
-                    <RemoveButton label="Eliminar enlace" onClick={() => removeLink(i)} />
-                  </div>
-                ))}
-              </div>
-            </label>
-            <Button variant="ghost" small type="button" style={{ marginTop: 'var(--space-xs)' }} onClick={addLink}>
-              + Añadir enlace
-            </Button>
-          </div>
         </form>
       </section>
     </main>

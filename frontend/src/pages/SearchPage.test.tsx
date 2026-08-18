@@ -15,6 +15,7 @@ function LocationProbe({ onLocation }: { onLocation: (pathname: string, hasBackg
 
 function mockGrades(grades: string[] = []) {
   server.use(http.get(`${API_URL}/routes/grades`, () => HttpResponse.json(grades)));
+  server.use(http.get(`${API_URL}/routes/aid-grades`, () => HttpResponse.json([])));
 }
 
 describe('SearchPage', () => {

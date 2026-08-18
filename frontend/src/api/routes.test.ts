@@ -22,6 +22,7 @@ describe('listRoutes', () => {
       q: 'travesía',
       areaId: '3',
       grade: '6a',
+      aidGrade: 'A1',
       orientation: ['north'],
       gear: 'bolted',
       hasTopo: 'true',
@@ -32,6 +33,7 @@ describe('listRoutes', () => {
     expect(params.get('q')).toBe('travesía');
     expect(params.get('areaId')).toBe('3');
     expect(params.get('grade')).toBe('6a');
+    expect(params.get('aidGrade')).toBe('A1');
     expect(params.get('orientation')).toBe('north');
     expect(params.get('gear')).toBe('bolted');
     expect(params.get('hasTopo')).toBe('true');

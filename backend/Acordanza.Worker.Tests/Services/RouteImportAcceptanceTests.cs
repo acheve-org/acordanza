@@ -121,20 +121,35 @@ public class RouteImportAcceptanceTests
     }
 
     // The model is told to copy the grade and never convert it, so a UIAA or YDS grade
-    // arrives verbatim and is rejected here — an unconvertible grade is a discard with a
-    // reason, not a best effort, and certainly not a silent conversion.
+    // arrives verbatim. Plan 34: this is no longer a discard — a human may save a route
+    // with no grade, so the candidate is accepted with a null grade and the raw string
+    // preserved in GradeNote so a reviewer can fix it in one edit.
     [Theory]
     [InlineData("V+")]
     [InlineData("5.11a")]
     [InlineData("E2 5b")]
-    [InlineData("")]
     [InlineData("muy difícil")]
-    public void An_unconvertible_grade_is_discarded(string grade)
+    public void An_unconvertible_grade_is_accepted_with_a_null_grade_and_a_note(string grade)
     {
         var (candidate, reason) = TopoImageReader.Accept(CleanRead(grade: grade));
 
-        candidate.ShouldBeNull();
-        reason.ShouldBe(RouteImportOutcomes.UnreadableGrade);
+        reason.ShouldBeNull();
+        candidate.ShouldNotBeNull();
+        candidate.Grade.ShouldBeNull();
+        candidate.GradeNote.ShouldBe(RouteImportOutcomes.GradeNotUnderstood(grade));
+    }
+
+    // A blank grade states nothing at all — accepted with a null grade and no note, same
+    // as any other route nobody has graded (plan 34).
+    [Fact]
+    public void A_blank_grade_is_accepted_with_no_note()
+    {
+        var (candidate, reason) = TopoImageReader.Accept(CleanRead(grade: ""));
+
+        reason.ShouldBeNull();
+        candidate.ShouldNotBeNull();
+        candidate.Grade.ShouldBeNull();
+        candidate.GradeNote.ShouldBeNull();
     }
 
     // Grade is an exact-match filter key and a Distinct() list, so the stored form has to
@@ -172,18 +187,18 @@ public class RouteImportAcceptanceTests
         TopoImageReader.Accept(CleanRead(name: "  La Loca  ")).Candidate!.Name.ShouldBe("La Loca");
     }
 
-    // ClimbingRoute.Length has no "unknown" value, so a topo that doesn't state one — or
-    // states something the human-entry form would reject — leaves the column default
-    // rather than writing a guess into a field a reviewer will read as fact.
+    // ClimbingRoute.Length is nullable (plan 34) — a topo that doesn't state one, or
+    // states something the human-entry form would reject, leaves the field null rather
+    // than writing a guess into a field a reviewer will read as fact.
     [Theory]
     [InlineData(null)]
     [InlineData(0)]
     [InlineData(5)]
     [InlineData(3000)]
     [InlineData(-10)]
-    public void An_absent_or_implausible_length_falls_back_to_the_column_default(int? length)
+    public void An_absent_or_implausible_length_is_null(int? length)
     {
-        TopoImageReader.Accept(CleanRead(length: length)).Candidate!.Length.ShouldBe(0);
+        TopoImageReader.Accept(CleanRead(length: length)).Candidate!.Length.ShouldBeNull();
     }
 
     [Fact]
