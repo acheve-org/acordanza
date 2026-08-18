@@ -44,5 +44,12 @@ export { CompassRose } from './components/Compass/CompassRose'
 export type { CompassRoseProps } from './components/Compass/CompassRose'
 export { CompassPicker } from './components/Compass/CompassPicker'
 export type { CompassPickerProps } from './components/Compass/CompassPicker'
-export { orientations, orientationLabels, orientationAbbr, wedgePath, needlePath } from './components/Compass/compass'
+export {
+  orientations,
+  orientationLabels,
+  orientationAbbr,
+  wedgePath,
+  needlePath,
+  labelPoint,
+} from './components/Compass/compass'
 export type { Orientation } from './components/Compass/compass'

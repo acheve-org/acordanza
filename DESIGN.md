@@ -230,20 +230,26 @@ row), `closedValue` controls what shows when not focused (typically the current
 selection's label). Filtering and multi/single-select behavior stay with the caller —
 `Combobox` only owns the open/query/dropdown mechanics.
 
-**`CompassRose`/`CompassPicker`** (plan 28) — orientation as a compass rose rather
-than a word. `CompassRose` is display-only, `role="img"`: `size="sm"` (18px, route
-cards) draws a hairline ring with a single needle rather than eight wedges — at that
-size a wedge's neighbour differs only by a 45° rotation of the same blunt shape, so
-only a needle's asymmetric tip stays legibly directional; `size="md"` (56px, the
-detail modal's stats row) draws all eight wedges, the selected one filled `{colors.
-primary}`, plus the four cardinal letters. `CompassPicker` is the interactive
-counterpart — eight native checkbox/radio inputs (`multiple` prop) arranged in a 3×3
-CSS grid (`role`/keyboard behaviour comes from the native control, not hand-rolled
-`aria-pressed`/roving `tabindex`), each cell painting its own wedge that lights up
-`{colors.primary}` on `:checked`. Both share the ordered `Orientation` list and the
-`wedgePath`/`needlePath` geometry in `compass.ts` — the ordering *is* the geometry,
-so it lives with the component, and `frontend/src/api/types.ts` re-exports
-`orientationLabels`/`orientations` from here rather than keeping its own copy.
+**`CompassRose`/`CompassPicker`** (plan 28, revised plan 36) — orientation as a
+compass rose rather than a word. `CompassRose` is display-only, `role="img"`: one
+drawing at two sizes — a hairline ring, a north tick, and a needle — with `size="sm"`
+(18px, route cards) and `size="md"` (56px, the detail modal's stats row) differing
+only in CSS `width`/`height`. There is no wedge view at `md` any more: the detail
+modal already prints the full Spanish word beside the rose, so a second, denser
+picture of the same value bought nothing. `CompassPicker` is the interactive
+counterpart — eight native checkbox/radio inputs (`multiple` prop) arranged in a
+176px 3×3 CSS grid (`role`/keyboard behaviour comes from the native control, not
+hand-rolled `aria-pressed`/roving `tabindex`), each cell painting its own wedge,
+labelled with its two-letter abbreviation (`orientationAbbr`, upright, never
+rotated), that lights up `{colors.primary}` on `:checked`. Beneath the grid: a
+«Puedes elegir varias.» hint in `multiple` mode only, and a summary line of the
+selected orientations' full Spanish labels (both modes, nothing when the selection
+is empty) — the "any"/"unspecified" clear button stays owned by each call site, since
+that wording is domain language the component can't pick between. Both components
+share the ordered `Orientation` list and the `wedgePath`/`needlePath`/`labelPoint`
+geometry in `compass.ts` — the ordering *is* the geometry, so it lives with the
+component, and `frontend/src/api/types.ts` re-exports `orientationLabels`/
+`orientations` from here rather than keeping its own copy.
 
 **`TreeSelect`** (plan 35 §2) — a tree-first, filter-in-place combobox for browsing
 *and* filtering a hierarchy in one widget, for data sized like the area tree

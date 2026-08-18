@@ -59,6 +59,14 @@ export function wedgePath(index: number, cx: number, cy: number, outer: number, 
   return `M ${p(outer, a0)} A ${outer} ${outer} 0 0 1 ${p(outer, a1)} L ${p(inner, a1)} A ${inner} ${inner} 0 0 0 ${p(inner, a0)} Z`
 }
 
+// Where sector `index`'s label sits: on its centre angle, at radius `r`. Returns SVG
+// coordinates rather than a path string — this feeds <text x= y=, not a `d`.
+export function labelPoint(index: number, cx: number, cy: number, r: number): { x: number; y: number } {
+  const mid = -90 + 45 * index
+  const rad = (mid * Math.PI) / 180
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+}
+
 // A needle pointing along sector `index`'s centre angle: a kite from tip to two
 // shoulders to a tail notch — the shape stays visually distinct at 18px, unlike a
 // wedge, where neighbouring sectors differ only by a 45° rotation of the same blunt form.

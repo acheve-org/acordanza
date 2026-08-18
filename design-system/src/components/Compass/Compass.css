@@ -16,32 +16,39 @@
   stroke-width: 5;
 }
 
+.compass-rose-north {
+  stroke: var(--border-strong);
+  stroke-width: 5;
+}
+
 .compass-rose-needle {
   fill: var(--accent);
 }
 
 .compass-wedge {
   fill: var(--chip-bg);
-  stroke: var(--border);
+  stroke: var(--border-strong);
   stroke-width: 1;
 }
 
-.compass-wedge-selected {
-  fill: var(--accent);
-}
-
-.compass-rose-letter {
+.compass-wedge-label {
   font-family: var(--font-body);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   fill: var(--dim);
   pointer-events: none;
 }
 
+.compass-picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .compass-picker {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: 176px;
+  height: 176px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
@@ -78,18 +85,23 @@
   fill: var(--accent);
 }
 
+.compass-cell input:checked ~ svg .compass-wedge-label {
+  fill: var(--on-accent);
+}
+
 .compass-cell input:focus-visible ~ svg .compass-wedge {
-  stroke: var(--ink);
+  stroke: var(--text);
   stroke-width: 2;
 }
 
 .compass-cell:hover input:not(:checked) ~ svg .compass-wedge {
-  fill: var(--chip-bg);
+  fill: var(--border);
   stroke: var(--border-strong);
 }
 
-.compass-picker-letters {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+.compass-picker-hint,
+.compass-picker-summary {
+  font-size: 12px;
+  color: var(--dim);
+  margin: 0;
 }

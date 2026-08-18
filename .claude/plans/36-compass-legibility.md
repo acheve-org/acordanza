@@ -1,6 +1,6 @@
 # Make the compass legible: one needle rose, a labelled picker
 
-Status: not started
+Status: done
 Issue: [#227](https://github.com/acheve-org/acordanza/issues/227)
 Depends on: [28](28-orientation-compass-rose.md), which this revises — §1's `md` rose and `CompassPicker` are rewritten here, §2–§4's call sites survive untouched. No backend change, no migration, no data-model change, no new tokens, no change to any component's public props.
 
