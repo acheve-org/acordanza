@@ -29,6 +29,12 @@ public record AreaNodeDto(int Id, string Name, string Slug, bool HasChildren, bo
 
 public record PagedAreaNodesResponse(List<AreaNodeDto> Items, int TotalCount, int Page, int PageSize);
 
+// GET /areas/tree (plan 35 §1): the whole area tree, flat and geometry-free, for the
+// AreaPicker/TreeSelect to hold client-side and browse/filter in memory. RouteCount is
+// the area's own routes only — the client rolls up subtree totals itself, since it
+// already has the whole tree in hand.
+public record AreaTreeNodeDto(int Id, string Name, int? ParentAreaId, int RouteCount, string ValidationStatus);
+
 // Area detail page (issue #105) — resolved via GET /areas/by-slug-path/{*path}.
 public record AreaAncestorDto(int Id, string Name, string Slug);
 

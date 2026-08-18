@@ -79,11 +79,43 @@ public class AreasController(
         return Ok(areaEntities.Select(ToAreaDto).ToList());
     }
 
+    // The whole area tree, flat and geometry-free, for AreaPicker/TreeSelect (plan 35 §1)
+    // to hold client-side and browse/filter entirely in memory — see that plan for why
+    // this is the right trade over lazy per-level loading. Two fixed SQL statements
+    // regardless of tree size: the areas, then one grouped route count, joined in memory
+    // rather than as a correlated subquery per row.
+    [HttpGet("tree")]
+    public async Task<ActionResult<List<AreaTreeNodeDto>>> GetAreaTree()
+    {
+        var userId = userManager.GetUserId(User)!;
+
+        var areas = await db.Areas.AsNoTracking()
+            .Where(ValidationVisibility.Areas(userId))
+            .OrderBy(a => a.Name)
+            .Select(a => new { a.Id, a.Name, a.ParentAreaId, a.ValidationStatus })
+            .ToListAsync();
+
+        var counts = await db.Routes.AsNoTracking()
+            .Where(ValidationVisibility.Routes(userId))
+            .GroupBy(r => r.AreaId)
+            .Select(g => new { AreaId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.AreaId, x => x.Count);
+
+        return Ok(areas
+            .Select(a => new AreaTreeNodeDto(
+                a.Id,
+                a.Name,
+                a.ParentAreaId,
+                counts.GetValueOrDefault(a.Id),
+                a.ValidationStatus.ToString().ToLowerInvariant()))
+            .ToList());
+    }
+
     // Returns only the root areas (no ParentAreaId), alphabetically ordered and
     // paginated, for the areas-management tree — see GetAreaChildren for lazy-loading
     // a node's children. GetAreas above remains the unfiltered/unpaginated source of
-    // truth for callers (map, AreaPicker, AreaPolygonModal) that need every area at
-    // once — all of which now only call it once their dropdown/modal actually opens.
+    // truth for callers (the map's viewport query and AreaPolygonModal) that genuinely
+    // need geometry — AreaPicker now holds the whole tree via GET /areas/tree instead.
     [HttpGet("roots")]
     public async Task<ActionResult<PagedAreaNodesResponse>> GetRootAreas(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize, [FromQuery] bool includeUnvalidated = false)
