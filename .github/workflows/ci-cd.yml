@@ -22,7 +22,6 @@ on:
   workflow_dispatch: {}
 
 env:
-  DOTNET_VERSION: "10.0.x"
   TF_STATE_RESOURCE_GROUP: rg-acordanza-tfstate
   TF_STATE_STORAGE_ACCOUNT: stacordanzatfstate
   TF_STATE_CONTAINER: tfstate
@@ -51,8 +50,6 @@ jobs:
           persist-credentials: false
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore
         run: dotnet restore Acordanza.slnx
@@ -138,8 +135,6 @@ jobs:
           persist-credentials: false
 
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Read Bun version from .prototools
         id: tool_versions
