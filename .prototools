@@ -1,9 +1,11 @@
 bun = "1.3.14"
 node = "26.6.0"
 
+dotnet = "10.0.400"
 terraform = "1.15.8"
 
 [plugins]
+dotnet = "https://raw.githubusercontent.com/RemiKalbe/proto-dotnet-plugin/main/plugin.toml"
 terraform = "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/terraform.toml"
 
 [settings]
