@@ -1,14 +1,24 @@
+proto = "0.59.0"
+
 bun = "1.3.14"
-node = "26.6.0"
+node = "26.7.0"
+python = "3.14.7"
 
 dotnet = "10.0.400"
 terraform = "1.15.8"
 
-[plugins]
+azure-cli = "2.89.1"
+gh = "2.97.0"
+
+[plugins.tools]
 dotnet = "https://raw.githubusercontent.com/RemiKalbe/proto-dotnet-plugin/main/plugin.toml"
 terraform = "https://raw.githubusercontent.com/theomessin/proto-toml-plugins/master/terraform.toml"
+azure-cli = "github://BarretoTech/proto-azure-cli-plugin"
+gh = "https://raw.githubusercontent.com/appthrust/proto-toml-plugins/main/gh/plugin.toml"
+
+[env]
+AZ_PYTHON="${HOME}/.proto/shims/python"
 
 [settings]
-auto-clean = true
-auto-install = true
-detect-strategy = "only-prototools"
+pin-latest = "local"
+unstable-lockfile = true
