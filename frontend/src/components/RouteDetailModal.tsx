@@ -1,8 +1,17 @@
 import { Fragment, useState, type ChangeEvent } from 'react';
-import { Button, CompassRose, ConfirmModal, GradePill, Modal, RemoveButton, type Orientation } from 'acordanza-design-system';
+import {
+  Button,
+  CompassRose,
+  ConfirmModal,
+  GradePill,
+  Modal,
+  orientationAbbr,
+  RemoveButton,
+  type Orientation,
+} from 'acordanza-design-system';
 import { ApiError } from '../api/client';
 import type { CreateTickInput, RouteDetail } from '../api/types';
-import { gearLabels, orientationLabels } from '../api/types';
+import { gearLabels } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { useAuth } from '../hooks/useAuth';
 import { formatDate } from '../format';
@@ -101,42 +110,29 @@ export function RouteDetailModal({
           <div className="detail-head-row">
             <h2>{route.name}</h2>
             <span className="detail-head-facts">
+              {route.gear && <span>{gearLabels[route.gear]}</span>}
               <GradePill grade={route.grade} aidGrade={route.aidGrade} obligatoryGrade={route.obligatoryGrade} />
-              {route.length != null && (
-                <Fragment>
-                  <span className="detail-head-sep" aria-hidden="true">
-                    ·
-                  </span>
-                  <span>{route.length} m</span>
-                </Fragment>
-              )}
             </span>
           </div>
           <p className="detail-head-row detail-meta">
             <span>{route.areaPath}</span>
-            {route.gear && <span className="detail-head-facts">{gearLabels[route.gear]}</span>}
+            <span className="detail-head-facts">
+              {route.orientation && (
+                <span className="rc-meta-item">
+                  <CompassRose size="sm" value={route.orientation as Orientation} />
+                  {orientationAbbr[route.orientation as Orientation]}
+                </span>
+              )}
+              {route.length != null && <span>{route.length} m</span>}
+            </span>
           </p>
           {error && <p className="error-text">{error}</p>}
         </div>
 
         <div className="detail-layout">
           <div className="detail-main">
-            {/* Grade, length and gear are all in the head now — orientation stays down here
-                because the rose needs the room a head row can't give it. */}
-            {route.orientation && (
-              <div className="detail-section">
-                <div className="detail-stats">
-                  <div className="detail-stat">
-                    <span className="detail-stat-label">Orientación</span>
-                    <span className="detail-stat-value">
-                      <CompassRose size="md" value={route.orientation as Orientation} />
-                      {orientationLabels[route.orientation as Orientation]}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            {/* Grade, length, gear and orientation are all in the head now — nothing left
+                to summarize before the description. */}
             <div className="detail-section">
               <p className="detail-desc">{route.description || 'Sin descripción todavía.'}</p>
             </div>

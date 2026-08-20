@@ -1,3 +1,4 @@
+
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState, List, ListRow } from 'acordanza-design-system';
 import { useGeolocation } from '../hooks/useGeolocation';
@@ -111,8 +112,7 @@ export function ExplorePage() {
 
         <h1>Explora</h1>
         <p className="hint">
-          Encuentra zonas que no conoces en el mapa, y descubre los sectores que las componen. Solo se muestran en el
-          mapa los sectores que tienen información geográfica cargada.
+          No aparecen sectores sin ubicación.
         </p>
 
         <div className="explore-list-scroll">
