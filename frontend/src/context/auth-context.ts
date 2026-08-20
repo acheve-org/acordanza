@@ -14,6 +14,10 @@ export interface AuthContextValue {
   isFirstAscensionist: boolean;
   isAreaExpert: boolean;
   loading: boolean;
+  /** True when the session ended because the API rejected the token, rather than because
+   * the user pressed "Cerrar sesión" — the two are indistinguishable once state is cleared,
+   * and only the first is worth explaining on the login screen. */
+  sessionExpired: boolean;
   hasPermission: (permission: string) => boolean;
   login: (email: string, password: string) => Promise<PasskeyChallenge | null>;
   beginPasskeyLogin: () => Promise<PasskeyChallenge>;

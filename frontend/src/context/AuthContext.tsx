@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { get, type CredentialRequestOptionsJSON } from '@github/webauthn-json';
-import { api, setAuthToken } from '../api/client';
+import { api, setAuthToken, setUnauthorizedHandler } from '../api/client';
 import { queryClient } from '../queryClient';
 import type { LoginResponse, MeResponse } from '../api/types';
 import { AuthContext, type PasskeyChallenge } from './auth-context';
@@ -27,6 +27,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isFirstAscensionist, setIsFirstAscensionist] = useState(false);
   const [isAreaExpert, setIsAreaExpert] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Distinguishes "the session ran out underneath you" from "you pressed Cerrar sesión",
+  // which look identical once the state is cleared — LoginScreen says so rather than
+  // leaving the user to guess why they're back here.
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  // Declared before the bootstrap effect below so it is registered by the time that
+  // effect's GET /auth/me can come back 401. Any request carrying a token that the API
+  // rejects ends the session here instead of surfacing as one more failed panel (see
+  // client.ts).
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      clearSession();
+      setSessionExpired(true);
+    });
+    return () => setUnauthorizedHandler(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -60,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Drop any query-cache data fetched under a previous identity (or no
     // identity) before this one starts issuing requests of its own.
     queryClient.clear();
+    setSessionExpired(false);
     setAuthToken(token);
     const me = await api.get<MeResponse>('/auth/me');
     localStorage.setItem(
@@ -112,7 +130,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await applySession(res.token!);
   }
 
-  function logout() {
+  // The state half of ending a session, shared by the logout button and the expired-session
+  // path above — everything except deciding why it happened.
+  function clearSession() {
     localStorage.removeItem(STORAGE_KEY);
     setAuthToken(null);
     queryClient.clear();
@@ -123,6 +143,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPermissions([]);
     setIsFirstAscensionist(false);
     setIsAreaExpert(false);
+  }
+
+  function logout() {
+    clearSession();
+    // Leaving by choice: the login screen has nothing to explain.
+    setSessionExpired(false);
   }
 
   function hasPermission(permission: string) {
@@ -153,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isFirstAscensionist,
         isAreaExpert,
         loading,
+        sessionExpired,
         hasPermission,
         login,
         beginPasskeyLogin,

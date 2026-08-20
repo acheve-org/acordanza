@@ -14,6 +14,7 @@ const defaultAuthValue: AuthContextValue = {
   isFirstAscensionist: false,
   isAreaExpert: false,
   loading: false,
+  sessionExpired: false,
   hasPermission: () => false,
   login: async () => null,
   beginPasskeyLogin: async () => {
