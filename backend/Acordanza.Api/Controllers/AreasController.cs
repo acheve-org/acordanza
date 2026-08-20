@@ -408,14 +408,17 @@ public class AreasController(
             .Include(m => m.UploadedBy)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync();
+
+        // Area media is area-wide, not per-uploader (see AreaMediaController.DeleteAreaMedia),
+        // so every row carries the same answer canManageMedia already reports for the area.
+        var canManageMedia = await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.AreaEdit, area.Id);
+
         var mediaDtos = new List<TopoDto>();
         foreach (var m in media)
         {
             var url = await blobStorage.GetReadSasUrlAsync(m.BlobName, MediaUploadService.ImageUrlLifetime);
-            mediaDtos.Add(new TopoDto(m.Id, url, m.FileName, m.CreatedAt, m.UploadedBy.Name));
+            mediaDtos.Add(new TopoDto(m.Id, url, m.FileName, m.CreatedAt, m.UploadedBy.Name, canManageMedia));
         }
-
-        var canManageMedia = await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.AreaEdit, area.Id);
 
         return Ok(new AreaDetailDto(
             area.Id,
@@ -483,7 +486,9 @@ public class AreasController(
         await mediaUpload.SaveOrCleanupAsync(blobName, () => db.SaveChangesAsync());
 
         var url = await blobStorage.GetReadSasUrlAsync(media.BlobName, MediaUploadService.ImageUrlLifetime);
-        return Ok(new TopoDto(media.Id, url, media.FileName, media.CreatedAt, currentUser.Name));
+        // Uploading required area.edit on this area (checked above), which is the same right
+        // deleting it takes — so the caller who just got here can always delete it.
+        return Ok(new TopoDto(media.Id, url, media.FileName, media.CreatedAt, currentUser.Name, CanDelete: true));
     }
 
     // Two sibling areas can never share a Name (checked above), but different names can

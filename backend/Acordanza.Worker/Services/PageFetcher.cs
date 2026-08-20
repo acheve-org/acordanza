@@ -96,6 +96,30 @@ public class PageFetcher(IHttpClientFactory httpClientFactory, ILogger<PageFetch
         return new FetchedPage(response.RequestMessage!.RequestUri!, body, contentType);
     }
 
+    // "Is this URL still a page we can reach?", for enrichment's link filter (plan 29 §1b) —
+    // a cheap HEAD-shaped GET per surviving candidate, since a grounded URL can still be
+    // dead, paywalled, or a redirect to a homepage. Same client, same guard, same
+    // hand-followed redirects as FetchPageAsync; the body is never read, because the answer
+    // doesn't depend on it.
+    //
+    // This lives here rather than in RouteEnrichmentService, which used to run it on its own
+    // unguarded HttpClient — precisely the second, unvetted client the class comment above
+    // says must not exist. One client, one guard, every caller.
+    public async Task<bool> IsReachableHtmlPageAsync(string url, CancellationToken cancellationToken)
+    {
+        using var response = await SendFollowingRedirectsAsync(url, cancellationToken);
+        if (response is null) return false;
+
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        if (!string.Equals(contentType, "text/html", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogInformation("page reachability {Url}: content type {ContentType} is not text/html", url, contentType);
+            return false;
+        }
+
+        return true;
+    }
+
     // Same client, same guard — see the class comment. Content type is checked against the
     // image allowlist by the caller (it owns the "what may become a Topo" rule); here we
     // only enforce the size cap and that something came back.

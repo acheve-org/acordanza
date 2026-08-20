@@ -264,17 +264,23 @@ public class RoutesController(
     private async Task<RouteDetailDto> BuildRouteDetailDtoAsync(ClimbingRoute route)
     {
         var areas = await areaHierarchy.GetAsync();
+        var userId = userManager.GetUserId(User)!;
+
+        // Same rule ToposController.DeleteTopo enforces, resolved once for the whole list.
+        var canEditArea = await areaExpertAuthorizer.BuildAreaCheckAsync(User, Permissions.RouteEdit);
+        var canDeleteAnyTopo = canEditArea(route.AreaId);
 
         var topoDtos = new List<TopoDto>();
         foreach (var topo in route.Topos.OrderBy(t => t.CreatedAt))
         {
             var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, MediaUploadService.ImageUrlLifetime);
-            topoDtos.Add(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, topo.UploadedBy.Name));
+            topoDtos.Add(new TopoDto(
+                topo.Id, url, topo.FileName, topo.CreatedAt, topo.UploadedBy.Name,
+                canDeleteAnyTopo || topo.UploadedByUserId == userId));
         }
 
         var canValidateArea = await areaExpertAuthorizer.BuildAreaCheckAsync(User, Permissions.RouteValidate);
 
-        var userId = userManager.GetUserId(User)!;
         var hasTick = await db.Ticks.AnyAsync(t => t.RouteId == route.Id && t.ClimberUserId == userId);
 
         return new RouteDetailDto(
@@ -603,7 +609,8 @@ public class RoutesController(
         await mediaUpload.SaveOrCleanupAsync(blobName, () => db.SaveChangesAsync());
 
         var url = await blobStorage.GetReadSasUrlAsync(topo.BlobName, MediaUploadService.ImageUrlLifetime);
-        return Ok(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, currentUser.Name));
+        // The uploader can always delete what they just uploaded, so this needs no check.
+        return Ok(new TopoDto(topo.Id, url, topo.FileName, topo.CreatedAt, currentUser.Name, CanDelete: true));
     }
 
     [Authorize(Policy = Permissions.TickCreate)]

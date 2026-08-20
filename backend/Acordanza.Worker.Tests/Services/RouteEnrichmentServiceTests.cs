@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using Acordanza.Core.Data;
 using Acordanza.Core.Models;
 using Acordanza.Core.Services;
@@ -84,11 +85,16 @@ public class RouteEnrichmentServiceTests(WorkerFixture fixture) : WorkerTestBase
         var areaHierarchy = new AreaHierarchyService(db);
         var mediaUpload = Fixture.Services.GetRequiredService<MediaUploadService>();
         var blobStorage = Fixture.Services.GetRequiredService<BlobStorageService>();
-        var httpClientFactory = new StubHttpClientFactory(httpHandler ?? ReachablePage());
+        // Both of the service's fetches (the link reachability check and the topo download)
+        // go through PageFetcher now, so the transport is stubbed by handing it a factory
+        // rather than by handing one to the service — see the class comment on
+        // RouteEnrichmentService for why there is no second client to stub.
+        var pageFetcher = new PageFetcher(
+            new StubHttpClientFactory(httpHandler ?? ReachablePage()), NullLogger<PageFetcher>.Instance);
 
         return new RouteEnrichmentService(
             db, areaHierarchy, provider, topoVerification ?? new FakeTopoVerification(false),
-            mediaUpload, blobStorage, httpClientFactory, NullLogger<RouteEnrichmentService>.Instance);
+            mediaUpload, blobStorage, pageFetcher, NullLogger<RouteEnrichmentService>.Instance);
     }
 
     [Fact]
@@ -330,6 +336,99 @@ public class RouteEnrichmentServiceTests(WorkerFixture fixture) : WorkerTestBase
         var topos = await db.Topos.Where(t => t.RouteId == route.Id).ToListAsync(TestContext.Current.CancellationToken);
         topos.Count.ShouldBe(1);
         topos[0].UploadedByUserId.ShouldBe(user.Id);
+    }
+
+    // Both of enrichment's own fetches go through PageFetcher's guarded client, so an address
+    // inside the worker's own network is refused at connect time. Every URL here came out of
+    // the model, which got it off the open web — "the page I got indexed says this route's
+    // topo lives at 169.254.169.254" is a reachable input, and the worker's managed identity
+    // is on the other side of that connection.
+    //
+    // The transport is the *real* handler, and the target is a server that genuinely answers:
+    // an unguarded client would append the link and import the image, and the listener's own
+    // counter says whether anything ever arrived. Pointing this at a dead port instead would
+    // pass with or without the guard, which is the trap — a refused connection and a blocked
+    // one are the same HttpRequestException.
+    [Fact]
+    public async Task A_link_or_topo_image_on_a_private_address_is_never_fetched()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await SeedData.CreateAreaAsync(db, $"Area {Guid.NewGuid():N}");
+        var route = await SeedData.CreateRouteAsync(db, area, user.Id);
+
+        using var server = LoopbackServer.Start();
+        var provider = new FakeProvider([$"{server.Url}pagina"], $"{server.Url}topo.jpg");
+        var service = BuildService(db, provider, new FakeTopoVerification(true), PageFetcher.CreateHandler());
+
+        await service.EnrichAsync(route.Id, force: false, TestContext.Current.CancellationToken);
+
+        server.Requests.ShouldBe(0);
+        var reloaded = await db.Routes.Include(r => r.Links)
+            .FirstAsync(r => r.Id == route.Id, TestContext.Current.CancellationToken);
+        reloaded.Links.ShouldBeEmpty();
+        (await db.Topos.AnyAsync(t => t.RouteId == route.Id, TestContext.Current.CancellationToken)).ShouldBeFalse();
+    }
+
+    // A real HTTP server on loopback, so "the guard refused it" is distinguishable from
+    // "nothing was listening". Serves an HTML page or a JPEG depending on the path, so both
+    // the link check and the topo download have something they would happily accept; the
+    // guard's job is to keep Requests at zero regardless.
+    private sealed class LoopbackServer : IDisposable
+    {
+        private readonly HttpListener _listener;
+        private int _requests;
+
+        public string Url { get; }
+        public int Requests => Volatile.Read(ref _requests);
+
+        private LoopbackServer(HttpListener listener, string url)
+        {
+            _listener = listener;
+            Url = url;
+            _ = Task.Run(AcceptLoopAsync);
+        }
+
+        public static LoopbackServer Start()
+        {
+            // Bind to port 0 to be told a free one, then hand it to HttpListener.
+            var probe = new TcpListener(IPAddress.Loopback, 0);
+            probe.Start();
+            var port = ((IPEndPoint)probe.LocalEndpoint).Port;
+            probe.Stop();
+
+            var url = $"http://127.0.0.1:{port}/";
+            var listener = new HttpListener();
+            listener.Prefixes.Add(url);
+            listener.Start();
+            return new LoopbackServer(listener, url);
+        }
+
+        private async Task AcceptLoopAsync()
+        {
+            while (_listener.IsListening)
+            {
+                HttpListenerContext context;
+                try
+                {
+                    context = await _listener.GetContextAsync();
+                }
+                catch (Exception)
+                {
+                    return; // Disposed while waiting — the normal way this loop ends.
+                }
+
+                Interlocked.Increment(ref _requests);
+                var isImage = context.Request.Url?.AbsolutePath.EndsWith(".jpg") == true;
+                context.Response.ContentType = isImage ? "image/jpeg" : "text/html";
+                await context.Response.OutputStream.WriteAsync(
+                    isImage ? new byte[] { 1, 2, 3, 4 } : "<html><body>hola</body></html>"u8.ToArray());
+                context.Response.Close();
+            }
+        }
+
+        public void Dispose() => _listener.Close();
     }
 
     [Fact]

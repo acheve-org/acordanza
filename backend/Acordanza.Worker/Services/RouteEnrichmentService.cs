@@ -11,6 +11,13 @@ namespace Acordanza.Worker.Services;
 // directly, never through RoutesController.UpdateRoute, so Validation.InvalidateIfChanged
 // is structurally out of the path — auto-appended links must never bounce an
 // approved route back to Pending.
+//
+// Every URL this touches — a link to check, an image to download — came out of the model,
+// which got it off the open web, so it is attacker-influenceable by anyone who can get a
+// page indexed. Both fetches therefore go through PageFetcher, the same guarded client the
+// import path uses (plan 31 §3): private addresses refused at connect time, redirects
+// followed by hand and re-vetted per hop, bodies capped while reading. This class used to
+// run its own IHttpClientFactory.CreateClient() for both, which was none of that.
 public class RouteEnrichmentService(
     AppDbContext db,
     AreaHierarchyService areaHierarchy,
@@ -18,16 +25,9 @@ public class RouteEnrichmentService(
     ITopoVerificationProvider topoVerification,
     MediaUploadService mediaUpload,
     BlobStorageService blobStorage,
-    IHttpClientFactory httpClientFactory,
+    PageFetcher pageFetcher,
     ILogger<RouteEnrichmentService> logger)
 {
-    private static readonly TimeSpan DownloadTimeout = TimeSpan.FromSeconds(10);
-    private const long MaxDownloadBytes = 10 * 1024 * 1024;
-
-    // A cheap HEAD-shaped GET per surviving candidate, on a path that already spends
-    // dollars — a grounded URL can still be dead, paywalled, or a redirect to a homepage.
-    private static readonly TimeSpan LinkCheckTimeout = TimeSpan.FromSeconds(5);
-
     // Both caps live here rather than in LinkRules: that is the *human-entry* contract
     // shared with RoutesController, and tightening it would silently constrain the edit
     // form too. The useful outcome for an obscure sport route is one good blog post, not a
@@ -190,82 +190,47 @@ public class RouteEnrichmentService(
     private static string HostOf(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri) ? uri.Host.ToLowerInvariant() : url;
 
-    // Same shape as TryImportTopoAsync's download — headers only, short timeout, response
-    // disposed before the body is read — so this is a lift of an existing pattern rather
-    // than a second HTTP idiom in the worker.
+    // PageFetcher owns the fetch and logs which of blocked-address / non-2xx / redirect-loop
+    // / not-HTML it was; this only records that the candidate lost its place in the run.
     private async Task<bool> IsReachableHtmlPageAsync(string url, CancellationToken cancellationToken)
     {
-        try
+        var reachable = await pageFetcher.IsReachableHtmlPageAsync(url, cancellationToken);
+        if (!reachable)
         {
-            using var client = httpClientFactory.CreateClient();
-            client.Timeout = LinkCheckTimeout;
-
-            using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogInformation("enrichment link dropped: unreachable ({Status}) {Url}", response.StatusCode, url);
-                return false;
-            }
-
-            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
-            if (!string.Equals(contentType, "text/html", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.LogInformation("enrichment link dropped: not a page ({ContentType}) {Url}", contentType, url);
-                return false;
-            }
-
-            return true;
+            logger.LogInformation("enrichment link dropped: unreachable or not a page {Url}", url);
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
-        {
-            logger.LogInformation(ex, "enrichment link dropped: request error for {Url}", url);
-            return false;
-        }
+
+        return reachable;
     }
 
     private async Task<bool> TryImportTopoAsync(
         ClimbingRoute route, string areaSlugPath, string topoImageUrl, RouteEnrichmentContext context, CancellationToken cancellationToken)
     {
-        byte[] bytes;
-        string contentType;
-        try
+        // Absolute-and-http(s) is re-checked inside PageFetcher too; doing it here as well is
+        // what turns a model that answered "topoImageUrl": "file:///etc/passwd" into a skipped
+        // topo rather than the NotSupportedException HttpClient throws for an unusable scheme
+        // — which the old download's catch filter didn't cover, so it poisoned the message.
+        if (!Uri.TryCreate(topoImageUrl, UriKind.Absolute, out var imageUri))
         {
-            using var client = httpClientFactory.CreateClient();
-            client.Timeout = DownloadTimeout;
-
-            using var response = await client.GetAsync(topoImageUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogInformation("enrichment topo skipped: download failed ({Status}) for {Url}", response.StatusCode, topoImageUrl);
-                return false;
-            }
-
-            contentType = response.Content.Headers.ContentType?.MediaType ?? "";
-            if (!MediaUploadService.AllowedImageContentTypes.Contains(contentType))
-            {
-                logger.LogInformation("enrichment topo skipped: unsupported content type {ContentType} for {Url}", contentType, topoImageUrl);
-                return false;
-            }
-
-            if (response.Content.Headers.ContentLength is > MaxDownloadBytes)
-            {
-                logger.LogInformation("enrichment topo skipped: too large for {Url}", topoImageUrl);
-                return false;
-            }
-
-            await using var stream = new MemoryStream();
-            await response.Content.CopyToAsync(stream, cancellationToken);
-            if (stream.Length > MaxDownloadBytes)
-            {
-                logger.LogInformation("enrichment topo skipped: too large for {Url}", topoImageUrl);
-                return false;
-            }
-
-            bytes = stream.ToArray();
+            logger.LogInformation("enrichment topo skipped: not an absolute url {Url}", topoImageUrl);
+            return false;
         }
-        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+
+        // Blocked address, non-2xx, redirect loop, or over PageFetcher's size cap — it has
+        // already logged which. The cap is now the import path's 5 MB rather than a second
+        // number maintained here, so both ways an image can become a Topo agree.
+        var fetched = await pageFetcher.FetchImageAsync(imageUri, cancellationToken);
+        if (fetched is null)
         {
-            logger.LogInformation(ex, "enrichment topo skipped: download error for {Url}", topoImageUrl);
+            logger.LogInformation("enrichment topo skipped: could not download {Url}", topoImageUrl);
+            return false;
+        }
+
+        var bytes = fetched.Bytes;
+        var contentType = fetched.ContentType;
+        if (!MediaUploadService.AllowedImageContentTypes.Contains(contentType))
+        {
+            logger.LogInformation("enrichment topo skipped: unsupported content type {ContentType} for {Url}", contentType, topoImageUrl);
             return false;
         }
 

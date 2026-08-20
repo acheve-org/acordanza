@@ -3600,6 +3600,7 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             uploadedBy: string;
+            canDelete: boolean;
         };
         UpdateAreaCoordinatesRequest: {
             polygon: components["schemas"]["GeoPointDto"][];

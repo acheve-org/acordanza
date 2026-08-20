@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeAreaDetail, makeRoute } from '../test/factories';
+import { makeAreaDetail, makeRoute, makeTopo } from '../test/factories';
 import { AreaPage } from './AreaPage';
 
 function LocationProbe({ onLocation }: { onLocation: (pathname: string, hasBackgroundLocation: boolean) => void }) {
@@ -81,15 +81,7 @@ describe('AreaPage', () => {
             slug: 'pena-rua',
             canManageMedia: true,
             media: uploaded
-              ? [
-                  {
-                    id: 1,
-                    url: 'https://example.com/photo.jpg',
-                    fileName: 'photo.jpg',
-                    createdAt: '2026-01-01T00:00:00Z',
-                    uploadedBy: 'Hugo',
-                  },
-                ]
+              ? [makeTopo({ id: 1, url: 'https://example.com/photo.jpg', fileName: 'photo.jpg', uploadedBy: 'Hugo' })]
               : [],
           }),
         ),

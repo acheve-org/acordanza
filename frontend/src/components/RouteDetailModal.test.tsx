@@ -204,6 +204,19 @@ describe('DetailModal two-column layout', () => {
     expect(screen.getByRole('heading', { name: 'Topos' })).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'topo.jpg' })).toBeInTheDocument();
   });
+
+  // Per photo, from the server (see ToposController): anyone may add a topo, only the
+  // uploader or someone who can edit the route may remove one. The route-level "Eliminar"
+  // is permission-gated separately and stays hidden here, so this query can't collide.
+  it('offers the topo remove button only for photos the caller may delete', () => {
+    const { unmount } = renderModal([], { topos: [makeTopo({ canDelete: true })] });
+    expect(screen.getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+    unmount();
+
+    renderModal([], { topos: [makeTopo({ canDelete: false })] });
+    expect(screen.queryByRole('button', { name: 'Eliminar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'topo.jpg' })).toBeInTheDocument();
+  });
 });
 
 // Plan 18 (route-enrichment-worker), issue #169.
