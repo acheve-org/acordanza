@@ -1,4 +1,12 @@
 <!doctype html>
+<!--
+  Response headers for this page live in staticwebapp.config.json next door —
+  Static Web Apps' globalHeaders, since there's no server here to set them.
+  Worth knowing before adding a <script>: the CSP there says script-src 'none',
+  which a page with no JavaScript at all can afford and which makes this the
+  most locked-down surface of the three. The inline <style> below is why
+  style-src carries 'unsafe-inline'.
+-->
 <html lang="es">
 <head>
 <meta charset="utf-8" />
