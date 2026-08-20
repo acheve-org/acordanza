@@ -26,3 +26,5 @@
 
 .list-row-clickable { cursor: pointer; }
 .list-row-clickable:hover { border-color: var(--accent); }
+
+.list-row-selected { border-color: var(--accent); background: var(--bg-card-hover); }

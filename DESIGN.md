@@ -211,7 +211,9 @@ renders nothing when the result fits on one page.
 **`List`/`ListRow`** — a vertical stack of bordered `{rounded.md}` rows, each a
 title/subtitle pair on the left and optional trailing content (a `RemoveButton`, one
 or more `Button`s) on the right. Pass `onClick` to make the whole row a target (e.g.
-opening a detail view) instead of just its trailing controls.
+opening a detail view) instead of just its trailing controls. `selected` (default
+false) swaps the border/background to `{colors.accent}`/`{colors.bg-card-hover}` —
+used by `ExplorePage` to highlight the row matching the map's currently selected area.
 
 **`Badge`** — a small filled `{colors.danger}` pill for a numeric count (caps the
 label at "99+"); renders nothing for a count of 0. Used inline (nav tabs, side-nav

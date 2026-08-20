@@ -1,6 +1,6 @@
 # Revamp `/explore`: viewport-driven two-column layout, geolocation, clustering
 
-Status: proposed
+Status: done
 Depends on: nothing structurally new. Builds on plan 23 (`AreaMap`/`AreaPolygonModal` stay `React.lazy`) and reuses the existing bbox-filtered `GET /areas` endpoint as-is — **no backend change, no migration, no OpenAPI regeneration.** Frontend + design-system only.
 
 ## Problem

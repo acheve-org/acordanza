@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, Marker, Polygon, Popup, TileLayer, useMapEvents } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import { Link } from 'react-router';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { Button } from 'acordanza-design-system';
-import * as areasApi from '../api/areas';
+import { deriveVisibleAreas, SUBAREA_ZOOM } from '../lib/exploreAreas';
 import type { AreaBounds, AreaSummary, GeoPoint } from '../api/types';
 
 // Vite bundles Leaflet's default marker icon paths incorrectly unless pointed
@@ -22,10 +25,12 @@ L.Icon.Default.mergeOptions({
 
 const SPAIN_CENTER: [number, number] = [40.4168, -3.7038];
 const SPAIN_ZOOM = 6;
-// Below this zoom, only top-level area markers are shown; at or above it, the
-// nearest top-level area's subareas are revealed as polygons.
-const SUBAREA_ZOOM = 12;
-const BOUNDS_FETCH_DEBOUNCE_MS = 300;
+
+export interface FlyTarget {
+  bounds?: [[number, number], [number, number]];
+  center?: [number, number];
+  zoom?: number;
+}
 
 function centroidOf(area: AreaSummary): GeoPoint | null {
   return area.centroidLat !== null && area.centroidLng !== null
@@ -55,82 +60,89 @@ function BoundsTracker({ onChange }: { onChange: (bounds: AreaBounds, zoom: numb
   return null;
 }
 
-export function AreaMap() {
-  const [areas, setAreas] = useState<AreaSummary[]>([]);
+export interface AreaMapProps {
+  areas: AreaSummary[];
+  onBoundsChange: (bounds: AreaBounds, zoom: number) => void;
+  selectedAreaId: number | null;
+  onSelectArea: (id: number | null) => void;
+  flyTarget: FlyTarget | null;
+  onLocateMe: () => void;
+  locating: boolean;
+}
+
+export function AreaMap({
+  areas,
+  onBoundsChange,
+  selectedAreaId,
+  onSelectArea,
+  flyTarget,
+  onLocateMe,
+  locating,
+}: AreaMapProps) {
   const [center, setCenter] = useState<L.LatLng | null>(null);
   const [zoom, setZoom] = useState(SPAIN_ZOOM);
-  const fetchHandle = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Bumped on every fetch actually sent, so a slow/out-of-order response can
-  // recognize it's stale (a newer fetch has since started) and skip setAreas.
-  const requestId = useRef(0);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRefs = useRef(new Map<number, L.Marker>());
+  const polygonRefs = useRef(new Map<number, L.Polygon>());
 
   function handleBoundsChange(bounds: AreaBounds, mapZoom: number) {
     setCenter(L.latLng((bounds.minLat + bounds.maxLat) / 2, (bounds.minLng + bounds.maxLng) / 2));
     setZoom(mapZoom);
-
-    if (fetchHandle.current) clearTimeout(fetchHandle.current);
-    fetchHandle.current = setTimeout(() => {
-      const thisRequestId = ++requestId.current;
-      areasApi.listAreas(bounds).then((fetched) => {
-        if (thisRequestId === requestId.current) setAreas(fetched);
-      });
-    }, BOUNDS_FETCH_DEBOUNCE_MS);
+    onBoundsChange(bounds, mapZoom);
   }
 
-  useEffect(() => {
-    return () => {
-      if (fetchHandle.current) clearTimeout(fetchHandle.current);
-    };
-  }, []);
-
-  const topLevelAreas = useMemo(() => areas.filter((a) => a.parentAreaId === null), [areas]);
-
-  const activeTopLevelArea = useMemo(() => {
-    if (!center || zoom < SUBAREA_ZOOM) return null;
-    let closest: AreaSummary | null = null;
-    let bestDistance = Infinity;
-    for (const area of topLevelAreas) {
-      const centroid = centroidOf(area);
-      if (!centroid) continue;
-      const distance = Math.hypot(centroid.lat - center.lat, centroid.lng - center.lng);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        closest = area;
-      }
-    }
-    return closest;
-  }, [topLevelAreas, center, zoom]);
-
-  const subareas = useMemo(
-    () => (activeTopLevelArea ? areas.filter((a) => a.parentAreaId === activeTopLevelArea.id) : []),
-    [areas, activeTopLevelArea],
+  const { topLevelAreas, activeTopLevelArea, subareas } = useMemo(
+    () => deriveVisibleAreas(areas, center, zoom),
+    [areas, center, zoom],
   );
+
+  useEffect(() => {
+    if (!flyTarget || !mapRef.current) return;
+    if (flyTarget.bounds) mapRef.current.fitBounds(flyTarget.bounds, { padding: [40, 40] });
+    else if (flyTarget.center) mapRef.current.flyTo(flyTarget.center, flyTarget.zoom ?? SUBAREA_ZOOM);
+  }, [flyTarget]);
+
+  useEffect(() => {
+    if (selectedAreaId == null) return;
+    markerRefs.current.get(selectedAreaId)?.openPopup();
+    polygonRefs.current.get(selectedAreaId)?.openPopup();
+  }, [selectedAreaId, topLevelAreas, subareas]);
 
   return (
     <div className="area-map-wrap">
-      <MapContainer center={SPAIN_CENTER} zoom={SPAIN_ZOOM} maxZoom={17} className="area-map">
+      <MapContainer ref={mapRef} center={SPAIN_CENTER} zoom={SPAIN_ZOOM} maxZoom={17} className="area-map">
         <TileLayer
           attribution='Datos: &copy; colaboradores de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, SRTM | Mapa: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
           url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
         />
         <BoundsTracker onChange={handleBoundsChange} />
 
-        {topLevelAreas.map((area) => {
-          const centroid = centroidOf(area);
-          if (!centroid) return null;
-          return (
-            <Marker key={area.id} position={[centroid.lat, centroid.lng]}>
-              <Popup>
-                <div className="area-map-popup">
-                  <span>{area.name}</span>
-                  <Button as={Link} variant="ghost" small to={`/areas/${area.slug}`}>
-                    Ver
-                  </Button>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+        <MarkerClusterGroup>
+          {topLevelAreas.map((area) => {
+            const centroid = centroidOf(area);
+            if (!centroid) return null;
+            return (
+              <Marker
+                key={area.id}
+                position={[centroid.lat, centroid.lng]}
+                ref={(marker) => {
+                  if (marker) markerRefs.current.set(area.id, marker);
+                  else markerRefs.current.delete(area.id);
+                }}
+                eventHandlers={{ click: () => onSelectArea(area.id) }}
+              >
+                <Popup>
+                  <div className="area-map-popup">
+                    <span>{area.name}</span>
+                    <Button as={Link} variant="ghost" small to={`/areas/${area.slug}`}>
+                      Ver
+                    </Button>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
+        </MarkerClusterGroup>
 
         {activeTopLevelArea && activeTopLevelArea.polygon.length > 0 && (
           <Polygon
@@ -145,6 +157,11 @@ export function AreaMap() {
               key={area.id}
               positions={area.polygon.map((p): [number, number] => [p.lat, p.lng])}
               pathOptions={{ color: '#38a169' }}
+              ref={(polygon) => {
+                if (polygon) polygonRefs.current.set(area.id, polygon);
+                else polygonRefs.current.delete(area.id);
+              }}
+              eventHandlers={{ click: () => onSelectArea(area.id) }}
             >
               <Popup>
                 <div className="area-map-popup">
@@ -158,6 +175,27 @@ export function AreaMap() {
           ) : null,
         )}
       </MapContainer>
+
+      <button
+        type="button"
+        className="area-map-locate"
+        onClick={onLocateMe}
+        disabled={locating}
+        aria-label="Ir a mi ubicación"
+        title="Ir a mi ubicación"
+      >
+        {locating ? (
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="9" strokeOpacity="0.25" />
+            <path d="M21 12a9 9 0 0 0-9-9" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+          </svg>
+        )}
+      </button>
     </div>
   );
 }

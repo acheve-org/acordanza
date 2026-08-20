@@ -11,7 +11,6 @@ export const queryKeys = {
   firstAscensionists: (q: string, page: number) => ['first-ascensionists', q, page] as const,
   firstAscensionistProfiles: (q: string) => ['first-ascensionists', 'profiles', q] as const,
   myTicks: (filters: TickFilters) => ['ticks', 'mine', filters] as const,
-  rootAreas: (page: number) => ['areas', 'roots', page] as const,
   myInvites: () => ['users', 'my-invites'] as const,
   myRouteImports: () => ['route-imports', 'mine'] as const,
   myAreaExperts: () => ['area-experts', 'mine'] as const,
