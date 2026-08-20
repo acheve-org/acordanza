@@ -116,12 +116,12 @@ describe('DetailModal new sections (plan 20)', () => {
       ],
     });
 
-    // Grade and length are the head's second identity pair now, not stats-row entries;
+    // Grade, length, gear and orientation are all in the head now, not stats-row entries;
     // the obligatory grade rides along inside the GradePill.
     expect(screen.getByText('28 m')).toBeInTheDocument();
     expect(screen.getByText('6a (6a)')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'Orientación: Sur' })).toBeInTheDocument();
-    expect(screen.getByText('Sur')).toBeInTheDocument();
+    expect(screen.getByText('S')).toBeInTheDocument();
     expect(screen.getByText('Equipada')).toBeInTheDocument();
     expect(screen.getByText('Material recomendado: Friends hasta 3')).toBeInTheDocument();
     expect(screen.getByText('Material opcional: Estribos')).toBeInTheDocument();
@@ -150,8 +150,7 @@ describe('DetailModal new sections (plan 20)', () => {
     });
 
     expect(screen.queryByText('Longitud')).not.toBeInTheDocument();
-    expect(screen.queryByText('Orientación')).not.toBeInTheDocument();
-    expect(screen.queryByText('Material', { selector: '.detail-stat-label' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Orientación/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Grado obligatorio/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Material recomendado/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Material opcional/)).not.toBeInTheDocument();
