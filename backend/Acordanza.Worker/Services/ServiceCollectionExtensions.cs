@@ -7,6 +7,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -70,7 +71,15 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<BlobStorageService>();
         services.AddSingleton<MediaUploadService>();
         services.AddScoped<AreaHierarchyService>();
-        services.AddHttpClient();
+
+        // The default (unnamed) client carries the same guarded handler as the named one
+        // registered further down. Nothing resolves it today — RouteEnrichmentService did,
+        // and that was the whole of its SSRF exposure: `CreateClient()` is one line, reads as
+        // harmless, and silently opts out of every protection PageFetcher.CreateHandler
+        // provides. Configuring the default means the next fetch someone adds to this worker
+        // is guarded by construction rather than by remembering which overload to call.
+        services.AddHttpClient(Options.DefaultName)
+            .ConfigurePrimaryHttpMessageHandler(PageFetcher.CreateHandler);
 
         // Route enrichment queue (Storage Queue on the same account topo images use).
         // Same dual-credential pattern as BlobStorageService: Azurite locally via a

@@ -109,6 +109,9 @@ export const makeTopo = (o: Partial<TopoDto> = {}): TopoDto => ({
   fileName: 'topo.jpg',
   createdAt: '2026-01-01T00:00:00Z',
   uploadedBy: 'Alex',
+  // The common case in a test is a photo the viewer put there themselves; pass
+  // canDelete: false for someone else's.
+  canDelete: true,
   ...o,
 });
 

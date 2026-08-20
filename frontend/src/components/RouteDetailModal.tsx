@@ -187,7 +187,13 @@ export function RouteDetailModal({
                       <a href={topo.url} target="_blank" rel="noreferrer">
                         <img src={topo.url} alt={topo.fileName} loading="lazy" />
                       </a>
-                      <RemoveButton variant="overlay" label="Eliminar" onClick={() => onDeleteTopo(topo.id)} />
+                      {/* Per photo, not per user: anyone may add a topo, but only whoever
+                          uploaded it (or someone who can edit the route) may remove it — see
+                          ToposController. The server answers that question so the button
+                          isn't offered where the API would return 403. */}
+                      {topo.canDelete && (
+                        <RemoveButton variant="overlay" label="Eliminar" onClick={() => onDeleteTopo(topo.id)} />
+                      )}
                     </div>
                   ))}
                 </div>

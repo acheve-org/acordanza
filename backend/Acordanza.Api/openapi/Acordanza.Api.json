@@ -5704,7 +5704,8 @@
           "url",
           "fileName",
           "createdAt",
-          "uploadedBy"
+          "uploadedBy",
+          "canDelete"
         ],
         "type": "object",
         "properties": {
@@ -5724,6 +5725,9 @@
           },
           "uploadedBy": {
             "type": "string"
+          },
+          "canDelete": {
+            "type": "boolean"
           }
         }
       },
