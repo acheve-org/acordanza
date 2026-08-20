@@ -42,6 +42,22 @@ describe('LoginScreen', () => {
     expect(await screen.findByText('Bienvenida, alex@example.com')).toBeInTheDocument();
   });
 
+  // The expiry notice replaces the marketing line rather than stacking under it — this is
+  // the one moment the screen has something more useful to say than what the app is.
+  it('explains an expired session instead of the usual subtitle', () => {
+    renderWithProviders(<LoginScreen />, { auth: { sessionExpired: true } });
+
+    expect(screen.getByRole('status')).toHaveTextContent('Tu sesión ha caducado');
+    expect(screen.queryByText(/Encuentra la ruta que quieres escalar/)).not.toBeInTheDocument();
+  });
+
+  it('shows the usual subtitle when the user simply logged out', () => {
+    renderWithProviders(<LoginScreen />, { auth: { sessionExpired: false } });
+
+    expect(screen.getByText(/Encuentra la ruta que quieres escalar/)).toBeInTheDocument();
+    expect(screen.queryByText(/caducado/)).not.toBeInTheDocument();
+  });
+
   it('shows the backend error message on a rejected login', async () => {
     const user = userEvent.setup();
     server.use(

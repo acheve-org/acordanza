@@ -7,7 +7,7 @@ import * as authApi from '../api/auth';
 import { Brand } from './Brand';
 
 export function LoginScreen() {
-  const { login, beginPasskeyLogin, completeLoginWithPasskey } = useAuth();
+  const { login, beginPasskeyLogin, completeLoginWithPasskey, sessionExpired } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -144,7 +144,15 @@ export function LoginScreen() {
         <div className="brand">
           <Brand />
         </div>
-        <p className="login-sub">Encuentra la ruta que quieres escalar. Solo para miembros.</p>
+        {/* Only when the API ended the session, never after pressing "Cerrar sesión" —
+            being returned here without explanation is what makes an expiry read as a bug. */}
+        {sessionExpired ? (
+          <p className="login-sub" role="status">
+            Tu sesión ha caducado. Vuelve a iniciar sesión para continuar.
+          </p>
+        ) : (
+          <p className="login-sub">Encuentra la ruta que quieres escalar. Solo para miembros.</p>
+        )}
         <form onSubmit={handleSubmit}>
           <label>
             Correo electrónico
