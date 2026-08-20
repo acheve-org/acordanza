@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, ConfirmModal, EmptyState, Pagination } from 'acordanza-design-system';
+import { Button, ConfirmModal, EmptyState, Icon, Pagination } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import { queryKeys } from '../api/queryKeys';
 import type { AreaNode } from '../api/types';
@@ -78,7 +78,7 @@ function AreaTreeNode({
             onClick={() => setExpanded((e) => !e)}
             aria-label={expanded ? 'Contraer' : 'Expandir'}
           >
-            {expanded ? '▾' : '▸'}
+            <Icon name="chevron" className={expanded ? 'icon-rotated' : undefined} />
           </button>
         ) : (
           <span className="area-tree-toggle-spacer" />
@@ -97,7 +97,7 @@ function AreaTreeNode({
                 })
               }
             >
-              + Subsector
+              <Icon name="add" size="sm" /> Subsector
             </Button>
           )}
           {canEdit && (
@@ -107,12 +107,12 @@ function AreaTreeNode({
           )}
           {canEdit && (
             <Button variant="ghost" small type="button" onClick={() => setEditModal(true)}>
-              Editar
+              <Icon name="edit" size="sm" /> Editar
             </Button>
           )}
           {canDelete && (
             <Button variant="ghost" small danger type="button" onClick={() => setConfirmingDelete(true)}>
-              Eliminar
+              <Icon name="delete" size="sm" /> Eliminar
             </Button>
           )}
         </div>

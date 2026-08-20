@@ -54,6 +54,18 @@ describe('RouteCard grade band', () => {
   });
 });
 
+describe('RouteCard tick icon', () => {
+  it('renders the tick icon with its accessible name when hasTick is true', () => {
+    render(<RouteCard route={makeRoute({ hasTick: true })} onClick={() => {}} />);
+    expect(screen.getByRole('img', { name: 'Ya la has registrado' })).toBeInTheDocument();
+  });
+
+  it('omits the tick icon when hasTick is false', () => {
+    render(<RouteCard route={makeRoute({ hasTick: false })} onClick={() => {}} />);
+    expect(screen.queryByRole('img', { name: 'Ya la has registrado' })).not.toBeInTheDocument();
+  });
+});
+
 describe('RouteCard meta line', () => {
   it('renders the orientation needle, abbreviation, length, and gear when present', () => {
     render(<RouteCard route={makeRoute({ orientation: 'south', length: 28, gear: 'bolted' })} onClick={() => {}} />);

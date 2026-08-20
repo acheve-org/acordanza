@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Badge, Button, EmptyState, List, ListRow } from 'acordanza-design-system';
+import { Badge, Button, EmptyState, Icon, List, ListRow } from 'acordanza-design-system';
 import * as routesApi from '../api/routes';
 import * as areasApi from '../api/areas';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
@@ -181,10 +181,10 @@ export function PendingTasksPage() {
                   trailing={
                     <>
                       <Button variant="ghost" small type="button" onClick={() => validateAreaMutation.mutate(a.id)}>
-                        Validar
+                        <Icon name="check" size="sm" /> Validar
                       </Button>
                       <Button variant="ghost" small danger type="button" onClick={() => setRejectingArea(a)}>
-                        Rechazar
+                        <Icon name="reject" size="sm" /> Rechazar
                       </Button>
                     </>
                   }
@@ -233,10 +233,10 @@ export function PendingTasksPage() {
                         type="button"
                         onClick={() => validateFirstAscensionistMutation.mutate(o.id)}
                       >
-                        Validar
+                        <Icon name="check" size="sm" /> Validar
                       </Button>
                       <Button variant="ghost" small danger type="button" onClick={() => setRejectingFirstAscensionist(o)}>
-                        Rechazar
+                        <Icon name="reject" size="sm" /> Rechazar
                       </Button>
                     </>
                   }

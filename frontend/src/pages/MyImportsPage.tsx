@@ -1,7 +1,7 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Chip, ConfirmModal, EmptyState, List, ListRow } from 'acordanza-design-system';
+import { Button, Chip, ConfirmModal, EmptyState, Icon, List, ListRow } from 'acordanza-design-system';
 import type { ChipStatus } from 'acordanza-design-system';
 import * as routeImportsApi from '../api/routeImports';
 import { queryKeys } from '../api/queryKeys';
@@ -204,7 +204,7 @@ export function MyImportsPage() {
                         from here should mean a stale list, not a real user choice. */}
                     {(item.status === 'discarded' || item.status === 'failed') && (
                       <Button variant="ghost" small danger type="button" onClick={() => setDeleting(item)}>
-                        Eliminar
+                        <Icon name="delete" size="sm" /> Eliminar
                       </Button>
                     )}
                     <Chip status={chipStatus[item.status]}>{routeImportStatusLabels[item.status]}</Chip>

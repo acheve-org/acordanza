@@ -756,6 +756,9 @@ input:focus, select:focus, textarea:focus {
 .users-sort-bar { display: flex; align-items: center; gap: var(--space-md); }
 .users-sort-label { color: var(--text-dim); font-size: 13px; }
 .sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xxs);
   background: none;
   border: none;
   color: inherit;

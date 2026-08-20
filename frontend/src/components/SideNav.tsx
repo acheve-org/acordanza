@@ -1,5 +1,6 @@
 import { useId } from 'react';
 import type { ReactNode } from 'react';
+import { Icon } from 'acordanza-design-system';
 import { useDisclosure } from '../hooks/useDisclosure';
 
 export function SideNav({ title, children }: { title: string; children: ReactNode }) {
@@ -20,9 +21,7 @@ export function SideNav({ title, children }: { title: string; children: ReactNod
           ref={triggerRef}
           onClick={toggle}
         >
-          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" />
-          </svg>
+          <Icon name="menu" />
         </button>
       </div>
       <div id={itemsId} className={`side-nav-items nav-popup${open ? ' is-open' : ''}`}>

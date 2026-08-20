@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Chip, EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
+import { Button, Chip, EmptyState, Icon, List, ListRow, Pagination } from 'acordanza-design-system';
 import * as usersApi from '../api/users';
 import { queryKeys } from '../api/queryKeys';
 import type { PagedUsers, UserAccount, UserFilters } from '../api/types';
@@ -111,7 +111,7 @@ export function UsersPage() {
             <span className="users-sort-label">Ordenar por</span>
             {columns.map((col) => (
               <button key={col.key} type="button" className="sort-btn" onClick={() => toggleSort(col.key)}>
-                {col.label}
+                <Icon name="sort" size="sm" /> {col.label}
                 {filters.sortBy === col.key && (filters.sortDir === 'asc' ? ' ▲' : ' ▼')}
               </button>
             ))}

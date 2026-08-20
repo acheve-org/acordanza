@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, Chip, Combobox, ModalActions } from 'acordanza-design-system';
+import { Button, Chip, Combobox, Icon, ModalActions } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import { queryKeys } from '../api/queryKeys';
 import type { FirstAscensionistSummary } from '../api/types';
@@ -84,7 +84,7 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
       {canCreate &&
         (!showCreate ? (
           <Button variant="ghost" small type="button" onClick={() => setShowCreate(true)}>
-            + Nuevo aperturista
+            <Icon name="add" size="sm" /> Nuevo aperturista
           </Button>
         ) : (
           <div className="combo-create-form">

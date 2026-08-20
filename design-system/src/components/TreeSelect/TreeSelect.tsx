@@ -1,4 +1,5 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { Icon } from '../Icon/Icon'
 import { buildIndex, normalise, prune } from './treeFilter'
 import './TreeSelect.css'
 
@@ -382,7 +383,7 @@ export function TreeSelect({
               toggleExpanded(node.id)
             }}
           >
-            {expanded ? '−' : '+'}
+            <Icon name="chevron" className={expanded ? 'icon-rotated' : undefined} />
           </button>
         )}
         <span className="tree-select-row-label">
@@ -403,7 +404,7 @@ export function TreeSelect({
               onCreateChild(node.id)
             }}
           >
-            +
+            <Icon name="add" size="sm" />
           </button>
         )}
       </div>

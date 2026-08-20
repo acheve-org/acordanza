@@ -167,10 +167,10 @@ against whatever's behind it.
 
 ## Components
 
-Source of truth for implementation is `design-system/src/` (13 components: `Button`,
+Source of truth for implementation is `design-system/src/` (14 components: `Button`,
 `Chip`, `EmptyState`, `GradePill`, `Modal`/`ModalActions`, `Pagination`, `List`/`ListRow`,
-`Badge`, `RemoveButton`, `Combobox`, `CompassRose`/`CompassPicker`, `TreeSelect`) — read
-the component CSS there for exact rules.
+`Badge`, `RemoveButton`, `Combobox`, `CompassRose`/`CompassPicker`, `TreeSelect`, `Icon`) —
+read the component CSS there for exact rules.
 This section documents intent, not a duplicate spec. `design-system/` carries its own
 Vitest + Testing Library setup (`bun run test` from `design-system/`, wired into CI
 alongside `frontend/`'s), covering keyboard/focus behaviour that a screenshot can't
@@ -279,6 +279,22 @@ row plus one at the popup's foot, so the parent is implied by where you clicked 
 than needing a second picker to choose it. Dropdown on desktop; under `styles.css`'s
 720px breakpoint the same markup becomes a full-screen sheet (the `nav-popup`
 technique) rather than a cramped scroll well under a phone's on-screen keyboard.
+
+**`Icon`** (plan 39) — a name-keyed lookup over a curated set of outline SVG icons
+(`edit`, `delete`, `add`, `search`, `check`, `reject`, `close`, `chevron`, `menu`,
+`bell`, `settings`, `logout`, `sort`), replacing hand-rolled/duplicated inline `<svg>`s
+and literal text/Unicode glyphs (`&times;`, `▾`/`▸`, `✓`/`✗`) across the app. Outline,
+not filled — `fill="none" stroke="currentColor" strokeWidth={1.75}
+strokeLinecap="round" strokeLinejoin="round"`, the same convention `HomePage`'s card
+icons already used — so new icons can be adapted straight from open outline sets
+(Lucide, Feather) without redrawing. `size` is `sm`/`md`/`lg` (16/20/24px, matching the
+18–24px already in use across the app); `label` switches the icon from decorative
+(`aria-hidden`, the default, for an icon sitting beside visible text) to `role="img"`
+with that accessible name (for an icon-only control). `chevron` is a single glyph
+rotated via a CSS class (`icon-rotated`, 90deg) rather than two separate up/down
+icons — the same technique `.route-form-details summary::before` already used for its
+own disclosure marker. No sprite sheet or build step: inline SVG per icon, same as
+`CompassRose`'s precedent.
 
 ## Do's and Don'ts
 

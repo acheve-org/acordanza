@@ -53,3 +53,8 @@ export {
   labelPoint,
 } from './components/Compass/compass'
 export type { Orientation } from './components/Compass/compass'
+
+export { Icon } from './components/Icon/Icon'
+export type { IconProps } from './components/Icon/Icon'
+export { icons } from './components/Icon/icons'
+export type { IconName } from './components/Icon/icons'

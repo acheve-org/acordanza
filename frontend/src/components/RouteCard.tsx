@@ -1,4 +1,4 @@
-import { Chip, GradePill, gradeBand } from 'acordanza-design-system';
+import { Chip, GradePill, gradeBand, Icon } from 'acordanza-design-system';
 import type { RouteSummary } from '../api/types';
 import { validationStatusLabels } from '../api/types';
 import { RouteMeta } from './RouteMeta';
@@ -28,10 +28,7 @@ export function RouteCard({ route, onClick }: Props) {
             </svg>
           )}
           {route.hasTick && (
-            <svg className="rc-tick-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-label="Ya la has registrado">
-              <title>Ya la has registrado</title>
-              <path d="M5 13l4 4L19 7" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Icon name="check" size="sm" className="rc-tick-icon" label="Ya la has registrado" />
           )}
         </div>
       </div>
