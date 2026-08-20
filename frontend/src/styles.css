@@ -8,6 +8,9 @@
   /* Shared width cap for the app's "boxed" pages (settings/users/areas) — routes/map
      are fluid instead, see DESIGN.md's Layout section. */
   --page-max-width: 1100px;
+  /* .topbar's own height — kept as a variable (not a literal) because .filters/.side-nav
+     use it to offset their sticky `top` below the now-sticky header, see those rules. */
+  --topbar-height: 64px;
 }
 
 * { box-sizing: border-box; }
@@ -146,15 +149,22 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
-/* App shell — component.nav-bar */
+/* App shell — component.nav-bar. Sticky (not fixed): stays pinned at the top of the
+   single page scrollbar once reached, rather than reserving space up front — same
+   mechanism .filters/.side-nav already use, just anchored at the very top. Needs an
+   explicit background now that page content scrolls underneath it. */
 .topbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-xxl);
-  min-height: 64px;
+  min-height: var(--topbar-height);
   padding: 0 var(--space-xxl);
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg);
 }
 .topbar-right { display: flex; align-items: center; gap: var(--space-lg); margin-left: auto; }
 #who { color: var(--text-dim); font-size: 14px; }
@@ -336,7 +346,7 @@ input:focus, select:focus, textarea:focus {
   flex-direction: column;
   gap: var(--space-sm);
   position: sticky;
-  top: var(--space-xxl);
+  top: calc(var(--topbar-height) + var(--space-xxl));
   align-self: start;
 }
 .filters h2 {
@@ -779,7 +789,7 @@ input:focus, select:focus, textarea:focus {
   flex-direction: column;
   gap: var(--space-xs);
   position: sticky;
-  top: var(--space-xxl);
+  top: calc(var(--topbar-height) + var(--space-xxl));
   align-self: start;
 }
 /* Same `display: contents` trick as .main-nav-items — see that comment. On desktop the
@@ -966,8 +976,10 @@ input:focus, select:focus, textarea:focus {
   .nav-popup .main-nav-item { padding: var(--space-sm) var(--space-md); }
 
   /* Side nav (Gestionar/Mi acordanza) collapses the same way, with the trigger to the
-     right of the section name instead of the brand. */
-  .side-nav { position: relative; }
+     right of the section name instead of the brand. `top: 0` resets the desktop sticky
+     offset — position: relative still honors `top`, so without this the side nav would
+     render pushed down by --topbar-height + --space-xxl on mobile for no reason. */
+  .side-nav { position: relative; top: 0; }
   .side-nav-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
   .side-nav-header h2 { margin: 0; }
 
