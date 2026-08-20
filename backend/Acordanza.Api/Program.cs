@@ -468,7 +468,42 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseForwardedHeaders();
+
+// Skipped in Development, where the API is plain HTTP on localhost and an HSTS
+// header would pin the whole of localhost to HTTPS in the developer's browser —
+// including any other project on another port. UseHttpsRedirection above is what
+// makes this honest in production; the max-age is a year, without
+// includeSubDomains (the API, the app and the landing page are three separate
+// hostnames under one apex, and this header should only speak for its own).
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
+
+// Response hardening for an API that only ever returns JSON. Set before the
+// pipeline runs so they also land on 401/403/404 and on anything the exception
+// handler produces, not just on successful actions.
+//
+// The CSP is the strictest one there is: nothing here is a document, so nothing
+// here may load a script, a frame or an image. It matters because a JSON
+// response is still renderable if a browser can be talked into treating it as a
+// document — nosniff and this between them close that off. frame-ancestors
+// stops the API being framed for clickjacking; the frontend's own headers (see
+// frontend/nginx.conf) say the same for the app itself.
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'";
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    // no-referrer rather than the frontend's strict-origin-when-cross-origin:
+    // this app's URLs carry ids and slugs, and an API request has no legitimate
+    // reason to tell a third party which one it was.
+    headers["Referrer-Policy"] = "no-referrer";
+    await next();
+});
 
 app.UseCors("Frontend");
 
