@@ -1,6 +1,6 @@
 # Explore list: depth color+icon instead of "Con sectores"/"Sin sectores"
 
-Status: proposed
+Status: done
 Depends on: [37](37-explore-map-revamp.md) — this revises just plan 37 §7 (List content); the map/list/geolocation/clustering machinery it built stays untouched. No backend change, no migration, no OpenAPI regeneration. Frontend + design-system only.
 
 ## Problem

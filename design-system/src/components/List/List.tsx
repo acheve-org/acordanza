@@ -13,6 +13,8 @@ export function List({ children }: ListProps) {
 export interface ListRowProps {
   title: ReactNode
   subtitle?: ReactNode
+  /** Left of title/subtitle — an icon, typically. */
+  leading?: ReactNode
   /** Right-aligned content — a remove button, one or more `Button`s, or omitted entirely. */
   trailing?: ReactNode
   /** Makes the whole row clickable (e.g. opening a detail view), instead of just `trailing`'s controls. */
@@ -22,7 +24,7 @@ export interface ListRowProps {
   ref?: Ref<HTMLLIElement>
 }
 
-export function ListRow({ title, subtitle, trailing, onClick, selected, ref }: ListRowProps) {
+export function ListRow({ title, subtitle, leading, trailing, onClick, selected, ref }: ListRowProps) {
   const classNames = [
     'list-row',
     onClick && 'list-row-clickable',
@@ -33,6 +35,7 @@ export function ListRow({ title, subtitle, trailing, onClick, selected, ref }: L
 
   return (
     <li ref={ref} className={classNames} onClick={onClick}>
+      {leading && <div className="list-row-leading">{leading}</div>}
       <div className="list-row-main">
         <div className="list-row-title">{title}</div>
         {subtitle && <div className="list-row-subtitle">{subtitle}</div>}

@@ -19,4 +19,14 @@ describe('ListRow', () => {
     )
     expect(screen.getByText('Peña Rúa').closest('li')).not.toHaveClass('list-row-selected')
   })
+
+  it('renders leading content inside list-row-leading', () => {
+    render(
+      <List>
+        <ListRow title="Peña Rúa" leading={<span data-testid="icon" />} />
+      </List>,
+    )
+    const leading = screen.getByTestId('icon').closest('.list-row-leading')
+    expect(leading).not.toBeNull()
+  })
 })

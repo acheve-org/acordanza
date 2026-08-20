@@ -23,6 +23,8 @@ colors:
   danger: "#d13a4a"
   grade-orange: "#b45309"
   grade-purple: "#6b21a8"
+  depth-root: "#3182ce"
+  depth-subarea: "#38a169"
 
 typography:
   display:
@@ -108,6 +110,8 @@ reserved for `GradePill` and success/positive states.
 - **Danger Background/Border** (`{colors.danger-bg}` / `{colors.danger-border}`): `Chip`'s `rejected` status fill and border, both derived from `{colors.danger}` at low opacity.
 - **Grade Orange** (`{colors.grade-orange}` — `#b45309`): `GradePill`'s foreground for French grade 6, plus its low-opacity fill/border.
 - **Grade Purple** (`{colors.grade-purple}` — `#6b21a8`): `GradePill`'s foreground for French grades 8–9, plus its low-opacity fill/border. Deliberately not `{colors.primary}` — the brand cobalt means "loudest action" and must not start also meaning "hard route".
+- **Depth Root** (`{colors.depth-root}` — `#3182ce`): root-area indicator — `ExplorePage`'s list icon and `AreaMap`'s active top-level polygon.
+- **Depth Subarea** (`{colors.depth-subarea}` — `#38a169`): the same, one level down.
 
 `GradePill` colours itself by French-scale band (issue #152), one of five:
 
@@ -210,7 +214,8 @@ renders nothing when the result fits on one page.
 
 **`List`/`ListRow`** — a vertical stack of bordered `{rounded.md}` rows, each a
 title/subtitle pair on the left and optional trailing content (a `RemoveButton`, one
-or more `Button`s) on the right. Pass `onClick` to make the whole row a target (e.g.
+or more `Button`s) on the right, plus an optional `leading` slot (an icon, typically)
+before the title/subtitle. Pass `onClick` to make the whole row a target (e.g.
 opening a detail view) instead of just its trailing controls. `selected` (default
 false) swaps the border/background to `{colors.accent}`/`{colors.bg-card-hover}` —
 used by `ExplorePage` to highlight the row matching the map's currently selected area.

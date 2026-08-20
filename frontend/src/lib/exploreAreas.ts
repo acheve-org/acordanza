@@ -12,6 +12,11 @@ export const SUBAREA_ZOOM = 12;
 // Approximate by design, not a computed radius.
 export const DEFAULT_LOCATION_ZOOM = 9;
 
+// Kept in sync by hand with tokens.css's --depth-root/--depth-subarea — AreaMap
+// needs a literal color string for Leaflet's SVG renderer (see AreaMap.tsx), which can't
+// resolve a CSS custom property the way a normal DOM style can.
+export const DEPTH_COLORS = { root: '#3182ce', subarea: '#38a169' } as const;
+
 function centroidOf(area: AreaSummary): GeoPoint | null {
   return area.centroidLat !== null && area.centroidLng !== null
     ? { lat: area.centroidLat, lng: area.centroidLng }

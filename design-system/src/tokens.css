@@ -44,6 +44,8 @@
   --grade-8-9: var(--color-grade-purple);
   --grade-8-9-bg: rgba(107, 33, 168, 0.08);
   --grade-8-9-border: rgba(107, 33, 168, 0.24);
+  --depth-root: #3182ce;
+  --depth-subarea: #38a169;
   --border: var(--color-hairline);
   --border-strong: var(--color-hairline-strong);
   --chip-bg: rgba(0, 0, 0, 0.04);
