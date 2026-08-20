@@ -17,14 +17,24 @@ namespace Acordanza.Api.Controllers;
 [Route("api/first-ascensionists")]
 public class FirstAscensionistsController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
 {
+    private const int DefaultPageSize = 10;
+    private const int MaxPageSize = 100;
+
+    // unlinkedOnly narrows to records with no linked account — RequestFirstAscensionistLinkModal's
+    // candidate list (a claimant can only request a still-unlinked opener), filtered here rather
+    // than client-side so TotalCount/paging reflect what's actually offered, not the raw table.
     [HttpGet]
-    public async Task<ActionResult<List<FirstAscensionistDto>>> GetFirstAscensionists(
-        [FromQuery] string? q, [FromQuery] bool includeUnvalidated = false)
+    public async Task<ActionResult<PagedFirstAscensionistsResponse>> GetFirstAscensionists(
+        [FromQuery] string? q, [FromQuery] bool includeUnvalidated = false, [FromQuery] bool unlinkedOnly = false,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
         if (includeUnvalidated && !User.HasClaim("permission", Permissions.FirstAscensionistValidate))
         {
             return Forbid();
         }
+
+        if (page < 1) page = 1;
+        if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
 
         var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).AsQueryable();
         if (!includeUnvalidated)
@@ -37,12 +47,20 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             query = query.Where(o => o.Name.Contains(q));
         }
 
+        if (unlinkedOnly)
+        {
+            query = query.Where(o => o.UserId == null);
+        }
+
+        var totalCount = await query.CountAsync();
         var firstAscensionists = await query
             .OrderBy(o => o.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(o => new FirstAscensionistDto(o.Id, o.Name, o.UserId, o.User != null ? o.User.Name : null))
             .ToListAsync();
 
-        return Ok(firstAscensionists);
+        return Ok(new PagedFirstAscensionistsResponse(firstAscensionists, totalCount, page, pageSize));
     }
 
     // Backs the "Sigue" section (issue #108): the same list, plus how much each one has

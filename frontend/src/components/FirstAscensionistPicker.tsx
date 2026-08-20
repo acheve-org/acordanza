@@ -22,11 +22,15 @@ export function FirstAscensionistPicker({ value, onChange }: Props) {
 
   // Same rule as AreaPicker: the dropdown refetches on open (via `refetch`), so the up-front
   // fetch only happens when there's already a selection whose chips need names (editing a
-  // route). On /routes/new nothing is fetched until the picker is opened.
+  // route). On /routes/new nothing is fetched until the picker is opened. GET /first-ascensionists
+  // is paginated server-side (10/page by default) for the management/claim screens, but this
+  // combobox still wants the whole set to filter client-side as the user types and to resolve
+  // an arbitrary already-selected id's name — pageSize requests the backend's own cap instead.
   const { data: firstAscensionists = [], refetch } = useQuery({
     queryKey: queryKeys.firstAscensionistList(),
-    queryFn: () => firstAscensionistsApi.listFirstAscensionists(),
+    queryFn: () => firstAscensionistsApi.listFirstAscensionists({ pageSize: 100 }),
     enabled: value.length > 0,
+    select: (data) => data.items,
   });
 
   const byId = useMemo(() => new Map(firstAscensionists.map((o) => [o.id, o])), [firstAscensionists]);

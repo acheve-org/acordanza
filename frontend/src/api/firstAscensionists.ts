@@ -1,15 +1,32 @@
 import { api } from './client';
-import type { FirstAscensionistPending, FirstAscensionistProfile, FirstAscensionistSummary } from './types';
+import type {
+  FirstAscensionistPending,
+  FirstAscensionistProfile,
+  FirstAscensionistSummary,
+  PagedFirstAscensionists,
+} from './types';
 
-// `includeUnvalidated` opts out of the default approved-or-mine filter — refused (403)
-// unless the caller holds first-ascensionist.validate. Only FirstAscensionistsPage
-// (/manage/first-ascensionists) passes it.
-export function listFirstAscensionists(q?: string, includeUnvalidated = false): Promise<FirstAscensionistSummary[]> {
-  const params = new URLSearchParams();
-  if (q) params.set('q', q);
-  if (includeUnvalidated) params.set('includeUnvalidated', 'true');
-  const qs = params.toString();
-  return api.get<FirstAscensionistSummary[]>(`/first-ascensionists${qs ? `?${qs}` : ''}`);
+export interface ListFirstAscensionistsParams {
+  q?: string;
+  // Opts out of the default approved-or-mine filter — refused (403) unless the caller
+  // holds first-ascensionist.validate. Only FirstAscensionistsPage (/manage/first-ascensionists) passes it.
+  includeUnvalidated?: boolean;
+  // Narrows to records with no linked account — RequestFirstAscensionistLinkModal's candidate
+  // list, filtered server-side so totalCount/paging reflect what's actually offered.
+  unlinkedOnly?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export function listFirstAscensionists(params: ListFirstAscensionistsParams = {}): Promise<PagedFirstAscensionists> {
+  const { q, includeUnvalidated = false, unlinkedOnly = false, page = 1, pageSize = 10 } = params;
+  const search = new URLSearchParams();
+  if (q) search.set('q', q);
+  if (includeUnvalidated) search.set('includeUnvalidated', 'true');
+  if (unlinkedOnly) search.set('unlinkedOnly', 'true');
+  search.set('page', String(page));
+  search.set('pageSize', String(pageSize));
+  return api.get<PagedFirstAscensionists>(`/first-ascensionists?${search.toString()}`);
 }
 
 // The review queue's view of not-yet-decided first ascensionists.

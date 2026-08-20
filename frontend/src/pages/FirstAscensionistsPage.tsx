@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, ConfirmModal, EmptyState, List, ListRow } from 'acordanza-design-system';
+import { Button, ConfirmModal, EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import { queryKeys } from '../api/queryKeys';
-import type { FirstAscensionistSummary } from '../api/types';
+import type { FirstAscensionistSummary, PagedFirstAscensionists } from '../api/types';
 import { Permissions } from '../api/permissions';
 import { errorMessage } from '../api/errorMessage';
 import { useAuth } from '../hooks/useAuth';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { FirstAscensionistNameModal } from '../components/FirstAscensionistNameModal';
+
+const PAGE_SIZE = 10;
+
+const emptyResult: PagedFirstAscensionists = { items: [], totalCount: 0, page: 1, pageSize: PAGE_SIZE };
 
 export function FirstAscensionistsPage() {
   const { hasPermission } = useAuth();
@@ -22,15 +26,27 @@ export function FirstAscensionistsPage() {
   const canEdit = hasPermission(Permissions.firstAscensionistEdit);
 
   const [q, setQ] = useState('');
+  const [page, setPage] = useState(1);
   const [createModal, setCreateModal] = useState(false);
   const [editing, setEditing] = useState<FirstAscensionistSummary | null>(null);
   const [deleting, setDeleting] = useState<FirstAscensionistSummary | null>(null);
 
   const debouncedQ = useDebouncedValue(q);
 
-  const { data: items = [], error } = useQuery({
-    queryKey: queryKeys.firstAscensionists(debouncedQ),
-    queryFn: () => firstAscensionistsApi.listFirstAscensionists(debouncedQ || undefined, true),
+  function handleQChange(value: string) {
+    setQ(value);
+    setPage(1);
+  }
+
+  const { data: result = emptyResult, error } = useQuery({
+    queryKey: queryKeys.firstAscensionists(debouncedQ, page),
+    queryFn: () =>
+      firstAscensionistsApi.listFirstAscensionists({
+        q: debouncedQ || undefined,
+        includeUnvalidated: true,
+        page,
+        pageSize: PAGE_SIZE,
+      }),
     enabled: canManage,
   });
 
@@ -57,36 +73,39 @@ export function FirstAscensionistsPage() {
       </div>
 
       <div className="users-toolbar">
-        <input type="text" placeholder="Buscar por nombre…" value={q} onChange={(e) => setQ(e.target.value)} />
+        <input type="text" placeholder="Buscar por nombre…" value={q} onChange={(e) => handleQChange(e.target.value)} />
       </div>
 
       {error && <p className="error-text">{errorMessage(error, 'No se pudieron cargar los aperturistas')}</p>}
       {deleteError && <p className="error-text">{deleteError}</p>}
 
-      {items.length === 0 ? (
+      {result.items.length === 0 ? (
         <EmptyState>No se han encontrado aperturistas</EmptyState>
       ) : (
-        <List>
-          {items.map((fa) => (
-            <ListRow
-              key={fa.id}
-              title={fa.name}
-              subtitle={fa.linkedUserName ? `Usuario vinculado: ${fa.linkedUserName}` : undefined}
-              trailing={
-                <>
-                  {canEdit && (
-                    <Button variant="ghost" small type="button" onClick={() => setEditing(fa)}>
-                      Editar
+        <>
+          <List>
+            {result.items.map((fa) => (
+              <ListRow
+                key={fa.id}
+                title={fa.name}
+                subtitle={fa.linkedUserName ? `Usuario vinculado: ${fa.linkedUserName}` : undefined}
+                trailing={
+                  <>
+                    {canEdit && (
+                      <Button variant="ghost" small type="button" onClick={() => setEditing(fa)}>
+                        Editar
+                      </Button>
+                    )}
+                    <Button variant="ghost" small danger type="button" onClick={() => setDeleting(fa)}>
+                      Eliminar
                     </Button>
-                  )}
-                  <Button variant="ghost" small danger type="button" onClick={() => setDeleting(fa)}>
-                    Eliminar
-                  </Button>
-                </>
-              }
-            />
-          ))}
-        </List>
+                  </>
+                }
+              />
+            ))}
+          </List>
+          <Pagination page={page} totalCount={result.totalCount} pageSize={result.pageSize} onPageChange={setPage} />
+        </>
       )}
 
       {createModal && (

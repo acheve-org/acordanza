@@ -241,10 +241,10 @@ public class ValidationVisibilityTests(ApiFixture fixture) : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var fa = await SeedData.CreateFirstAscensionistAsync(db, $"Approved Opener {Guid.NewGuid():N}", validated: true);
 
-        var openers = await stranger.Client.GetFromJsonAsync<List<FirstAscensionistDto>>(
+        var openers = await stranger.Client.GetFromJsonAsync<PagedFirstAscensionistsResponse>(
             "/api/first-ascensionists", TestContext.Current.CancellationToken);
 
-        openers!.ShouldContain(o => o.Id == fa.Id);
+        openers!.Items.ShouldContain(o => o.Id == fa.Id);
     }
 
     [Fact]
@@ -258,13 +258,13 @@ public class ValidationVisibilityTests(ApiFixture fixture) : IntegrationTestBase
         fa.AddedByUserId = author.UserId;
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var strangerOpeners = await stranger.Client.GetFromJsonAsync<List<FirstAscensionistDto>>(
+        var strangerOpeners = await stranger.Client.GetFromJsonAsync<PagedFirstAscensionistsResponse>(
             "/api/first-ascensionists", TestContext.Current.CancellationToken);
-        strangerOpeners!.ShouldNotContain(o => o.Id == fa.Id);
+        strangerOpeners!.Items.ShouldNotContain(o => o.Id == fa.Id);
 
-        var authorOpeners = await author.Client.GetFromJsonAsync<List<FirstAscensionistDto>>(
+        var authorOpeners = await author.Client.GetFromJsonAsync<PagedFirstAscensionistsResponse>(
             "/api/first-ascensionists", TestContext.Current.CancellationToken);
-        authorOpeners!.ShouldContain(o => o.Id == fa.Id);
+        authorOpeners!.Items.ShouldContain(o => o.Id == fa.Id);
     }
 
     [Fact]
@@ -289,10 +289,10 @@ public class ValidationVisibilityTests(ApiFixture fixture) : IntegrationTestBase
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var pending = await SeedData.CreateFirstAscensionistAsync(db, $"Pending Opener {Guid.NewGuid():N}", validated: false);
 
-        var openers = await moderator.Client.GetFromJsonAsync<List<FirstAscensionistDto>>(
+        var openers = await moderator.Client.GetFromJsonAsync<PagedFirstAscensionistsResponse>(
             "/api/first-ascensionists?includeUnvalidated=true", TestContext.Current.CancellationToken);
 
-        openers!.ShouldContain(o => o.Id == pending.Id);
+        openers!.Items.ShouldContain(o => o.Id == pending.Id);
     }
 
     [Fact]

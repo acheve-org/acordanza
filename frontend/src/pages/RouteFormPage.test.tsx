@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeAreaTreeNode, makeRouteDetail } from '../test/factories';
+import { makeAreaTreeNode, makePagedFirstAscensionists, makeRouteDetail } from '../test/factories';
 import { RouteFormPage } from './RouteFormPage';
 
 // The save handler always follows up its POST/PUT with a GET /routes/{id} to learn the
@@ -227,7 +227,9 @@ describe('RouteFormPage', () => {
       http.get(`${API_URL}/areas/tree`, () =>
         HttpResponse.json([makeAreaTreeNode({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
       ),
-      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(routeDetail.firstAscensionists)),
+      http.get(`${API_URL}/first-ascensionists`, () =>
+        HttpResponse.json(makePagedFirstAscensionists({ items: routeDetail.firstAscensionists })),
+      ),
       http.put(`${API_URL}/routes/7`, () => HttpResponse.json({ ok: true })),
     );
 
@@ -263,7 +265,9 @@ describe('RouteFormPage', () => {
       http.get(`${API_URL}/areas/tree`, () =>
         HttpResponse.json([makeAreaTreeNode({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
       ),
-      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(routeDetail.firstAscensionists)),
+      http.get(`${API_URL}/first-ascensionists`, () =>
+        HttpResponse.json(makePagedFirstAscensionists({ items: routeDetail.firstAscensionists })),
+      ),
     );
 
     renderEditForm(7);
@@ -349,7 +353,9 @@ describe('RouteFormPage', () => {
       http.get(`${API_URL}/areas/tree`, () =>
         HttpResponse.json([makeAreaTreeNode({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
       ),
-      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(routeDetail.firstAscensionists)),
+      http.get(`${API_URL}/first-ascensionists`, () =>
+        HttpResponse.json(makePagedFirstAscensionists({ items: routeDetail.firstAscensionists })),
+      ),
     );
 
     renderEditForm(7);
@@ -380,7 +386,7 @@ describe('RouteFormPage', () => {
       http.get(`${API_URL}/areas/tree`, () =>
         HttpResponse.json([makeAreaTreeNode({ id: 1, name: routeDetail.areaName, validationStatus: 'approved' })]),
       ),
-      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json([])),
+      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(makePagedFirstAscensionists())),
     );
 
     renderEditForm(7);
