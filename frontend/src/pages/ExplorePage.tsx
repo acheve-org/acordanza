@@ -1,58 +1,130 @@
-import { lazy, Suspense, useState } from 'react';
-import { useNavigate } from 'react-router';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
-import * as areasApi from '../api/areas';
-import { queryKeys } from '../api/queryKeys';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { EmptyState, List, ListRow } from 'acordanza-design-system';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { useViewportAreas } from '../hooks/useViewportAreas';
+import {
+  deriveVisibleAreas,
+  DEFAULT_LOCATION_ZOOM,
+  SUBAREA_ZOOM,
+  sortByDistance,
+  boundsOfPolygon,
+} from '../lib/exploreAreas';
+import type { AreaBounds, AreaSummary } from '../api/types';
+import type { FlyTarget } from '../components/AreaMap';
 
 const AreaMap = lazy(() => import('../components/AreaMap').then((m) => ({ default: m.AreaMap })));
 
-const PAGE_SIZE = 10;
-
 export function ExplorePage() {
-  const navigate = useNavigate();
-  const [page, setPage] = useState(1);
+  const { areas, setBounds } = useViewportAreas();
+  const geo = useGeolocation();
+  const [center, setCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [zoom, setZoom] = useState(6);
+  const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null);
+  const [flyTarget, setFlyTarget] = useState<FlyTarget | null>(null);
+  const [mobileListOpen, setMobileListOpen] = useState(false);
+  const rowRefs = useRef<Record<number, HTMLLIElement | null>>({});
 
-  const { data } = useQuery({
-    queryKey: queryKeys.rootAreas(page),
-    queryFn: () => areasApi.listRootAreas(page, PAGE_SIZE),
-    placeholderData: keepPreviousData,
-  });
+  function handleBoundsChange(bounds: AreaBounds, mapZoom: number) {
+    setCenter({ lat: (bounds.minLat + bounds.maxLat) / 2, lng: (bounds.minLng + bounds.maxLng) / 2 });
+    setZoom(mapZoom);
+    setBounds(bounds);
+  }
 
-  const zones = data?.items ?? [];
+  useEffect(() => {
+    if (geo.position) {
+      setFlyTarget({
+        center: [geo.position.coords.latitude, geo.position.coords.longitude],
+        zoom: DEFAULT_LOCATION_ZOOM,
+      });
+    }
+  }, [geo.position]);
+
+  useEffect(() => {
+    if (selectedAreaId != null) rowRefs.current[selectedAreaId]?.scrollIntoView({ block: 'nearest' });
+  }, [selectedAreaId]);
+
+  const { topLevelAreas, activeTopLevelArea, subareas } = useMemo(
+    () => deriveVisibleAreas(areas, center, zoom),
+    [areas, center, zoom],
+  );
+
+  const visibleAreas = useMemo(
+    () => sortByDistance([...topLevelAreas, ...subareas], center),
+    [topLevelAreas, subareas, center],
+  );
+
+  function handleSelectArea(area: AreaSummary) {
+    setSelectedAreaId(area.id);
+    setFlyTarget(
+      area.polygon.length > 0
+        ? { bounds: boundsOfPolygon(area.polygon) }
+        : area.centroidLat != null && area.centroidLng != null
+          ? { center: [area.centroidLat, area.centroidLng], zoom: SUBAREA_ZOOM }
+          : null,
+    );
+    setMobileListOpen(false);
+  }
 
   return (
     <main className="explore-page">
-      <h1>Explora</h1>
-      <p className="hint">
-        Encuentra zonas que no conoces en el mapa, y descubre los sectores que las componen.
-      </p>
+      <div className={`explore-list ${mobileListOpen ? 'is-open' : ''}`}>
+        <button
+          type="button"
+          className="explore-list-handle"
+          onClick={() => setMobileListOpen((open) => !open)}
+        >
+          {visibleAreas.length === 0 ? 'Zonas' : `Zonas (${visibleAreas.length})`}
+        </button>
 
-      <Suspense fallback={<div className="area-map-placeholder" />}>
-        <AreaMap />
-      </Suspense>
-      <p className="hint">Solo se muestran en el mapa los sectores que tienen información geográfica cargada.</p>
+        <h1>Explora</h1>
+        <p className="hint">
+          Encuentra zonas que no conoces en el mapa, y descubre los sectores que las componen. Solo se muestran en el
+          mapa los sectores que tienen información geográfica cargada.
+        </p>
 
-      <section className="settings-section">
-        <h2>Zonas</h2>
-        {zones.length === 0 ? (
-          <EmptyState>Todavía no hay ninguna zona.</EmptyState>
-        ) : (
-          <>
+        <div className="explore-list-scroll">
+          {visibleAreas.length === 0 ? (
+            <EmptyState>No hay zonas en esta vista — aleja el mapa o desplázate.</EmptyState>
+          ) : (
             <List>
-              {zones.map((zone) => (
-                <ListRow
-                  key={zone.id}
-                  title={zone.name}
-                  subtitle={zone.hasChildren ? 'Con sectores' : 'Sin sectores'}
-                  onClick={() => navigate(`/areas/${zone.slug}`)}
-                />
-              ))}
+              {visibleAreas.map((area) => {
+                const isTopLevel = area.parentAreaId === null;
+                const subtitle = isTopLevel
+                  ? areas.some((a) => a.parentAreaId === area.id)
+                    ? 'Con sectores'
+                    : 'Sin sectores'
+                  : activeTopLevelArea?.name;
+                return (
+                  <ListRow
+                    key={area.id}
+                    ref={(row) => {
+                      rowRefs.current[area.id] = row;
+                    }}
+                    title={area.name}
+                    subtitle={subtitle}
+                    selected={area.id === selectedAreaId}
+                    onClick={() => handleSelectArea(area)}
+                  />
+                );
+              })}
             </List>
-            <Pagination page={page} totalCount={data?.totalCount ?? 0} pageSize={PAGE_SIZE} onPageChange={setPage} />
-          </>
-        )}
-      </section>
+          )}
+        </div>
+      </div>
+
+      <div className="explore-map">
+        <Suspense fallback={<div className="area-map-placeholder" />}>
+          <AreaMap
+            areas={areas}
+            onBoundsChange={handleBoundsChange}
+            selectedAreaId={selectedAreaId}
+            onSelectArea={(id) => setSelectedAreaId(id)}
+            flyTarget={flyTarget}
+            onLocateMe={geo.request}
+            locating={geo.status === 'pending'}
+          />
+        </Suspense>
+      </div>
     </main>
   );
 }
