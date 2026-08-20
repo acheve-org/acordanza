@@ -1,0 +1,23 @@
+.icon {
+  flex: none;
+  vertical-align: -3px;
+}
+
+.icon-sm {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-md {
+  width: 20px;
+  height: 20px;
+}
+
+.icon-lg {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-rotated {
+  transform: rotate(90deg);
+}

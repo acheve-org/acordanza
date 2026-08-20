@@ -1,5 +1,9 @@
 /* component.button-primary: filled accent-violet pill on the light canvas, the brand's loudest action */
 .primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
   background: var(--accent);
   color: var(--on-accent);
   border: none;
@@ -20,6 +24,10 @@
 
 /* component.sub-nav-pill — small secondary actions on the light canvas */
 .ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
   background: transparent;
   border: 1px solid var(--border-strong);
   color: var(--text-dim);

@@ -1,7 +1,7 @@
 import { Fragment, type ChangeEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, EmptyState, List, ListRow, RemoveButton } from 'acordanza-design-system';
+import { Button, EmptyState, Icon, List, ListRow, RemoveButton } from 'acordanza-design-system';
 import * as areasApi from '../api/areas';
 import * as routesApi from '../api/routes';
 import { queryKeys } from '../api/queryKeys';
@@ -102,12 +102,12 @@ export function AreaPage() {
       <h1>{area.name}</h1>
       {area.validationStatus === 'approved' && (
         <p className="detail-fa">
-          ✓ Validado por {area.decidedByName} el {formatDate(area.decidedAt!)}
+          <Icon name="check" size="sm" /> Validado por {area.decidedByName} el {formatDate(area.decidedAt!)}
         </p>
       )}
       {area.validationStatus === 'rejected' && (
         <p className="detail-fa">
-          ✗ Rechazado por {area.decidedByName} el {formatDate(area.decidedAt!)}
+          <Icon name="reject" size="sm" /> Rechazado por {area.decidedByName} el {formatDate(area.decidedAt!)}
           {area.rejectionReason && ` · Motivo: ${area.rejectionReason}`}
         </p>
       )}

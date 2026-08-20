@@ -1,4 +1,5 @@
 import type { ComponentPropsWithoutRef } from 'react'
+import { Icon } from '../Icon/Icon'
 import './RemoveButton.css'
 
 export type RemoveButtonVariant = 'plain' | 'overlay'
@@ -15,7 +16,7 @@ export function RemoveButton({ label, variant = 'plain', className, ...rest }: R
 
   return (
     <button type="button" className={classNames} aria-label={label} {...rest}>
-      &times;
+      <Icon name="close" size="sm" />
     </button>
   )
 }

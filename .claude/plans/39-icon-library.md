@@ -1,6 +1,6 @@
 # Icon component + a curated icon library, replacing text/emoji stand-ins
 
-Status: proposed
+Status: done
 Issue: [#242](https://github.com/acheve-org/acordanza/issues/242)
 Depends on: [28](28-orientation-compass-rose.md) as precedent — `CompassRose` is the existing example of a hand-authored, geometry-in-a-pure-module inline SVG component with a `size` prop and no external asset pipeline, and this plan follows the same shape. No backend or data-model changes.
 

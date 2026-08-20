@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import type { ReactNode } from 'react';
+import { Icon } from 'acordanza-design-system';
 import { useAuth } from '../hooks/useAuth';
 
 interface Section {
@@ -18,12 +19,7 @@ const sections: Section[] = [
     description:
       'Encuentra las vías que quieres escalar. Busca por nombre, sector, grado, orientación o equipamiento.',
     cta: 'Buscar vías',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round">
-        <circle cx="11" cy="11" r="6.5" />
-        <path d="M16 16l4.5 4.5" />
-      </svg>
-    ),
+    icon: <Icon name="search" size="lg" />,
   },
   {
     to: '/explore',

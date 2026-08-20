@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Button, Modal, ModalActions } from 'acordanza-design-system';
+import { Button, Icon, Modal, ModalActions } from 'acordanza-design-system';
 import { useSubmit } from '../hooks/useSubmit';
 
 interface Props {
@@ -32,7 +32,7 @@ export function RejectReasonModal({ title, onClose, onReject }: Props) {
             Cancelar
           </Button>
           <Button type="submit" disabled={submitting || !reason.trim()}>
-            {submitting ? 'Rechazando…' : 'Rechazar solicitud'}
+            <Icon name="reject" size="sm" /> {submitting ? 'Rechazando…' : 'Rechazar solicitud'}
           </Button>
         </ModalActions>
       </form>

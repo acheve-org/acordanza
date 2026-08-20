@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, ConfirmModal, EmptyState, List, ListRow, Pagination } from 'acordanza-design-system';
+import { Button, ConfirmModal, EmptyState, Icon, List, ListRow, Pagination } from 'acordanza-design-system';
 import * as firstAscensionistsApi from '../api/firstAscensionists';
 import { queryKeys } from '../api/queryKeys';
 import type { FirstAscensionistSummary, PagedFirstAscensionists } from '../api/types';
@@ -93,11 +93,11 @@ export function FirstAscensionistsPage() {
                   <>
                     {canEdit && (
                       <Button variant="ghost" small type="button" onClick={() => setEditing(fa)}>
-                        Editar
+                        <Icon name="edit" size="sm" /> Editar
                       </Button>
                     )}
                     <Button variant="ghost" small danger type="button" onClick={() => setDeleting(fa)}>
-                      Eliminar
+                      <Icon name="delete" size="sm" /> Eliminar
                     </Button>
                   </>
                 }

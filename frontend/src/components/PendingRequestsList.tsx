@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, EmptyState, List, ListRow } from 'acordanza-design-system';
+import { Button, EmptyState, Icon, List, ListRow } from 'acordanza-design-system';
 import { RejectReasonModal } from './RejectReasonModal';
 import { formatDate } from '../format';
 
@@ -65,10 +65,10 @@ export function PendingRequestsList<T extends PendingRequestItem>({
               trailing={
                 <>
                   <Button variant="ghost" small type="button" onClick={() => handleApprove(item.id)}>
-                    Aprobar
+                    <Icon name="check" size="sm" /> Aprobar
                   </Button>
                   <Button variant="ghost" small danger type="button" onClick={() => setRejecting(item)}>
-                    Rechazar
+                    <Icon name="reject" size="sm" /> Rechazar
                   </Button>
                 </>
               }

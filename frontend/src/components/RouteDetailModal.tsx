@@ -4,6 +4,7 @@ import {
   CompassRose,
   ConfirmModal,
   GradePill,
+  Icon,
   Modal,
   orientationAbbr,
   RemoveButton,
@@ -201,10 +202,10 @@ export function RouteDetailModal({
               <div className="detail-side-group">
                 <h3>Revisión</h3>
                 <Button variant="ghost" small fullWidth onClick={onValidate}>
-                  Validar
+                  <Icon name="check" size="sm" /> Validar
                 </Button>
                 <Button variant="ghost" small danger fullWidth onClick={() => setRejecting(true)}>
-                  Rechazar
+                  <Icon name="reject" size="sm" /> Rechazar
                 </Button>
               </div>
             )}
@@ -234,12 +235,12 @@ export function RouteDetailModal({
                 <h3>Gestión</h3>
                 {hasPermission(Permissions.routeEdit) && (
                   <Button variant="ghost" small fullWidth onClick={onEdit}>
-                    Editar
+                    <Icon name="edit" size="sm" /> Editar
                   </Button>
                 )}
                 {hasPermission(Permissions.routeDelete) && (
                   <Button variant="ghost" small danger fullWidth onClick={() => setConfirmingDelete(true)}>
-                    Eliminar
+                    <Icon name="delete" size="sm" /> Eliminar
                   </Button>
                 )}
               </div>
