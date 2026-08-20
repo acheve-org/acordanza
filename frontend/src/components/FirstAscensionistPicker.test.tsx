@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeFirstAscensionist } from '../test/factories';
+import { makeFirstAscensionist, makePagedFirstAscensionists } from '../test/factories';
 import { FirstAscensionistPicker } from './FirstAscensionistPicker';
 
 describe('FirstAscensionistPicker deferred fetching', () => {
@@ -12,7 +12,7 @@ describe('FirstAscensionistPicker deferred fetching', () => {
     server.use(
       http.get(`${API_URL}/first-ascensionists`, () => {
         calls++;
-        return HttpResponse.json([]);
+        return HttpResponse.json(makePagedFirstAscensionists());
       }),
     );
 
@@ -27,7 +27,9 @@ describe('FirstAscensionistPicker deferred fetching', () => {
     server.use(
       http.get(`${API_URL}/first-ascensionists`, () => {
         calls++;
-        return HttpResponse.json([makeFirstAscensionist({ id: 1, name: 'Alex Aperturista' })]);
+        return HttpResponse.json(
+          makePagedFirstAscensionists({ items: [makeFirstAscensionist({ id: 1, name: 'Alex Aperturista' })] }),
+        );
       }),
     );
 
@@ -43,7 +45,9 @@ describe('FirstAscensionistPicker deferred fetching', () => {
     server.use(
       http.get(`${API_URL}/first-ascensionists`, () => {
         calls++;
-        return HttpResponse.json([makeFirstAscensionist({ id: 1, name: 'Alex Aperturista' })]);
+        return HttpResponse.json(
+          makePagedFirstAscensionists({ items: [makeFirstAscensionist({ id: 1, name: 'Alex Aperturista' })] }),
+        );
       }),
     );
 

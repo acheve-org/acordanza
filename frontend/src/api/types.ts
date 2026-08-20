@@ -49,6 +49,8 @@ export type AreaExpert = Omit<components['schemas']['AreaExpertDto'], 'status'> 
 
 export type FirstAscensionistSummary = components['schemas']['FirstAscensionistDto'];
 
+export type PagedFirstAscensionists = components['schemas']['PagedFirstAscensionistsResponse'];
+
 // The "Sigue" section's view of a first ascensionist: the plain DTO plus what they opened.
 export type FirstAscensionistProfile = Omit<components['schemas']['FirstAscensionistProfileDto'], 'validationStatus'> & {
   validationStatus: RequestStatus;

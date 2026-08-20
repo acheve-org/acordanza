@@ -3,14 +3,14 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeFirstAscensionist } from '../test/factories';
+import { makeFirstAscensionist, makePagedFirstAscensionists } from '../test/factories';
 import { RequestFirstAscensionistLinkModal } from './RequestFirstAscensionistLinkModal';
 
 describe('RequestFirstAscensionistLinkModal', () => {
   it('fetches the candidate list itself, on open', async () => {
     server.use(
       http.get(`${API_URL}/first-ascensionists`, () =>
-        HttpResponse.json([makeFirstAscensionist({ id: 1, name: 'Alex' })]),
+        HttpResponse.json(makePagedFirstAscensionists({ items: [makeFirstAscensionist({ id: 1, name: 'Alex' })] })),
       ),
     );
     renderWithProviders(<RequestFirstAscensionistLinkModal onClose={vi.fn()} onRequested={vi.fn()} />);
@@ -18,23 +18,26 @@ describe('RequestFirstAscensionistLinkModal', () => {
     await waitFor(() => expect(screen.getByText('Alex')).toBeInTheDocument());
   });
 
-  it('excludes first ascensionists that are already linked to someone', async () => {
+  it('asks the server for unlinked candidates only, and renders whatever it returns', async () => {
     server.use(
-      http.get(`${API_URL}/first-ascensionists`, () =>
-        HttpResponse.json([
-          makeFirstAscensionist({ id: 1, name: 'Libre' }),
-          makeFirstAscensionist({ id: 2, name: 'Vinculado', linkedUserName: 'Otro' }),
-        ]),
-      ),
+      http.get(`${API_URL}/first-ascensionists`, ({ request }) => {
+        const unlinkedOnly = new URL(request.url).searchParams.get('unlinkedOnly');
+        return HttpResponse.json(
+          makePagedFirstAscensionists({
+            items: unlinkedOnly === 'true' ? [makeFirstAscensionist({ id: 1, name: 'Libre' })] : [],
+          }),
+        );
+      }),
     );
     renderWithProviders(<RequestFirstAscensionistLinkModal onClose={vi.fn()} onRequested={vi.fn()} />);
 
     await waitFor(() => expect(screen.getByText('Libre')).toBeInTheDocument());
-    expect(screen.queryByText('Vinculado')).not.toBeInTheDocument();
   });
 
   it('shows the empty state when there are no candidates', async () => {
-    server.use(http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json([])));
+    server.use(
+      http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(makePagedFirstAscensionists())),
+    );
     renderWithProviders(<RequestFirstAscensionistLinkModal onClose={vi.fn()} onRequested={vi.fn()} />);
 
     await waitFor(() =>
@@ -45,7 +48,7 @@ describe('RequestFirstAscensionistLinkModal', () => {
   it('requests a link and calls onRequested', async () => {
     server.use(
       http.get(`${API_URL}/first-ascensionists`, () =>
-        HttpResponse.json([makeFirstAscensionist({ id: 1, name: 'Alex' })]),
+        HttpResponse.json(makePagedFirstAscensionists({ items: [makeFirstAscensionist({ id: 1, name: 'Alex' })] })),
       ),
     );
     let body: unknown;
@@ -68,7 +71,7 @@ describe('RequestFirstAscensionistLinkModal', () => {
   it('surfaces a request failure', async () => {
     server.use(
       http.get(`${API_URL}/first-ascensionists`, () =>
-        HttpResponse.json([makeFirstAscensionist({ id: 1, name: 'Alex' })]),
+        HttpResponse.json(makePagedFirstAscensionists({ items: [makeFirstAscensionist({ id: 1, name: 'Alex' })] })),
       ),
     );
     server.use(

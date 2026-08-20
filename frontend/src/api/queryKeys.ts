@@ -8,7 +8,7 @@ export const queryKeys = {
   routes: (filters: RouteFilters) => ['routes', filters] as const,
   contributions: (kind: ContributionKind, page: number) => ['contributions', kind, page] as const,
   users: (filters: UserFilters) => ['users', filters] as const,
-  firstAscensionists: (q: string) => ['first-ascensionists', q] as const,
+  firstAscensionists: (q: string, page: number) => ['first-ascensionists', q, page] as const,
   firstAscensionistProfiles: (q: string) => ['first-ascensionists', 'profiles', q] as const,
   myTicks: (filters: TickFilters) => ['ticks', 'mine', filters] as const,
   rootAreas: (page: number) => ['areas', 'roots', page] as const,
@@ -31,7 +31,8 @@ export const queryKeys = {
   // keeps calling GET /areas directly rather than moving to the area tree.
   areaOptions: () => ['areas', 'list'] as const,
   firstAscensionistList: () => ['first-ascensionists', 'list'] as const,
-  firstAscensionistLinkCandidates: (q: string) => ['first-ascensionists', 'link-candidates', q] as const,
+  firstAscensionistLinkCandidates: (q: string, page: number) =>
+    ['first-ascensionists', 'link-candidates', q, page] as const,
   areaChildren: (areaId: number) => ['areas', 'children', areaId] as const,
   manageRootAreas: (page: number) => ['areas', 'roots', 'manage', page] as const,
   passkeys: () => ['passkeys'] as const,

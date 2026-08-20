@@ -1610,6 +1610,9 @@ export interface paths {
                 query?: {
                     q?: string;
                     includeUnvalidated?: boolean;
+                    unlinkedOnly?: boolean;
+                    page?: number;
+                    pageSize?: number;
                 };
                 header?: never;
                 path?: never;
@@ -1623,9 +1626,9 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "text/plain": components["schemas"]["FirstAscensionistDto"][];
-                        "application/json": components["schemas"]["FirstAscensionistDto"][];
-                        "text/json": components["schemas"]["FirstAscensionistDto"][];
+                        "text/plain": components["schemas"]["PagedFirstAscensionistsResponse"];
+                        "application/json": components["schemas"]["PagedFirstAscensionistsResponse"];
+                        "text/json": components["schemas"]["PagedFirstAscensionistsResponse"];
                     };
                 };
             };
@@ -3393,6 +3396,15 @@ export interface components {
         };
         PagedContributionsResponse: {
             items: components["schemas"]["ContributionDto"][];
+            /** Format: int32 */
+            totalCount: number;
+            /** Format: int32 */
+            page: number;
+            /** Format: int32 */
+            pageSize: number;
+        };
+        PagedFirstAscensionistsResponse: {
+            items: components["schemas"]["FirstAscensionistDto"][];
             /** Format: int32 */
             totalCount: number;
             /** Format: int32 */

@@ -29,6 +29,7 @@ type AreaTreeNodeDto = AreaTreeNode;
 type AreaNodeDto = components['schemas']['AreaNodeDto'];
 type PagedAreaNodesResponse = components['schemas']['PagedAreaNodesResponse'];
 type FirstAscensionistDto = components['schemas']['FirstAscensionistDto'];
+type PagedFirstAscensionistsResponse = components['schemas']['PagedFirstAscensionistsResponse'];
 type FirstAscensionistProfileDto = FirstAscensionistProfile;
 type RoutePendingDto = components['schemas']['RoutePendingDto'];
 type AreaPendingDto = components['schemas']['AreaPendingDto'];
@@ -72,6 +73,16 @@ export const makeFirstAscensionist = (o: Partial<FirstAscensionistDto> = {}): Fi
   name: 'Alex Aperturista',
   userId: null,
   linkedUserName: null,
+  ...o,
+});
+
+export const makePagedFirstAscensionists = (
+  o: Partial<PagedFirstAscensionistsResponse> = {},
+): PagedFirstAscensionistsResponse => ({
+  items: [],
+  totalCount: 0,
+  page: 1,
+  pageSize: 10,
   ...o,
 });
 

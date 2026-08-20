@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../test/server';
 import { API_URL } from '../test/apiUrl';
 import { renderWithProviders } from '../test/renderWithProviders';
-import { makeFirstAscensionistLinkRequest } from '../test/factories';
+import { makeFirstAscensionistLinkRequest, makePagedFirstAscensionists } from '../test/factories';
 import { ClaimFirstAscensionistPage } from './ClaimFirstAscensionistPage';
 
 function mockMine(items: ReturnType<typeof makeFirstAscensionistLinkRequest>[]) {
@@ -38,7 +38,7 @@ describe('ClaimFirstAscensionistPage', () => {
 
   it('the header button is present and opens the request modal', async () => {
     mockMine([]);
-    server.use(http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json([])));
+    server.use(http.get(`${API_URL}/first-ascensionists`, () => HttpResponse.json(makePagedFirstAscensionists())));
 
     renderWithProviders(<ClaimFirstAscensionistPage />);
 

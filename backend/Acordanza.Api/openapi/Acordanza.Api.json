@@ -1731,6 +1731,32 @@
               "type": "boolean",
               "default": false
             }
+          },
+          {
+            "name": "unlinkedOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
           }
         ],
         "responses": {
@@ -1739,26 +1765,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FirstAscensionistDto"
-                  }
+                  "$ref": "#/components/schemas/PagedFirstAscensionistsResponse"
                 }
               },
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FirstAscensionistDto"
-                  }
+                  "$ref": "#/components/schemas/PagedFirstAscensionistsResponse"
                 }
               },
               "text/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/FirstAscensionistDto"
-                  }
+                  "$ref": "#/components/schemas/PagedFirstAscensionistsResponse"
                 }
               }
             }
@@ -4907,6 +4924,35 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ContributionDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PagedFirstAscensionistsResponse": {
+        "required": [
+          "items",
+          "totalCount",
+          "page",
+          "pageSize"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FirstAscensionistDto"
             }
           },
           "totalCount": {
