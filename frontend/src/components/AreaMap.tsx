@@ -10,7 +10,7 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { Button } from 'acordanza-design-system';
-import { deriveVisibleAreas, SUBAREA_ZOOM } from '../lib/exploreAreas';
+import { deriveVisibleAreas, DEPTH_COLORS, SUBAREA_ZOOM } from '../lib/exploreAreas';
 import type { AreaBounds, AreaSummary, GeoPoint } from '../api/types';
 
 // Vite bundles Leaflet's default marker icon paths incorrectly unless pointed
@@ -147,7 +147,7 @@ export function AreaMap({
         {activeTopLevelArea && activeTopLevelArea.polygon.length > 0 && (
           <Polygon
             positions={activeTopLevelArea.polygon.map((p): [number, number] => [p.lat, p.lng])}
-            pathOptions={{ color: '#3182ce' }}
+            pathOptions={{ color: DEPTH_COLORS.root }}
           />
         )}
 
@@ -156,7 +156,7 @@ export function AreaMap({
             <Polygon
               key={area.id}
               positions={area.polygon.map((p): [number, number] => [p.lat, p.lng])}
-              pathOptions={{ color: '#38a169' }}
+              pathOptions={{ color: DEPTH_COLORS.subarea }}
               ref={(polygon) => {
                 if (polygon) polygonRefs.current.set(area.id, polygon);
                 else polygonRefs.current.delete(area.id);

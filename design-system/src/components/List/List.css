@@ -19,6 +19,7 @@
   border-radius: var(--radius-md);
   font-size: 13px;
 }
+.list-row-leading { display: flex; align-items: center; flex-shrink: 0; }
 .list-row-main { min-width: 0; }
 .list-row-title { font-weight: 600; }
 .list-row-subtitle { color: var(--text-dim); }

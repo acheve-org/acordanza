@@ -14,6 +14,39 @@ import type { FlyTarget } from '../components/AreaMap';
 
 const AreaMap = lazy(() => import('../components/AreaMap').then((m) => ({ default: m.AreaMap })));
 
+function RootIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      style={{ color: 'var(--depth-root)' }}
+    >
+      <path d="M3 19l6-10 4 6 3-5 5 9H3z" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SubareaIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      style={{ color: 'var(--depth-subarea)' }}
+    >
+      <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z" strokeLinejoin="round" />
+      <circle cx="12" cy="9" r="2.5" />
+    </svg>
+  );
+}
+
 export function ExplorePage() {
   const { areas, setBounds } = useViewportAreas();
   const geo = useGeolocation();
@@ -89,11 +122,6 @@ export function ExplorePage() {
             <List>
               {visibleAreas.map((area) => {
                 const isTopLevel = area.parentAreaId === null;
-                const subtitle = isTopLevel
-                  ? areas.some((a) => a.parentAreaId === area.id)
-                    ? 'Con sectores'
-                    : 'Sin sectores'
-                  : activeTopLevelArea?.name;
                 return (
                   <ListRow
                     key={area.id}
@@ -101,7 +129,8 @@ export function ExplorePage() {
                       rowRefs.current[area.id] = row;
                     }}
                     title={area.name}
-                    subtitle={subtitle}
+                    subtitle={isTopLevel ? undefined : activeTopLevelArea?.name}
+                    leading={isTopLevel ? <RootIcon /> : <SubareaIcon />}
                     selected={area.id === selectedAreaId}
                     onClick={() => handleSelectArea(area)}
                   />
