@@ -74,13 +74,18 @@ public class EmailChangeTests(ApiFixture fixture) : IntegrationTestBase(fixture)
             TestContext.Current.CancellationToken);
         confirmResponse.EnsureSuccessStatusCode();
 
-        var me = await user.Client.GetFromJsonAsync<MeResponse>("/api/auth/me", TestContext.Current.CancellationToken);
-        me!.Username.ShouldBe(newEmail);
-
+        // ChangeEmailAsync rotates the security stamp (SEC-4a), so the pre-change token
+        // user.Client still carries is now revoked — /auth/me must be checked with a
+        // freshly-issued one.
         using var freshClient = Factory.CreateClient();
         var newLogin = await freshClient.PostAsJsonAsync(
             "/api/auth/login", new LoginRequest(newEmail, Password), TestContext.Current.CancellationToken);
         newLogin.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var newLoginBody = await newLogin.Content.ReadFromJsonAsync<LoginResponse>(TestContext.Current.CancellationToken);
+        freshClient.DefaultRequestHeaders.Authorization = new("Bearer", newLoginBody!.Token);
+
+        var me = await freshClient.GetFromJsonAsync<MeResponse>("/api/auth/me", TestContext.Current.CancellationToken);
+        me!.Username.ShouldBe(newEmail);
 
         var oldLogin = await freshClient.PostAsJsonAsync(
             "/api/auth/login", new LoginRequest(user.Email, Password), TestContext.Current.CancellationToken);
