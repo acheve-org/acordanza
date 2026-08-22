@@ -4,6 +4,7 @@ using System.Text;
 using Acordanza.Api.Authorization;
 using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
+using Acordanza.Api.Models;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
@@ -46,8 +47,7 @@ public class UsersController(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize,
         [FromQuery] string sortBy = "name", [FromQuery] string sortDir = "asc")
     {
-        if (page < 1) page = 1;
-        if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
         if (!SortableFields.Contains(sortBy)) sortBy = "name";
 
         // A plain join on UserRoles would emit one row per user-role pair, which
