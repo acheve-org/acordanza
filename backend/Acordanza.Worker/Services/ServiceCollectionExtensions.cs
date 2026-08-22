@@ -1,7 +1,5 @@
 using Acordanza.Core.Data;
 using Acordanza.Core.Services;
-using Azure.Identity;
-using Azure.Storage.Queues;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
@@ -87,26 +85,8 @@ public static class ServiceCollectionExtensions
         var storageSection = configuration.GetSection("Storage");
         var enrichmentQueueName = storageSection["EnrichmentQueueName"]
             ?? throw new InvalidOperationException("Missing Storage:EnrichmentQueueName configuration");
-        var storageConnectionString = storageSection["ConnectionString"];
-        var queueClientOptions = new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 };
 
-        QueueClient enrichmentQueueClient;
-        if (!string.IsNullOrEmpty(storageConnectionString))
-        {
-            enrichmentQueueClient = new QueueClient(storageConnectionString, enrichmentQueueName, queueClientOptions);
-        }
-        else
-        {
-            var accountName = storageSection["AccountName"]
-                ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
-            var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
-                ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
-
-            var credential = new DefaultAzureCredential(
-                new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-            enrichmentQueueClient = new QueueClient(
-                new Uri($"https://{accountName}.queue.core.windows.net/{enrichmentQueueName}"), credential, queueClientOptions);
-        }
+        var enrichmentQueueClient = StorageClients.QueueFor(storageSection, enrichmentQueueName);
         services.AddSingleton(enrichmentQueueClient);
 
         // Route import (plans 30 and 31) rides a second queue on the same account, carrying
@@ -116,23 +96,7 @@ public static class ServiceCollectionExtensions
         var routeImportQueueName = storageSection["RouteImportQueueName"]
             ?? throw new InvalidOperationException("Missing Storage:RouteImportQueueName configuration");
 
-        QueueClient routeImportQueueClient;
-        if (!string.IsNullOrEmpty(storageConnectionString))
-        {
-            routeImportQueueClient = new QueueClient(storageConnectionString, routeImportQueueName, queueClientOptions);
-        }
-        else
-        {
-            var accountName = storageSection["AccountName"]
-                ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
-            var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
-                ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
-
-            var credential = new DefaultAzureCredential(
-                new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-            routeImportQueueClient = new QueueClient(
-                new Uri($"https://{accountName}.queue.core.windows.net/{routeImportQueueName}"), credential, queueClientOptions);
-        }
+        var routeImportQueueClient = StorageClients.QueueFor(storageSection, routeImportQueueName);
         services.AddKeyedSingleton(RouteImportKeys.QueueServiceKey, routeImportQueueClient);
 
         services.AddScoped<RouteEnrichmentService>();
