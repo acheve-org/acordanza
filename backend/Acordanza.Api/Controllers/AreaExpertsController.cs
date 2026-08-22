@@ -5,7 +5,6 @@ using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,15 +15,14 @@ namespace Acordanza.Api.Controllers;
 [Route("api/area-experts")]
 public class AreaExpertsController(
     AppDbContext db,
-    UserManager<ApplicationUser> userManager,
     IEmailSender emailSender,
     IConfiguration configuration,
-    ILogger<AreaExpertsController> logger) : ControllerBase
+    ILogger<AreaExpertsController> logger) : ApiControllerBase
 {
     [HttpGet("mine")]
     public async Task<ActionResult<List<AreaExpertDto>>> GetMine()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var experts = await Query().Where(e => e.UserId == userId).OrderByDescending(e => e.RequestedAt).ToListAsync();
         return Ok(experts.Select(ToDto).ToList());
     }
@@ -48,7 +46,7 @@ public class AreaExpertsController(
         if (area is null) return BadRequest(new { error = "el sector no existe" });
         if (area.ParentAreaId is not null) return BadRequest(new { error = "solo los sectores principales admiten expertos" });
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var alreadyActive = await db.AreaExperts.AnyAsync(e =>
             e.AreaId == request.AreaId &&
             e.UserId == userId &&
@@ -80,7 +78,7 @@ public class AreaExpertsController(
     [HttpPost("{id:int}/approve")]
     public async Task<ActionResult<AreaExpertDto>> Approve(int id)
     {
-        var approverId = userManager.GetUserId(User)!;
+        var approverId = CallerId;
 
         var outcome = await ReviewRequestService.ApproveAsync(db.AreaExperts, id, approverId);
         if (outcome != DecisionOutcome.Applied)
@@ -105,7 +103,7 @@ public class AreaExpertsController(
             return BadRequest(new { error = "el motivo es obligatorio" });
         }
 
-        var approverId = userManager.GetUserId(User)!;
+        var approverId = CallerId;
         var reason = request.Reason.Trim();
 
         var outcome = await ReviewRequestService.RejectAsync(db.AreaExperts, id, approverId, reason);
@@ -125,7 +123,7 @@ public class AreaExpertsController(
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> Cancel(int id)
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var outcome = await ReviewRequestService.CancelAsync(db.AreaExperts, id, userId);
         if (outcome != DecisionOutcome.Applied)
@@ -164,6 +162,6 @@ public class AreaExpertsController(
     private static AreaExpertDto ToDto(AreaExpert e) => new(
         e.Id, e.AreaId, e.Area.Name,
         e.UserId, e.User.Name,
-        e.RequestedAt, e.Status.ToString().ToLowerInvariant(),
+        e.RequestedAt, e.Status,
         e.DecidedAt, e.DecidedBy?.Name, e.RejectionReason);
 }

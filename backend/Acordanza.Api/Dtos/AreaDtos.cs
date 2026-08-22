@@ -1,3 +1,5 @@
+using Acordanza.Core.Models;
+
 namespace Acordanza.Api.Dtos;
 
 public record GeoPointDto(double Lat, double Lng);
@@ -10,7 +12,7 @@ public record AreaDto(
     List<GeoPointDto> Polygon,
     double? CentroidLat,
     double? CentroidLng,
-    string ValidationStatus,
+    ReviewStatus ValidationStatus,
     DateTimeOffset? DecidedAt,
     string? DecidedByName,
     string? RejectionReason);
@@ -33,7 +35,7 @@ public record PagedAreaNodesResponse(List<AreaNodeDto> Items, int TotalCount, in
 // AreaPicker/TreeSelect to hold client-side and browse/filter in memory. RouteCount is
 // the area's own routes only — the client rolls up subtree totals itself, since it
 // already has the whole tree in hand.
-public record AreaTreeNodeDto(int Id, string Name, int? ParentAreaId, int RouteCount, string ValidationStatus);
+public record AreaTreeNodeDto(int Id, string Name, int? ParentAreaId, int RouteCount, ReviewStatus ValidationStatus);
 
 // Area detail page (issue #105) — resolved via GET /areas/by-slug-path/{*path}.
 public record AreaAncestorDto(int Id, string Name, string Slug);
@@ -52,7 +54,7 @@ public record AreaDetailDto(
     int? ParentAreaId,
     List<AreaAncestorDto> Ancestors,
     List<AreaChildDto> Children,
-    string ValidationStatus,
+    ReviewStatus ValidationStatus,
     DateTimeOffset? DecidedAt,
     string? DecidedByName,
     string? RejectionReason,

@@ -178,7 +178,7 @@ public class ContributionsTests(ApiFixture fixture) : IntegrationTestBase(fixtur
         var page = await GetPageAsync(author, "routes");
 
         var rejected = page.Items.ShouldHaveSingleItem();
-        rejected.ValidationStatus.ShouldBe("rejected");
+        rejected.ValidationStatus.ShouldBe(ReviewStatus.Rejected);
         rejected.RejectionReason.ShouldBe("ya existe");
         rejected.DecidedByName.ShouldBe("Moderadora");
         rejected.DecidedAt.ShouldNotBeNull();

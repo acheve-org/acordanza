@@ -23,7 +23,7 @@ public class RoutesController(
     MediaUploadService mediaUpload,
     AreaHierarchyService areaHierarchy,
     AreaExpertAuthorizer areaExpertAuthorizer,
-    RouteEnrichmentQueue enrichmentQueue) : ControllerBase
+    RouteEnrichmentQueue enrichmentQueue) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
@@ -33,7 +33,7 @@ public class RoutesController(
         [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false, [FromQuery] bool openedByMe = false)
     {
         var areas = await areaHierarchy.GetAsync();
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var query = db.Routes
             .Include(r => r.AddedBy)
@@ -122,12 +122,12 @@ public class RoutesController(
             r.Id, r.Name, r.Slug, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId), areas.SlugPath(r.AreaId),
             r.Grade, r.AidGrade, r.Orientation, r.Gear, r.Description,
             r.Length, r.ObligatoryGrade, r.RecommendedGear, r.OptionalGear,
-            r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
+            r.Links.Select(l => new RouteLinkDto(l.Url, l.Source)).ToList(),
             r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             r.AddedBy.Name, r.CreatedAt,
             tickedRouteIds.Contains(r.Id),
             r.Topos.Count > 0,
-            r.ValidationStatus.ToString().ToLowerInvariant(), r.DecidedAt, r.DecidedBy?.Name, r.RejectionReason,
+            r.ValidationStatus, r.DecidedAt, r.DecidedBy?.Name, r.RejectionReason,
             canValidateArea(r.AreaId))).ToList();
 
         return Ok(dtos);
@@ -138,7 +138,7 @@ public class RoutesController(
     [HttpGet("grades")]
     public async Task<ActionResult<List<string>>> GetGrades()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var grades = await db.Routes.AsNoTracking()
             .Where(ValidationVisibility.Routes(userId))
             .Where(r => r.Grade != null)
@@ -156,7 +156,7 @@ public class RoutesController(
     [HttpGet("aid-grades")]
     public async Task<ActionResult<List<string>>> GetAidGrades()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var aidGrades = await db.Routes.AsNoTracking()
             .Where(ValidationVisibility.Routes(userId))
             .Where(r => r.AidGrade != null)
@@ -259,7 +259,7 @@ public class RoutesController(
     private async Task<RouteDetailDto> BuildRouteDetailDtoAsync(ClimbingRoute route)
     {
         var areas = await areaHierarchy.GetAsync();
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         // Same rule ToposController.DeleteTopo enforces, resolved once for the whole list.
         var canEditArea = await areaExpertAuthorizer.BuildAreaCheckAsync(User, Permissions.RouteEdit);
@@ -283,12 +283,12 @@ public class RoutesController(
             areas.SlugPath(route.AreaId),
             route.Grade, route.AidGrade, route.Orientation, route.Gear, route.Description,
             route.Length, route.ObligatoryGrade, route.RecommendedGear, route.OptionalGear,
-            route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
+            route.Links.Select(l => new RouteLinkDto(l.Url, l.Source)).ToList(),
             route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             route.AddedBy.Name, route.CreatedAt,
             hasTick,
             topoDtos,
-            route.ValidationStatus.ToString().ToLowerInvariant(), route.DecidedAt, route.DecidedBy?.Name, route.RejectionReason,
+            route.ValidationStatus, route.DecidedAt, route.DecidedBy?.Name, route.RejectionReason,
             canValidateArea(route.AreaId), route.EnrichedAt);
     }
 
@@ -299,7 +299,7 @@ public class RoutesController(
         var (values, error) = await RouteWrite.TryBuildAsync(db, request, requireAreaId: true);
         if (error is not null) return BadRequest(new { error });
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var slug = await GenerateUniqueRouteSlugAsync(request.AreaId, request.Name);
         var route = new ClimbingRoute
         {
@@ -345,7 +345,7 @@ public class RoutesController(
             .FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var (values, error) = await RouteWrite.TryBuildAsync(db, request);
         if (error is not null) return BadRequest(new { error });
@@ -419,7 +419,7 @@ public class RoutesController(
         var route = await db.Routes.FindAsync(id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         // Route validation is normally role-gated (route.validate), but an area
         // expert can also validate routes within the top-level area they're an
@@ -447,7 +447,7 @@ public class RoutesController(
         var route = await db.Routes.FindAsync(id);
         if (route is null) return NotFound(new { error = "No encontrado" });
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         // Same guard as ValidateRoute — an area expert can reject within their area too.
         if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
@@ -541,7 +541,7 @@ public class RoutesController(
         var routeExists = await db.Routes.AnyAsync(r => r.Id == id);
         if (!routeExists) return NotFound(new { error = "No encontrado" });
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var tick = new Tick
         {
             RouteId = id,

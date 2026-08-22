@@ -201,7 +201,7 @@ public class RouteFieldsTests(ApiFixture fixture) : IntegrationTestBase(fixture)
         var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
         detail!.Links.Select(l => l.Url).ShouldBe(links);
-        detail.Links.Select(l => l.Source).ShouldAllBe(source => source == "human");
+        detail.Links.Select(l => l.Source).ShouldAllBe(source => source == LinkSource.Human);
     }
 
     [Theory]

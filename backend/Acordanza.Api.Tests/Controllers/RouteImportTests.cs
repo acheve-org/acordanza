@@ -174,12 +174,12 @@ public class RouteImportTests(ApiFixture fixture) : IntegrationTestBase(fixture)
 
         rows!.Count.ShouldBe(1);
         rows[0].FileName.ShouldBe("mine.jpg");
-        rows[0].Status.ShouldBe("pending");
+        rows[0].Status.ShouldBe(RouteImportStatus.Pending);
         rows[0].AreaNamePath.ShouldBe(area.Name);
     }
 
-    // Status reaches the frontend lowercased, like every other enum it narrows to a
-    // literal union (see api/types.ts's RouteImportStatus).
+    // Status reaches the frontend lowercased, like every other enum DTO field (the
+    // global JsonStringEnumConverter naming policy in Program.cs).
     [Fact]
     public async Task Mine_reports_a_decided_rows_route_and_outcome()
     {
@@ -211,7 +211,7 @@ public class RouteImportTests(ApiFixture fixture) : IntegrationTestBase(fixture)
             "/api/route-imports/mine", TestContext.Current.CancellationToken);
 
         var row = rows!.Single();
-        row.Status.ShouldBe("completed");
+        row.Status.ShouldBe(RouteImportStatus.Completed);
         row.Outcome.ShouldBe("Vía creada y pendiente de validación");
         row.RouteName.ShouldBe("La Loca");
         row.RouteWasCreated.ShouldBeTrue();
@@ -349,11 +349,11 @@ public class RouteImportTests(ApiFixture fixture) : IntegrationTestBase(fixture)
             "/api/route-imports/mine", TestContext.Current.CancellationToken);
 
         rows!.Count.ShouldBe(2);
-        rows.Select(r => r.Kind).ShouldBe(["url", "image"], ignoreOrder: true);
-        rows.Single(r => r.Kind == "url").SourceUrl.ShouldBe("https://blog.example.com/la-loca");
-        rows.Single(r => r.Kind == "url").FileName.ShouldBeNull();
-        rows.Single(r => r.Kind == "image").FileName.ShouldBe("topo.jpg");
-        rows.Single(r => r.Kind == "image").SourceUrl.ShouldBeNull();
+        rows.Select(r => r.Kind).ShouldBe([RouteImportKind.Url, RouteImportKind.Image], ignoreOrder: true);
+        rows.Single(r => r.Kind == RouteImportKind.Url).SourceUrl.ShouldBe("https://blog.example.com/la-loca");
+        rows.Single(r => r.Kind == RouteImportKind.Url).FileName.ShouldBeNull();
+        rows.Single(r => r.Kind == RouteImportKind.Image).FileName.ShouldBe("topo.jpg");
+        rows.Single(r => r.Kind == RouteImportKind.Image).SourceUrl.ShouldBeNull();
     }
 
     // --- Delete (plan 33) -----------------------------------------------------------
@@ -471,7 +471,7 @@ public class RouteImportTests(ApiFixture fixture) : IntegrationTestBase(fixture)
     private sealed record ErrorResponse(string Error);
 
     private sealed record RouteImportRow(
-        int Id, string Kind, string? FileName, string? SourceUrl, int AreaId, string AreaNamePath,
-        DateTimeOffset CreatedAt, string Status, string? Outcome, int? RouteId, string? RouteName,
+        int Id, RouteImportKind Kind, string? FileName, string? SourceUrl, int AreaId, string AreaNamePath,
+        DateTimeOffset CreatedAt, RouteImportStatus Status, string? Outcome, int? RouteId, string? RouteName,
         string? RouteSlug, string? RouteAreaSlugPath, bool RouteWasCreated, DateTimeOffset? ProcessedAt);
 }

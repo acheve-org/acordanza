@@ -1,8 +1,12 @@
+using System.Text.Json.Serialization;
+
 namespace Acordanza.Core.Models;
 
 // What the user handed us to read: a photo of a topo (plan 30) or the URL of a page
 // (plan 31). Two artifacts, one pipeline — see RouteImport below for why they share a
-// table rather than living in two.
+// table rather than living in two. Serializes lowercase over the API (DUP-7) — see
+// LowerInvariantEnumConverter.
+[JsonConverter(typeof(LowerInvariantEnumConverter<RouteImportKind>))]
 public enum RouteImportKind
 {
     Image,
@@ -14,7 +18,9 @@ public enum RouteImportKind
 // answer, no retry needed unless the user disagrees — while Failed is the pipeline
 // breaking (fetch timeout, Foundry error, poison message, blob gone), which *is*
 // worth retrying. Collapsing them would tell the submitter "we couldn't read it"
-// when the truth is "we never looked."
+// when the truth is "we never looked." Serializes lowercase over the API (DUP-7) —
+// see LowerInvariantEnumConverter.
+[JsonConverter(typeof(LowerInvariantEnumConverter<RouteImportStatus>))]
 public enum RouteImportStatus
 {
     Pending,

@@ -5,7 +5,6 @@ using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -15,7 +14,7 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/first-ascensionists")]
-public class FirstAscensionistsController(AppDbContext db, UserManager<ApplicationUser> userManager) : ControllerBase
+public class FirstAscensionistsController(AppDbContext db) : ApiControllerBase
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
@@ -40,7 +39,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).AsQueryable();
         if (!includeUnvalidated)
         {
-            query = query.Where(ValidationVisibility.FirstAscensionists(userManager.GetUserId(User)!));
+            query = query.Where(ValidationVisibility.FirstAscensionists(CallerId));
         }
 
         if (!string.IsNullOrWhiteSpace(q))
@@ -72,7 +71,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         [FromQuery] string? q)
     {
         var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).Include(o => o.DecidedBy)
-            .Where(ValidationVisibility.FirstAscensionists(userManager.GetUserId(User)!))
+            .Where(ValidationVisibility.FirstAscensionists(CallerId))
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
@@ -166,7 +165,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             firstAscensionist.User?.Name,
             areaNames.Count,
             areaNames.Distinct().OrderBy(name => name).ToList(),
-            firstAscensionist.ValidationStatus.ToString().ToLowerInvariant(),
+            firstAscensionist.ValidationStatus,
             firstAscensionist.DecidedAt,
             firstAscensionist.DecidedBy?.Name,
             firstAscensionist.RejectionReason);
@@ -189,7 +188,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             return BadRequest(new { error = "el nombre es demasiado largo" });
         }
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var name = request.Name.Trim();
         var slug = await GenerateUniqueSlugAsync(name);
         var firstAscensionist = new FirstAscensionist { Name = name, Slug = slug, AddedByUserId = userId };
@@ -233,7 +232,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         // same "ownership scoped to a query, not a claim" pattern
         // AreaExpertAuthorizer implements for AreaExperts.
         var isPrivileged = User.IsInRole(Roles.Moderator) || User.IsInRole(Roles.Admin);
-        if (!isPrivileged && firstAscensionist.UserId != userManager.GetUserId(User))
+        if (!isPrivileged && firstAscensionist.UserId != CallerId)
         {
             return Forbid();
         }
@@ -262,7 +261,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         {
             if (User.HasClaim("permission", Permissions.FirstAscensionistValidate))
             {
-                Validation.MarkValidated(firstAscensionist, userManager.GetUserId(User)!);
+                Validation.MarkValidated(firstAscensionist, CallerId);
             }
             else
             {
@@ -290,7 +289,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         var firstAscensionist = await db.FirstAscensionists.FindAsync(id);
         if (firstAscensionist is null) return NotFound(new { error = "el aperturista no existe" });
 
-        Validation.MarkValidated(firstAscensionist, userManager.GetUserId(User)!);
+        Validation.MarkValidated(firstAscensionist, CallerId);
 
         await db.SaveChangesAsync();
         return Ok(new { ok = true });
@@ -308,7 +307,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         var firstAscensionist = await db.FirstAscensionists.FindAsync(id);
         if (firstAscensionist is null) return NotFound(new { error = "el aperturista no existe" });
 
-        Validation.MarkRejected(firstAscensionist, userManager.GetUserId(User)!, request.Reason.Trim());
+        Validation.MarkRejected(firstAscensionist, CallerId, request.Reason.Trim());
 
         await db.SaveChangesAsync();
         return Ok(new { ok = true });

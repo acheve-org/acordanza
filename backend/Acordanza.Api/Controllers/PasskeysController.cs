@@ -19,12 +19,12 @@ public class PasskeysController(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
     IFido2 fido2,
-    IMemoryCache cache) : ControllerBase
+    IMemoryCache cache) : ApiControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<List<PasskeySummary>>> List()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var passkeys = await db.PasskeyCredentials
             .Where(p => p.UserId == userId)
             .OrderByDescending(p => p.CreatedAt)
@@ -78,7 +78,7 @@ public class PasskeysController(
         }
         cache.Remove(RegisterCacheKey(request.SessionId));
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         if (challenge.UserId != userId) return Unauthorized();
 
         try
@@ -114,7 +114,7 @@ public class PasskeysController(
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> Delete(int id)
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var passkey = await db.PasskeyCredentials.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         if (passkey is not null)
         {

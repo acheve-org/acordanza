@@ -1,9 +1,11 @@
+using Acordanza.Core.Models;
+
 namespace Acordanza.Api.Dtos;
 
-// One row of /my-acordanza/my-imports, for either kind. Status and Kind are lowercased
-// like every other enum the frontend narrows to a literal union (see ContributionDto),
-// Outcome is already Spanish (it's written for this reader — see
-// Acordanza.Core/Models/RouteImport.cs).
+// One row of /my-acordanza/my-imports, for either kind. Status and Kind serialize
+// lowercase via the global JsonStringEnumConverter naming policy (Program.cs), same
+// wire shape every other enum DTO carries (see ContributionDto); Outcome is already
+// Spanish (it's written for this reader — see Acordanza.Core/Models/RouteImport.cs).
 //
 // FileName and SourceUrl are the two kind-specific fields, exactly as on the row: one is
 // null for the other's kind, and the page shows whichever is there as the row's title.
@@ -13,13 +15,13 @@ namespace Acordanza.Api.Dtos;
 // straight to what it produced without the page resolving anything itself.
 public record RouteImportDto(
     int Id,
-    string Kind,
+    RouteImportKind Kind,
     string? FileName,
     string? SourceUrl,
     int AreaId,
     string AreaNamePath,
     DateTimeOffset CreatedAt,
-    string Status,
+    RouteImportStatus Status,
     string? Outcome,
     int? RouteId,
     string? RouteName,
