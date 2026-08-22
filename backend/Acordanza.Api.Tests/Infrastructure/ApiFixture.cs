@@ -73,6 +73,10 @@ public sealed class ApiFixture : IAsyncLifetime
             // production value of 10/hour the suite would 429 on its ninth route-import
             // request rather than on anything the tests are about.
             Environment.SetEnvironmentVariable("RateLimits__RouteImportPerHour", "1000");
+            // Same story for login (SEC-6): nearly every test logs in at least once via
+            // TestUsers, all sharing the one "unknown"-IP bucket, which would 429 well
+            // before a full run finishes at the production value of 10/15min.
+            Environment.SetEnvironmentVariable("RateLimits__LoginPer15Min", "100000");
             // No Anthropic:FoundryResource — the real Claude call is never exercised in CI
             // (cost, auth, nondeterminism); Program.cs falls back to the no-op provider.
             // RouteEnrichmentTests construct RouteEnrichmentService directly with a fake

@@ -29,6 +29,7 @@ public class AuthController(
     IEmailSender emailSender,
     ILogger<AuthController> logger) : ControllerBase
 {
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
