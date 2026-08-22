@@ -113,6 +113,33 @@ builder.Services
             ValidAudience = jwtSection["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
+        // The token embeds the security stamp at issue time (JwtTokenService), so a
+        // password change/reset or email change — all of which already rotate
+        // ApplicationUser.SecurityStamp — revokes every outstanding token for that user
+        // immediately instead of leaving them valid until they expire on their own
+        // (SEC-4a). One extra lookup per authenticated request, which is the same
+        // "no premature caching" posture the rest of this API takes.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var tokenStamp = context.Principal?.FindFirstValue(JwtTokenService.SecurityStampClaim);
+                if (userId is null || tokenStamp is null)
+                {
+                    context.Fail("Token missing required claims.");
+                    return;
+                }
+
+                var userManager = context.HttpContext.RequestServices
+                    .GetRequiredService<UserManager<ApplicationUser>>();
+                var user = await userManager.FindByIdAsync(userId);
+                if (user is null || user.SecurityStamp != tokenStamp)
+                {
+                    context.Fail("Token has been revoked.");
+                }
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>

@@ -96,7 +96,7 @@ public class AreasTests(ApiFixture fixture) : IntegrationTestBase(fixture)
     }
 
     [Fact]
-    public async Task GetAreaTree_issues_exactly_two_sql_statements_regardless_of_seed_size()
+    public async Task GetAreaTree_issues_exactly_three_sql_statements_regardless_of_seed_size()
     {
         using var scope = Factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -122,7 +122,10 @@ public class AreasTests(ApiFixture fixture) : IntegrationTestBase(fixture)
         var response = await caller.Client.GetAsync("/api/areas/tree", TestContext.Current.CancellationToken);
         response.EnsureSuccessStatusCode();
 
-        interceptor.Count.ShouldBe(2);
+        // 2 for the endpoint itself (unchanged regardless of tree size — the property this
+        // test guards) + 1 flat overhead on every authenticated request: the security-stamp
+        // lookup in Program.cs's OnTokenValidated (SEC-4a), which doesn't scale with seed size.
+        interceptor.Count.ShouldBe(3);
     }
 
     private sealed class CommandCountInterceptor : DbCommandInterceptor
