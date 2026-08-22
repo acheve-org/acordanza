@@ -19,6 +19,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
+    private const int NameMaxLength = 200;
 
     // unlinkedOnly narrows to records with no linked account — RequestFirstAscensionistLinkModal's
     // candidate list (a claimant can only request a still-unlinked opener), filtered here rather
@@ -183,6 +184,10 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         {
             return BadRequest(new { error = "el nombre es obligatorio" });
         }
+        if (request.Name.Length > NameMaxLength)
+        {
+            return BadRequest(new { error = "el nombre es demasiado largo" });
+        }
 
         var userId = userManager.GetUserId(User)!;
         var name = request.Name.Trim();
@@ -236,6 +241,10 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(new { error = "el nombre es obligatorio" });
+        }
+        if (request.Name.Length > NameMaxLength)
+        {
+            return BadRequest(new { error = "el nombre es demasiado largo" });
         }
 
         var newName = request.Name.Trim();

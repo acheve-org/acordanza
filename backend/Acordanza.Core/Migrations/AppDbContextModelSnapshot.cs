@@ -134,7 +134,8 @@ namespace Acordanza.Core.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int?>("ParentAreaId")
                         .HasColumnType("integer");
@@ -288,7 +289,8 @@ namespace Acordanza.Core.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
 
                     b.Property<DateTimeOffset?>("EnrichedAt")
                         .HasColumnType("timestamp with time zone");
@@ -304,7 +306,8 @@ namespace Acordanza.Core.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("ObligatoryGrade")
                         .HasMaxLength(20)
@@ -374,7 +377,8 @@ namespace Acordanza.Core.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("RejectionReason")
                         .HasColumnType("text");
@@ -657,7 +661,8 @@ namespace Acordanza.Core.Migrations
 
                     b.Property<string>("FileName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<int>("RouteId")
                         .HasColumnType("integer");
