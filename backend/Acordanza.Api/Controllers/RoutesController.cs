@@ -124,16 +124,33 @@ public class RoutesController(
             .ToListAsync()).ToHashSet();
 
         var dtos = routes.Select(r => new RouteDto(
-            r.Id, r.Name, r.Slug, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId), areas.SlugPath(r.AreaId),
-            r.Grade, r.AidGrade, r.Orientation, r.Gear, r.Description,
-            r.Length, r.ObligatoryGrade, r.RecommendedGear, r.OptionalGear,
-            r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
-            r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
-            r.AddedBy.Name, r.CreatedAt,
-            tickedRouteIds.Contains(r.Id),
-            r.Topos.Count > 0,
-            r.ValidationStatus.ToString().ToLowerInvariant(), r.DecidedAt, r.DecidedBy?.Name, r.RejectionReason,
-            canValidateArea(r.AreaId))).ToList();
+            Id: r.Id,
+            Name: r.Name,
+            Slug: r.Slug,
+            AreaId: r.AreaId,
+            AreaName: areas[r.AreaId].Name,
+            AreaPath: areas.NamePath(r.AreaId),
+            AreaSlugPath: areas.SlugPath(r.AreaId),
+            Grade: r.Grade,
+            AidGrade: r.AidGrade,
+            Orientation: r.Orientation,
+            Gear: r.Gear,
+            Description: r.Description,
+            Length: r.Length,
+            ObligatoryGrade: r.ObligatoryGrade,
+            RecommendedGear: r.RecommendedGear,
+            OptionalGear: r.OptionalGear,
+            Links: r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
+            FirstAscensionists: r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
+            AddedBy: r.AddedBy.Name,
+            CreatedAt: r.CreatedAt,
+            HasTick: tickedRouteIds.Contains(r.Id),
+            HasTopos: r.Topos.Count > 0,
+            ValidationStatus: r.ValidationStatus.ToString().ToLowerInvariant(),
+            DecidedAt: r.DecidedAt,
+            DecidedByName: r.DecidedBy?.Name,
+            RejectionReason: r.RejectionReason,
+            CanValidate: canValidateArea(r.AreaId))).ToList();
 
         return Ok(dtos);
     }
@@ -284,17 +301,34 @@ public class RoutesController(
         var hasTick = await db.Ticks.AnyAsync(t => t.RouteId == route.Id && t.ClimberUserId == userId);
 
         return new RouteDetailDto(
-            route.Id, route.Name, route.Slug, route.AreaId, areas[route.AreaId].Name, areas.NamePath(route.AreaId),
-            areas.SlugPath(route.AreaId),
-            route.Grade, route.AidGrade, route.Orientation, route.Gear, route.Description,
-            route.Length, route.ObligatoryGrade, route.RecommendedGear, route.OptionalGear,
-            route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
-            route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
-            route.AddedBy.Name, route.CreatedAt,
-            hasTick,
-            topoDtos,
-            route.ValidationStatus.ToString().ToLowerInvariant(), route.DecidedAt, route.DecidedBy?.Name, route.RejectionReason,
-            canValidateArea(route.AreaId), route.EnrichedAt);
+            Id: route.Id,
+            Name: route.Name,
+            Slug: route.Slug,
+            AreaId: route.AreaId,
+            AreaName: areas[route.AreaId].Name,
+            AreaPath: areas.NamePath(route.AreaId),
+            AreaSlugPath: areas.SlugPath(route.AreaId),
+            Grade: route.Grade,
+            AidGrade: route.AidGrade,
+            Orientation: route.Orientation,
+            Gear: route.Gear,
+            Description: route.Description,
+            Length: route.Length,
+            ObligatoryGrade: route.ObligatoryGrade,
+            RecommendedGear: route.RecommendedGear,
+            OptionalGear: route.OptionalGear,
+            Links: route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
+            FirstAscensionists: route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
+            AddedBy: route.AddedBy.Name,
+            CreatedAt: route.CreatedAt,
+            HasTick: hasTick,
+            Topos: topoDtos,
+            ValidationStatus: route.ValidationStatus.ToString().ToLowerInvariant(),
+            DecidedAt: route.DecidedAt,
+            DecidedByName: route.DecidedBy?.Name,
+            RejectionReason: route.RejectionReason,
+            CanValidate: canValidateArea(route.AreaId),
+            EnrichedAt: route.EnrichedAt);
     }
 
     [Authorize(Policy = Permissions.RouteCreate)]
