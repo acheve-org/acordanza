@@ -599,13 +599,10 @@ public class AreasController(
     [HttpPost("{id:int}/validate")]
     public async Task<ActionResult> ValidateArea(int id)
     {
-        var area = await db.Areas.FindAsync(id);
-        if (area is null) return NotFound(new { error = "el sector no existe" });
+        var failure = await ValidationDecisions.ValidateAsync(
+            db, db.Areas, id, "el sector no existe", userManager.GetUserId(User)!);
 
-        Validation.MarkValidated(area, userManager.GetUserId(User)!);
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.AreaValidate)]
@@ -617,12 +614,9 @@ public class AreasController(
             return BadRequest(new { error = "el motivo es obligatorio" });
         }
 
-        var area = await db.Areas.FindAsync(id);
-        if (area is null) return NotFound(new { error = "el sector no existe" });
+        var failure = await ValidationDecisions.RejectAsync(
+            db, db.Areas, id, "el sector no existe", userManager.GetUserId(User)!, request.Reason.Trim());
 
-        Validation.MarkRejected(area, userManager.GetUserId(User)!, request.Reason.Trim());
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 }

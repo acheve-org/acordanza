@@ -287,13 +287,10 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
     [HttpPost("{id:int}/validate")]
     public async Task<ActionResult> ValidateFirstAscensionist(int id)
     {
-        var firstAscensionist = await db.FirstAscensionists.FindAsync(id);
-        if (firstAscensionist is null) return NotFound(new { error = "el aperturista no existe" });
+        var failure = await ValidationDecisions.ValidateAsync(
+            db, db.FirstAscensionists, id, "el aperturista no existe", userManager.GetUserId(User)!);
 
-        Validation.MarkValidated(firstAscensionist, userManager.GetUserId(User)!);
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.FirstAscensionistValidate)]
@@ -305,13 +302,10 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             return BadRequest(new { error = "el motivo es obligatorio" });
         }
 
-        var firstAscensionist = await db.FirstAscensionists.FindAsync(id);
-        if (firstAscensionist is null) return NotFound(new { error = "el aperturista no existe" });
+        var failure = await ValidationDecisions.RejectAsync(
+            db, db.FirstAscensionists, id, "el aperturista no existe", userManager.GetUserId(User)!, request.Reason.Trim());
 
-        Validation.MarkRejected(firstAscensionist, userManager.GetUserId(User)!, request.Reason.Trim());
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.FirstAscensionistDelete)]
