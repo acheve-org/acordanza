@@ -334,7 +334,8 @@ public class RoutesController(
         var obligatoryGrade = NormalizeOptionalText(request.ObligatoryGrade);
         var recommendedGear = NormalizeOptionalText(request.RecommendedGear);
         var optionalGear = NormalizeOptionalText(request.OptionalGear);
-        var textLengthError = ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
+        var textLengthError = ValidateTextLength(request.Name, NameMaxLength) ?? ValidateTextLength(request.Description, DescriptionMaxLength)
+            ?? ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
         if (textLengthError is not null) return BadRequest(new { error = textLengthError });
 
         var (links, linksError) = LinkRules.Resolve(request.Links);
@@ -423,7 +424,8 @@ public class RoutesController(
         var obligatoryGrade = NormalizeOptionalText(request.ObligatoryGrade);
         var recommendedGear = NormalizeOptionalText(request.RecommendedGear);
         var optionalGear = NormalizeOptionalText(request.OptionalGear);
-        var textLengthError = ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
+        var textLengthError = ValidateTextLength(request.Name, NameMaxLength) ?? ValidateTextLength(request.Description, DescriptionMaxLength)
+            ?? ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
         if (textLengthError is not null) return BadRequest(new { error = textLengthError });
 
         var (links, linksError) = LinkRules.Resolve(request.Links);
@@ -689,6 +691,8 @@ public class RoutesController(
 
     private const int ObligatoryGradeMaxLength = 20;
     private const int GearNoteMaxLength = 500;
+    private const int NameMaxLength = 200;
+    private const int DescriptionMaxLength = 5000;
 
     private static string? ValidateTextLength(string? value, int maxLength) =>
         value is not null && value.Length > maxLength ? "el texto es demasiado largo" : null;

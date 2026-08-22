@@ -25,6 +25,7 @@ public class AreasController(
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
+    private const int NameMaxLength = 200;
 
     [HttpGet]
     public async Task<ActionResult<List<AreaDto>>> GetAreas(
@@ -201,6 +202,10 @@ public class AreasController(
         {
             return BadRequest(new { error = "el nombre es obligatorio" });
         }
+        if (request.Name.Length > NameMaxLength)
+        {
+            return BadRequest(new { error = "el nombre es demasiado largo" });
+        }
 
         if (request.ParentAreaId is int parentId && !await db.Areas.AnyAsync(a => a.Id == parentId))
         {
@@ -266,6 +271,10 @@ public class AreasController(
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest(new { error = "el nombre es obligatorio" });
+        }
+        if (request.Name.Length > NameMaxLength)
+        {
+            return BadRequest(new { error = "el nombre es demasiado largo" });
         }
 
         if (request.ParentAreaId is int parentId)
