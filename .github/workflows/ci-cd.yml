@@ -180,6 +180,17 @@ jobs:
       - name: Fail if the committed generated types are stale
         run: git diff --exit-code -- frontend/src/api/generated.ts
 
+      # frontend/src/api/permissions.ts mirrors backend/Acordanza.Api/Authorization/Permissions.cs
+      # (DUP-12) — generated from it by scripts/generate-permissions.ts rather than hand-edited,
+      # same contract-in-sync idea as the OpenAPI check above, just for a plain string catalogue
+      # instead of a full schema.
+      - name: Regenerate frontend permission constants
+        working-directory: frontend
+        run: bun run generate-permissions
+
+      - name: Fail if the committed permission constants are stale
+        run: git diff --exit-code -- frontend/src/api/permissions.ts
+
   security-scan:
     name: Security scan
     runs-on: ubuntu-latest

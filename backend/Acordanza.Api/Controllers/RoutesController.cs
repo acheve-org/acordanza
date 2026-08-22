@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using static Acordanza.Api.Dtos.RouteEnumParsing;
 
 namespace Acordanza.Api.Controllers;
 
@@ -25,10 +26,16 @@ public class RoutesController(
     AreaExpertAuthorizer areaExpertAuthorizer,
     RouteEnrichmentQueue enrichmentQueue) : ControllerBase
 {
+    // Derived from the Orientation/Gear enums (Dtos/RouteEnums.cs) rather than duplicated
+    // as string literals (DUP-12) — a member's name lowercased is exactly the wire value
+    // it was validated against back when these were hand-maintained string allowlists, so
+    // this preserves the exact set and error messages ValidateOrientation/ValidateGear
+    // already returned.
     private static readonly HashSet<string> AllowedOrientations =
-        ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
+        Enum.GetNames<Orientation>().Select(n => n.ToLowerInvariant()).ToHashSet();
 
-    private static readonly HashSet<string> AllowedGear = ["bolted", "removable", "pitons", "aiders"];
+    private static readonly HashSet<string> AllowedGear =
+        Enum.GetNames<Gear>().Select(n => n.ToLowerInvariant()).ToHashSet();
 
     [HttpGet]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
@@ -125,7 +132,7 @@ public class RoutesController(
 
         var dtos = routes.Select(r => new RouteDto(
             r.Id, r.Name, r.Slug, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId), areas.SlugPath(r.AreaId),
-            r.Grade, r.AidGrade, r.Orientation, r.Gear, r.Description,
+            r.Grade, r.AidGrade, ParseOrientation(r.Orientation), ParseGear(r.Gear), r.Description,
             r.Length, r.ObligatoryGrade, r.RecommendedGear, r.OptionalGear,
             r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
             r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
@@ -286,7 +293,7 @@ public class RoutesController(
         return new RouteDetailDto(
             route.Id, route.Name, route.Slug, route.AreaId, areas[route.AreaId].Name, areas.NamePath(route.AreaId),
             areas.SlugPath(route.AreaId),
-            route.Grade, route.AidGrade, route.Orientation, route.Gear, route.Description,
+            route.Grade, route.AidGrade, ParseOrientation(route.Orientation), ParseGear(route.Gear), route.Description,
             route.Length, route.ObligatoryGrade, route.RecommendedGear, route.OptionalGear,
             route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
             route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),

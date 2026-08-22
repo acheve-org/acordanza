@@ -4583,6 +4583,15 @@
           }
         }
       },
+      "Gear": {
+        "enum": [
+          "bolted",
+          "removable",
+          "pitons",
+          "aiders",
+          null
+        ]
+      },
       "GeoPointDto": {
         "required": [
           "lat",
@@ -4845,15 +4854,23 @@
             ]
           },
           "orientation": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Orientation"
+              }
             ]
           },
           "gear": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Gear"
+              }
             ]
           },
           "length": {
@@ -4881,6 +4898,19 @@
             "format": "date-time"
           }
         }
+      },
+      "Orientation": {
+        "enum": [
+          "north",
+          "northeast",
+          "east",
+          "southeast",
+          "south",
+          "southwest",
+          "west",
+          "northwest",
+          null
+        ]
       },
       "PagedAreaNodesResponse": {
         "required": [
@@ -5283,15 +5313,23 @@
             ]
           },
           "orientation": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Orientation"
+              }
             ]
           },
           "gear": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Gear"
+              }
             ]
           },
           "description": {
@@ -5452,15 +5490,23 @@
             ]
           },
           "orientation": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Orientation"
+              }
             ]
           },
           "gear": {
-            "type": [
-              "null",
-              "string"
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Gear"
+              }
             ]
           },
           "description": {

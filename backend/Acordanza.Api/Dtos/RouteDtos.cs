@@ -17,8 +17,8 @@ public record RouteDto(
     string AreaSlugPath,
     string? Grade,
     string? AidGrade,
-    string? Orientation,
-    string? Gear,
+    Orientation? Orientation,
+    Gear? Gear,
     string Description,
     int? Length,
     string? ObligatoryGrade,
@@ -47,8 +47,8 @@ public record RouteDetailDto(
     string AreaSlugPath,
     string? Grade,
     string? AidGrade,
-    string? Orientation,
-    string? Gear,
+    Orientation? Orientation,
+    Gear? Gear,
     string Description,
     int? Length,
     string? ObligatoryGrade,
@@ -68,6 +68,12 @@ public record RouteDetailDto(
     DateTimeOffset? EnrichedAt
 );
 
+// Orientation/Gear stay plain strings here (not the Orientation/Gear enums the read-side
+// DTOs above use) so RoutesController's ValidateOrientation/ValidateGear keep producing
+// their existing Spanish error messages on an invalid value — binding straight to the enum
+// would instead fail JSON deserialization before the action runs, with ASP.NET Core's
+// generic "invalid value" message (DUP-12). See RoutesController.AllowedOrientations/
+// AllowedGear, now derived from the enums' own member names rather than duplicated here.
 public record UpsertRouteRequest(
     string Name,
     int AreaId,
