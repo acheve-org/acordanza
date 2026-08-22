@@ -11,11 +11,17 @@ namespace Acordanza.Api.Services;
 
 public class JwtTokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager, AppDbContext db)
 {
+    // Carries ApplicationUser.SecurityStamp into the token so JwtBearerEvents.OnTokenValidated
+    // (Program.cs) can reject a token whose stamp no longer matches the user's current one —
+    // ChangePasswordAsync/ResetPasswordAsync/ChangeEmailAsync all rotate the stamp already,
+    // this is what makes that rotation actually revoke outstanding tokens (SEC-4a).
+    public const string SecurityStampClaim = "security_stamp";
+
     public async Task<string> CreateToken(ApplicationUser user)
     {
         var jwtSection = configuration.GetSection("Jwt");
         var key = jwtSection["Key"] ?? throw new InvalidOperationException("Missing Jwt:Key");
-        var expiryMinutes = jwtSection.GetValue("ExpiryMinutes", 60 * 24 * 7);
+        var expiryMinutes = jwtSection.GetValue("ExpiryMinutes", 60 * 24 * 3);
 
         var roles = await userManager.GetRolesAsync(user);
         var (permissions, _, _) = await DynamicPermissions.ResolveAsync(db, roles, user.Id);
@@ -24,7 +30,8 @@ public class JwtTokenService(IConfiguration configuration, UserManager<Applicati
         {
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.UniqueName, user.UserName ?? ""),
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(SecurityStampClaim, user.SecurityStamp ?? "")
         };
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
         claims.AddRange(permissions.Select(permission => new Claim("permission", permission)));

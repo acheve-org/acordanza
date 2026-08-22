@@ -46,6 +46,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.ToTable("Areas", "core");
 
             entity.HasIndex(a => a.Name);
+            entity.Property(a => a.Name).HasMaxLength(200);
             // Backstops AreasController.CreateArea's case-insensitive AnyAsync check against
             // a race between two concurrent creates under the same parent — exact-case only
             // (an expression index would be needed for full case-insensitivity), since it's a
@@ -88,6 +89,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.ToTable("FirstAscensionists", "core");
 
             entity.HasIndex(o => o.Name);
+            entity.Property(o => o.Name).HasMaxLength(200);
 
             entity.Property(o => o.Slug).HasMaxLength(280).HasDefaultValue("");
             entity.HasIndex(o => o.Slug).IsUnique();
@@ -135,6 +137,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(r => r.ObligatoryGrade).HasMaxLength(20);
             entity.Property(r => r.RecommendedGear).HasMaxLength(500);
             entity.Property(r => r.OptionalGear).HasMaxLength(500);
+            entity.Property(r => r.Name).HasMaxLength(200);
+            entity.Property(r => r.Description).HasMaxLength(5000);
 
             entity.HasOne(r => r.AddedBy)
                 .WithMany()
@@ -203,6 +207,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.ToTable("Topos", "core");
 
             entity.HasIndex(t => t.RouteId);
+            entity.Property(t => t.FileName).HasMaxLength(255);
 
             entity.HasOne(t => t.Route)
                 .WithMany(r => r.Topos)

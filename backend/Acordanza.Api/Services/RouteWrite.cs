@@ -20,6 +20,8 @@ public static class RouteWrite
 
     private const int ObligatoryGradeMaxLength = 20;
     private const int GearNoteMaxLength = 500;
+    private const int NameMaxLength = 200;
+    private const int DescriptionMaxLength = 5000;
 
     public sealed record Values(
         string? Grade,
@@ -77,7 +79,9 @@ public static class RouteWrite
         var obligatoryGrade = NormalizeOptionalText(request.ObligatoryGrade);
         var recommendedGear = NormalizeOptionalText(request.RecommendedGear);
         var optionalGear = NormalizeOptionalText(request.OptionalGear);
-        var textLengthError = ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength)
+        var textLengthError = ValidateTextLength(request.Name, NameMaxLength)
+            ?? ValidateTextLength(request.Description, DescriptionMaxLength)
+            ?? ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength)
             ?? ValidateTextLength(recommendedGear, GearNoteMaxLength)
             ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
         if (textLengthError is not null) return (null, textLengthError);

@@ -93,4 +93,50 @@ public class RouteRequiredFieldsTests(ApiFixture fixture) : IntegrationTestBase(
         var body = await putResponse.Content.ReadFromJsonAsync<ErrorResponse>(TestContext.Current.CancellationToken);
         body!.Error.ShouldBe("el nombre es obligatorio");
     }
+
+    // SEC-7: Name/Description were the only two write-path fields with no length check at
+    // all (unlike ObligatoryGrade/RecommendedGear/OptionalGear, each already validated
+    // before this) — an unbounded write up to Kestrel's body cap.
+    [Fact]
+    public async Task POST_with_a_name_over_200_characters_is_rejected()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes", new { name = new string('a', 201), areaId }, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadFromJsonAsync<ErrorResponse>(TestContext.Current.CancellationToken);
+        body!.Error.ShouldBe("el texto es demasiado largo");
+    }
+
+    [Fact]
+    public async Task POST_with_a_description_over_5000_characters_is_rejected()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes", new { name = "New Route", areaId, description = new string('a', 5001) },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadFromJsonAsync<ErrorResponse>(TestContext.Current.CancellationToken);
+        body!.Error.ShouldBe("el texto es demasiado largo");
+    }
+
+    [Fact]
+    public async Task A_name_and_description_at_exactly_the_limit_are_accepted()
+    {
+        using var user = await TestUsers.CreateAsync(Factory, Roles.User);
+        var areaId = await SeedAreaAsync();
+
+        var response = await user.Client.PostAsJsonAsync(
+            "/api/routes",
+            new { name = new string('a', 200), areaId, description = new string('b', 5000) },
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
 }

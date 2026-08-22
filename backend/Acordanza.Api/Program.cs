@@ -6,10 +6,7 @@ using Acordanza.Core.Data;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
-using Azure.Identity;
-using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure.Storage.Queues;
 using Fido2NetLib;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -113,6 +110,33 @@ builder.Services
             ValidAudience = jwtSection["Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
+        // The token embeds the security stamp at issue time (JwtTokenService), so a
+        // password change/reset or email change — all of which already rotate
+        // ApplicationUser.SecurityStamp — revokes every outstanding token for that user
+        // immediately instead of leaving them valid until they expire on their own
+        // (SEC-4a). One extra lookup per authenticated request, which is the same
+        // "no premature caching" posture the rest of this API takes.
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                var tokenStamp = context.Principal?.FindFirstValue(JwtTokenService.SecurityStampClaim);
+                if (userId is null || tokenStamp is null)
+                {
+                    context.Fail("Token missing required claims.");
+                    return;
+                }
+
+                var userManager = context.HttpContext.RequestServices
+                    .GetRequiredService<UserManager<ApplicationUser>>();
+                var user = await userManager.FindByIdAsync(userId);
+                if (user is null || user.SecurityStamp != tokenStamp)
+                {
+                    context.Fail("Token has been revoked.");
+                }
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -144,23 +168,7 @@ var dataProtectionContainerName = storageSection["DataProtectionContainerName"]
     ?? throw new InvalidOperationException("Missing Storage:DataProtectionContainerName configuration");
 var storageConnectionString = storageSection["ConnectionString"];
 
-BlobContainerClient dataProtectionContainer;
-if (!string.IsNullOrEmpty(storageConnectionString))
-{
-    dataProtectionContainer = new BlobContainerClient(storageConnectionString, dataProtectionContainerName);
-}
-else
-{
-    var accountName = storageSection["AccountName"]
-        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
-    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
-        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
-
-    var credential = new DefaultAzureCredential(
-        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-    dataProtectionContainer = new BlobContainerClient(
-        new Uri($"https://{accountName}.blob.core.windows.net/{dataProtectionContainerName}"), credential);
-}
+var dataProtectionContainer = StorageClients.ContainerFor(storageSection, dataProtectionContainerName);
 
 // No .ProtectKeysWithAzureKeyVault(...) — the "No XML encryptor configured"
 // warning this produces is accepted, not an oversight. See "Decisions made
@@ -177,25 +185,7 @@ builder.Services.AddDataProtection()
 // string, the container app's managed identity in production.
 var enrichmentQueueName = storageSection["EnrichmentQueueName"]
     ?? throw new InvalidOperationException("Missing Storage:EnrichmentQueueName configuration");
-var queueClientOptions = new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 };
-
-QueueClient enrichmentQueueClient;
-if (!string.IsNullOrEmpty(storageConnectionString))
-{
-    enrichmentQueueClient = new QueueClient(storageConnectionString, enrichmentQueueName, queueClientOptions);
-}
-else
-{
-    var accountName = storageSection["AccountName"]
-        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
-    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
-        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
-
-    var queueCredential = new DefaultAzureCredential(
-        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-    enrichmentQueueClient = new QueueClient(
-        new Uri($"https://{accountName}.queue.core.windows.net/{enrichmentQueueName}"), queueCredential, queueClientOptions);
-}
+var enrichmentQueueClient = StorageClients.QueueFor(storageSection, enrichmentQueueName);
 
 builder.Services.AddSingleton(enrichmentQueueClient);
 builder.Services.AddSingleton<RouteEnrichmentQueue>();
@@ -207,24 +197,7 @@ builder.Services.AddSingleton<RouteEnrichmentQueue>();
 // enrichment client above.
 var routeImportQueueName = storageSection["RouteImportQueueName"]
     ?? throw new InvalidOperationException("Missing Storage:RouteImportQueueName configuration");
-
-QueueClient routeImportQueueClient;
-if (!string.IsNullOrEmpty(storageConnectionString))
-{
-    routeImportQueueClient = new QueueClient(storageConnectionString, routeImportQueueName, queueClientOptions);
-}
-else
-{
-    var accountName = storageSection["AccountName"]
-        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
-    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
-        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
-
-    var routeImportCredential = new DefaultAzureCredential(
-        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-    routeImportQueueClient = new QueueClient(
-        new Uri($"https://{accountName}.queue.core.windows.net/{routeImportQueueName}"), routeImportCredential, queueClientOptions);
-}
+var routeImportQueueClient = StorageClients.QueueFor(storageSection, routeImportQueueName);
 
 builder.Services.AddKeyedSingleton(RouteImportKeys.QueueServiceKey, routeImportQueueClient);
 builder.Services.AddSingleton(new RouteImportQueue(routeImportQueueClient));
@@ -278,6 +251,31 @@ builder.Services.AddOpenApi(options =>
 
         return Task.CompletedTask;
     });
+});
+
+// Caps how many login attempts a single caller (by IP) can make — the endpoint calls
+// CheckPasswordAsync directly rather than going through SignInManager, so Identity's
+// own lockout counters are never incremented either; without this, online password
+// guessing against a known email was unlimited (SEC-6). Same partitioning as
+// forgot-password below, wider than its 3/15min since mistyped passwords are a much
+// more common legitimate case here than repeat forgot-password clicks.
+//
+// Configurable for the same reason route-import's limit is below: the limiter's window
+// is process-global and partitions on an IP that's always "unknown" under
+// WebApplicationFactory, so every login the integration suite performs (most tests
+// start with one, via TestUsers) shares one bucket.
+var loginPermitLimit = builder.Configuration.GetValue("RateLimits:LoginPer15Min", 10);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = loginPermitLimit,
+            Window = TimeSpan.FromMinutes(15),
+            QueueLimit = 0
+        }));
 });
 
 // Caps how many password-reset emails a single caller (by IP) can trigger —
