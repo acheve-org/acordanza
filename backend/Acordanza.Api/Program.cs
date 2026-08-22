@@ -307,6 +307,31 @@ builder.Services.AddOpenApi(options =>
     });
 });
 
+// Caps how many login attempts a single caller (by IP) can make — the endpoint calls
+// CheckPasswordAsync directly rather than going through SignInManager, so Identity's
+// own lockout counters are never incremented either; without this, online password
+// guessing against a known email was unlimited (SEC-6). Same partitioning as
+// forgot-password below, wider than its 3/15min since mistyped passwords are a much
+// more common legitimate case here than repeat forgot-password clicks.
+//
+// Configurable for the same reason route-import's limit is below: the limiter's window
+// is process-global and partitions on an IP that's always "unknown" under
+// WebApplicationFactory, so every login the integration suite performs (most tests
+// start with one, via TestUsers) shares one bucket.
+var loginPermitLimit = builder.Configuration.GetValue("RateLimits:LoginPer15Min", 10);
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = loginPermitLimit,
+            Window = TimeSpan.FromMinutes(15),
+            QueueLimit = 0
+        }));
+});
+
 // Caps how many password-reset emails a single caller (by IP) can trigger —
 // the endpoint already avoids leaking whether an account exists, but without
 // this an attacker could still flood a known user's inbox (and burn
