@@ -6,10 +6,7 @@ using Acordanza.Core.Data;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
-using Azure.Identity;
-using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure.Storage.Queues;
 using Fido2NetLib;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -144,23 +141,7 @@ var dataProtectionContainerName = storageSection["DataProtectionContainerName"]
     ?? throw new InvalidOperationException("Missing Storage:DataProtectionContainerName configuration");
 var storageConnectionString = storageSection["ConnectionString"];
 
-BlobContainerClient dataProtectionContainer;
-if (!string.IsNullOrEmpty(storageConnectionString))
-{
-    dataProtectionContainer = new BlobContainerClient(storageConnectionString, dataProtectionContainerName);
-}
-else
-{
-    var accountName = storageSection["AccountName"]
-        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
-    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
-        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
-
-    var credential = new DefaultAzureCredential(
-        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-    dataProtectionContainer = new BlobContainerClient(
-        new Uri($"https://{accountName}.blob.core.windows.net/{dataProtectionContainerName}"), credential);
-}
+var dataProtectionContainer = StorageClients.ContainerFor(storageSection, dataProtectionContainerName);
 
 // No .ProtectKeysWithAzureKeyVault(...) — the "No XML encryptor configured"
 // warning this produces is accepted, not an oversight. See "Decisions made
@@ -177,25 +158,7 @@ builder.Services.AddDataProtection()
 // string, the container app's managed identity in production.
 var enrichmentQueueName = storageSection["EnrichmentQueueName"]
     ?? throw new InvalidOperationException("Missing Storage:EnrichmentQueueName configuration");
-var queueClientOptions = new QueueClientOptions { MessageEncoding = QueueMessageEncoding.Base64 };
-
-QueueClient enrichmentQueueClient;
-if (!string.IsNullOrEmpty(storageConnectionString))
-{
-    enrichmentQueueClient = new QueueClient(storageConnectionString, enrichmentQueueName, queueClientOptions);
-}
-else
-{
-    var accountName = storageSection["AccountName"]
-        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
-    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
-        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
-
-    var queueCredential = new DefaultAzureCredential(
-        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-    enrichmentQueueClient = new QueueClient(
-        new Uri($"https://{accountName}.queue.core.windows.net/{enrichmentQueueName}"), queueCredential, queueClientOptions);
-}
+var enrichmentQueueClient = StorageClients.QueueFor(storageSection, enrichmentQueueName);
 
 builder.Services.AddSingleton(enrichmentQueueClient);
 builder.Services.AddSingleton<RouteEnrichmentQueue>();
@@ -207,24 +170,7 @@ builder.Services.AddSingleton<RouteEnrichmentQueue>();
 // enrichment client above.
 var routeImportQueueName = storageSection["RouteImportQueueName"]
     ?? throw new InvalidOperationException("Missing Storage:RouteImportQueueName configuration");
-
-QueueClient routeImportQueueClient;
-if (!string.IsNullOrEmpty(storageConnectionString))
-{
-    routeImportQueueClient = new QueueClient(storageConnectionString, routeImportQueueName, queueClientOptions);
-}
-else
-{
-    var accountName = storageSection["AccountName"]
-        ?? throw new InvalidOperationException("Missing Storage:AccountName configuration");
-    var managedIdentityClientId = storageSection["ManagedIdentityClientId"]
-        ?? throw new InvalidOperationException("Missing Storage:ManagedIdentityClientId configuration");
-
-    var routeImportCredential = new DefaultAzureCredential(
-        new DefaultAzureCredentialOptions { ManagedIdentityClientId = managedIdentityClientId });
-    routeImportQueueClient = new QueueClient(
-        new Uri($"https://{accountName}.queue.core.windows.net/{routeImportQueueName}"), routeImportCredential, queueClientOptions);
-}
+var routeImportQueueClient = StorageClients.QueueFor(storageSection, routeImportQueueName);
 
 builder.Services.AddKeyedSingleton(RouteImportKeys.QueueServiceKey, routeImportQueueClient);
 builder.Services.AddSingleton(new RouteImportQueue(routeImportQueueClient));
