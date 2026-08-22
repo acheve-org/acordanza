@@ -6,6 +6,11 @@ export type { Orientation };
 
 export type GeoPoint = components['schemas']['GeoPointDto'];
 
+// The one error response shape every API error status (400/401/403/404/409/503/...) shares —
+// see backend/Acordanza.Api/Dtos/ApiError.cs. Named `ApiErrorBody` here (rather than `ApiError`)
+// because `client.ts` already exports an `ApiError` class for the thrown client-side error.
+export type ApiErrorBody = components['schemas']['ApiError'];
+
 // Backend/Acordanza.Api/Models/ReviewStatus.cs is a free-text string column (both the
 // request-review flows' Status and the validation lifecycle's ValidationStatus), but its
 // runtime values are the closed set below — openapi-typescript can't know that from the

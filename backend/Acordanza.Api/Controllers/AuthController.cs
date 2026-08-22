@@ -31,12 +31,14 @@ public class AuthController(
 {
     [EnableRateLimiting("login")]
     [HttpPost("login")]
+    [ProducesResponseType(typeof(LoginResponse), 200)]
+    [ProducesResponseType(typeof(ApiError), 401)]
     public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
     {
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user is null || !await userManager.CheckPasswordAsync(user, request.Password))
         {
-            return Unauthorized(new { error = "Correo electrónico o contraseña incorrectos" });
+            return Unauthorized(new ApiError("Correo electrónico o contraseña incorrectos"));
         }
 
         var passkeys = await db.PasskeyCredentials.Where(p => p.UserId == user.Id).ToListAsync();
@@ -75,11 +77,13 @@ public class AuthController(
     }
 
     [HttpPost("login/passkey")]
+    [ProducesResponseType(typeof(LoginResponse), 200)]
+    [ProducesResponseType(typeof(ApiError), 401)]
     public async Task<ActionResult<LoginResponse>> LoginWithPasskey(PasskeyLoginRequest request)
     {
         if (!cache.TryGetValue(CacheKey(request.SessionId), out LoginPasskeyChallenge? challenge) || challenge is null)
         {
-            return Unauthorized(new { error = "La solicitud ha caducado, vuelve a iniciar sesión" });
+            return Unauthorized(new ApiError("La solicitud ha caducado, vuelve a iniciar sesión"));
         }
         cache.Remove(CacheKey(request.SessionId));
 
@@ -100,7 +104,7 @@ public class AuthController(
             user = stored is null ? null : await userManager.FindByIdAsync(stored.UserId);
         }
 
-        if (user is null || stored is null) return Unauthorized(new { error = "Llave de acceso desconocida" });
+        if (user is null || stored is null) return Unauthorized(new ApiError("Llave de acceso desconocida"));
 
         try
         {
@@ -119,7 +123,7 @@ public class AuthController(
         }
         catch (Fido2VerificationException)
         {
-            return Unauthorized(new { error = "No se pudo verificar la llave de acceso" });
+            return Unauthorized(new ApiError("No se pudo verificar la llave de acceso"));
         }
 
         var token = await tokenService.CreateToken(user);
@@ -163,20 +167,22 @@ public class AuthController(
     }
 
     [HttpPost("reset-password")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> ResetPassword(ResetPasswordRequest request)
     {
         var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        if (user is null) return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
 
         if (!TryDecodeToken(request.Token, out var token))
         {
-            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+            return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
         }
 
         var result = await userManager.ResetPasswordAsync(user, token, request.NewPassword);
         if (!result.Succeeded)
         {
-            return BadRequest(new { error = ResetPasswordErrorMessage(result) });
+            return BadRequest(new ApiError(ResetPasswordErrorMessage(result)));
         }
 
         return Ok(new { ok = true });
@@ -192,14 +198,16 @@ public class AuthController(
     // token can never also verify against the invite provider (and vice versa),
     // since VerifyUserTokenAsync checks the provider it's asked to check.
     [HttpPost("validate-token")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> ValidateToken(ValidateTokenRequest request)
     {
         var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        if (user is null) return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
 
         if (!TryDecodeToken(request.Token, out var token))
         {
-            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+            return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
         }
 
         var validForReset = await userManager.VerifyUserTokenAsync(
@@ -208,7 +216,7 @@ public class AuthController(
             user, InviteTokens.ProviderName, InviteTokens.Purpose, token);
         if (!validForReset && !validForInvite)
         {
-            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+            return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
         }
 
         return Ok(new { ok = true });
@@ -219,26 +227,28 @@ public class AuthController(
     // purpose from forgot-password's, see Services/InviteTokenProvider.cs), and
     // records the display name chosen by the new user.
     [HttpPost("accept-invite")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> AcceptInvite(AcceptInviteRequest request)
     {
         var name = request.Name.Trim();
         if (name.Length is 0 or > 20)
         {
-            return BadRequest(new { error = "El nombre debe tener entre 1 y 20 caracteres" });
+            return BadRequest(new ApiError("El nombre debe tener entre 1 y 20 caracteres"));
         }
 
         var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        if (user is null) return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
 
         if (!TryDecodeToken(request.Token, out var token))
         {
-            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+            return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
         }
 
         var valid = await userManager.VerifyUserTokenAsync(user, InviteTokens.ProviderName, InviteTokens.Purpose, token);
         if (!valid)
         {
-            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+            return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
         }
 
         // Wrapped in a transaction so a failure partway through (e.g. the Name save)
@@ -250,7 +260,7 @@ public class AuthController(
             var addPasswordResult = await userManager.AddPasswordAsync(user, request.Password);
             if (!addPasswordResult.Succeeded)
             {
-                return BadRequest(new { error = ResetPasswordErrorMessage(addPasswordResult) });
+                return BadRequest(new ApiError(ResetPasswordErrorMessage(addPasswordResult)));
             }
 
             // AddPasswordAsync, unlike ResetPasswordAsync, doesn't rotate the security
@@ -263,7 +273,7 @@ public class AuthController(
             if (!updateResult.Succeeded)
             {
                 var error = updateResult.Errors.FirstOrDefault()?.Description ?? "No se pudo guardar el nombre";
-                return BadRequest(new { error });
+                return BadRequest(new ApiError(error));
             }
 
             await transaction.CommitAsync();
@@ -300,14 +310,16 @@ public class AuthController(
     // looks accounts up by email and checks two fixed purposes, while this
     // token is found by user id and its purpose embeds the new address.
     [HttpPost("confirm-email-change")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> ConfirmEmailChange(ConfirmEmailChangeRequest request)
     {
         var user = await userManager.FindByIdAsync(request.UserId);
-        if (user is null) return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+        if (user is null) return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
 
         if (!TryDecodeToken(request.Token, out var token))
         {
-            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+            return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
         }
 
         // Transaction: ChangeEmailAsync sets Email/EmailConfirmed and rotates the
@@ -321,14 +333,14 @@ public class AuthController(
         var changeResult = await userManager.ChangeEmailAsync(user, request.NewEmail, token);
         if (!changeResult.Succeeded)
         {
-            return BadRequest(new { error = "El enlace no es válido o ha caducado" });
+            return BadRequest(new ApiError("El enlace no es válido o ha caducado"));
         }
 
         var setUserNameResult = await userManager.SetUserNameAsync(user, request.NewEmail);
         if (!setUserNameResult.Succeeded)
         {
             var error = setUserNameResult.Errors.FirstOrDefault()?.Description ?? "El enlace no es válido o ha caducado";
-            return BadRequest(new { error });
+            return BadRequest(new ApiError(error));
         }
 
         await transaction.CommitAsync();
