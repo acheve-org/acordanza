@@ -416,23 +416,14 @@ public class RoutesController(
     [HttpPost("{id:int}/validate")]
     public async Task<ActionResult> ValidateRoute(int id)
     {
-        var route = await db.Routes.FindAsync(id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
-
-        var userId = userManager.GetUserId(User)!;
-
         // Route validation is normally role-gated (route.validate), but an area
         // expert can also validate routes within the top-level area they're an
         // approved expert of (and any of its subareas) even without that role.
-        if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
-        {
-            return Forbid();
-        }
+        var failure = await ValidationDecisions.ValidateAsync(
+            db, db.Routes, id, "No encontrado", userManager.GetUserId(User)!,
+            route => areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId));
 
-        Validation.MarkValidated(route, userId);
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize]
@@ -444,21 +435,12 @@ public class RoutesController(
             return BadRequest(new { error = "el motivo es obligatorio" });
         }
 
-        var route = await db.Routes.FindAsync(id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
-
-        var userId = userManager.GetUserId(User)!;
-
         // Same guard as ValidateRoute — an area expert can reject within their area too.
-        if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
-        {
-            return Forbid();
-        }
+        var failure = await ValidationDecisions.RejectAsync(
+            db, db.Routes, id, "No encontrado", userManager.GetUserId(User)!, request.Reason.Trim(),
+            route => areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId));
 
-        Validation.MarkRejected(route, userId, request.Reason.Trim());
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.RouteDelete)]
