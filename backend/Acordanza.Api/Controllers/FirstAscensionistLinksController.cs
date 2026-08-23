@@ -5,7 +5,6 @@ using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,15 +15,14 @@ namespace Acordanza.Api.Controllers;
 [Route("api/first-ascensionist-links")]
 public class FirstAscensionistLinksController(
     AppDbContext db,
-    UserManager<ApplicationUser> userManager,
     IEmailSender emailSender,
     IConfiguration configuration,
-    ILogger<FirstAscensionistLinksController> logger) : ControllerBase
+    ILogger<FirstAscensionistLinksController> logger) : ApiControllerBase
 {
     [HttpGet("mine")]
     public async Task<ActionResult<List<FirstAscensionistLinkRequestDto>>> GetMine()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var links = await Query().Where(l => l.UserId == userId).OrderByDescending(l => l.RequestedAt).ToListAsync();
         return Ok(links.Select(ToDto).ToList());
     }
@@ -53,7 +51,7 @@ public class FirstAscensionistLinksController(
             return BadRequest(new ApiError("este aperturista ya está vinculado a una cuenta"));
         }
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var alreadyPending = await db.FirstAscensionistLinkRequests.AnyAsync(l =>
             l.FirstAscensionistId == request.FirstAscensionistId &&
             l.UserId == userId &&
@@ -104,7 +102,7 @@ public class FirstAscensionistLinksController(
     [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<FirstAscensionistLinkRequestDto>> Approve(int id)
     {
-        var approverId = userManager.GetUserId(User)!;
+        var approverId = CallerId;
 
         await using var transaction = await db.Database.BeginTransactionAsync();
 
@@ -194,7 +192,7 @@ public class FirstAscensionistLinksController(
             return BadRequest(new ApiError("el motivo es obligatorio"));
         }
 
-        var approverId = userManager.GetUserId(User)!;
+        var approverId = CallerId;
         var reason = request.Reason.Trim();
 
         var outcome = await ReviewRequestService.RejectAsync(db.FirstAscensionistLinkRequests, id, approverId, reason);
@@ -216,7 +214,7 @@ public class FirstAscensionistLinksController(
     [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> Cancel(int id)
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var outcome = await ReviewRequestService.CancelAsync(db.FirstAscensionistLinkRequests, id, userId);
         if (outcome != DecisionOutcome.Applied)
@@ -255,6 +253,6 @@ public class FirstAscensionistLinksController(
     private static FirstAscensionistLinkRequestDto ToDto(FirstAscensionistLinkRequest l) => new(
         l.Id, l.FirstAscensionistId, l.FirstAscensionist.Name,
         l.UserId, l.User.Name,
-        l.RequestedAt, l.Status.ToString().ToLowerInvariant(),
+        l.RequestedAt, l.Status,
         l.DecidedAt, l.DecidedBy?.Name, l.RejectionReason);
 }

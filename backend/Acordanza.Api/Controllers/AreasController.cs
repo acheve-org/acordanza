@@ -22,7 +22,7 @@ public class AreasController(
     BlobStorageService blobStorage,
     MediaUploadService mediaUpload,
     AreaHierarchyService areaHierarchy,
-    AreaExpertAuthorizer areaExpertAuthorizer) : ControllerBase
+    AreaExpertAuthorizer areaExpertAuthorizer) : ApiControllerBase
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
@@ -41,7 +41,7 @@ public class AreasController(
         var query = db.Areas.AsNoTracking();
         if (!includeUnvalidated)
         {
-            query = query.Where(ValidationVisibility.Areas(userManager.GetUserId(User)!));
+            query = query.Where(ValidationVisibility.Areas(CallerId));
         }
 
         // A bounding box (as sent by the map view) restricts results to areas with
@@ -89,7 +89,7 @@ public class AreasController(
     [HttpGet("tree")]
     public async Task<ActionResult<List<AreaTreeNodeDto>>> GetAreaTree()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var areas = await db.Areas.AsNoTracking()
             .Where(ValidationVisibility.Areas(userId))
@@ -109,7 +109,7 @@ public class AreasController(
                 a.Name,
                 a.ParentAreaId,
                 counts.GetValueOrDefault(a.Id),
-                a.ValidationStatus.ToString().ToLowerInvariant()))
+                a.ValidationStatus))
             .ToList());
     }
 
@@ -132,7 +132,7 @@ public class AreasController(
         var query = db.Areas.AsNoTracking().Where(a => a.ParentAreaId == null);
         if (!includeUnvalidated)
         {
-            query = query.Where(ValidationVisibility.Areas(userManager.GetUserId(User)!));
+            query = query.Where(ValidationVisibility.Areas(CallerId));
         }
 
         var totalCount = await query.CountAsync();
@@ -166,7 +166,7 @@ public class AreasController(
         var query = db.Areas.AsNoTracking().Where(a => a.ParentAreaId == id);
         if (!includeUnvalidated)
         {
-            query = query.Where(ValidationVisibility.Areas(userManager.GetUserId(User)!));
+            query = query.Where(ValidationVisibility.Areas(CallerId));
         }
 
         var children = await query
@@ -226,7 +226,7 @@ public class AreasController(
         }
 
         var slug = await GenerateUniqueAreaSlugAsync(request.ParentAreaId, name);
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var area = new Area { Name = name, Slug = slug, ParentAreaId = request.ParentAreaId, AddedByUserId = userId };
 
         // A creator who can also validate areas (moderator/admin) has their new
@@ -312,7 +312,7 @@ public class AreasController(
         {
             if (User.HasClaim("permission", Permissions.AreaValidate))
             {
-                Validation.MarkValidated(area, userManager.GetUserId(User)!);
+                Validation.MarkValidated(area, CallerId);
             }
             else
             {
@@ -395,7 +395,7 @@ public class AreasController(
             .Select(a => new AreaAncestorDto(a.Id, a.Name, a.Slug))
             .ToList();
 
-        var callerId = userManager.GetUserId(User)!;
+        var callerId = CallerId;
         var children = await db.Areas.AsNoTracking()
             .Where(a => a.ParentAreaId == area.Id)
             .Where(ValidationVisibility.Areas(callerId))
@@ -427,7 +427,7 @@ public class AreasController(
             area.ParentAreaId,
             ancestors,
             children,
-            area.ValidationStatus.ToString().ToLowerInvariant(),
+            area.ValidationStatus,
             area.DecidedAt,
             area.DecidedBy?.Name,
             area.RejectionReason,
@@ -517,7 +517,7 @@ public class AreasController(
         a.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
         a.CentroidLat,
         a.CentroidLng,
-        a.ValidationStatus.ToString().ToLowerInvariant(),
+        a.ValidationStatus,
         a.DecidedAt,
         decidedByName,
         a.RejectionReason);
@@ -561,7 +561,7 @@ public class AreasController(
         {
             if (User.HasClaim("permission", Permissions.AreaValidate))
             {
-                Validation.MarkValidated(area, userManager.GetUserId(User)!);
+                Validation.MarkValidated(area, CallerId);
             }
             else
             {
@@ -581,7 +581,7 @@ public class AreasController(
     public async Task<ActionResult> ValidateArea(int id)
     {
         var failure = await ValidationDecisions.ValidateAsync(
-            db, db.Areas, id, "el sector no existe", userManager.GetUserId(User)!);
+            db, db.Areas, id, "el sector no existe", CallerId);
 
         return failure ?? Ok(new { ok = true });
     }
@@ -599,7 +599,7 @@ public class AreasController(
         }
 
         var failure = await ValidationDecisions.RejectAsync(
-            db, db.Areas, id, "el sector no existe", userManager.GetUserId(User)!, request.Reason.Trim());
+            db, db.Areas, id, "el sector no existe", CallerId, request.Reason.Trim());
 
         return failure ?? Ok(new { ok = true });
     }

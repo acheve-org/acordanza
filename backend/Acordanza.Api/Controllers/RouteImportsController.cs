@@ -6,7 +6,6 @@ using Acordanza.Core.Data;
 using Acordanza.Core.Models;
 using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -40,10 +39,9 @@ namespace Acordanza.Api.Controllers;
 [Route("api/route-imports")]
 public class RouteImportsController(
     AppDbContext db,
-    UserManager<ApplicationUser> userManager,
     AreaHierarchyService areaHierarchy,
     BlobStorageService blobStorage,
-    RouteImportQueue routeImportQueue) : ControllerBase
+    RouteImportQueue routeImportQueue) : ApiControllerBase
 {
     [Authorize(Policy = Permissions.RouteCreate)]
     [HttpPost("image")]
@@ -61,7 +59,7 @@ public class RouteImportsController(
             return BadRequest(new ApiError("el sector no existe"));
         }
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         // A GUID rather than the row id: the blob has to be written before the row exists
         // (the row records its name), and the sweep rule on this prefix means a name that
@@ -118,7 +116,7 @@ public class RouteImportsController(
             // parameter is the same submission.
             SourceUrl = UrlCanonicalizer.Canonical(url),
             AreaId = request.AreaId,
-            SubmittedByUserId = userManager.GetUserId(User)!,
+            SubmittedByUserId = CallerId,
             Status = RouteImportStatus.Pending
         };
 
@@ -131,10 +129,10 @@ public class RouteImportsController(
     [HttpGet("mine")]
     public async Task<ActionResult<List<RouteImportDto>>> GetMyImports()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var areas = await areaHierarchy.GetAsync();
 
-        // Scoped to the caller by GetUserId, never by an id from the client — same
+        // Scoped to the caller by CallerId, never by an id from the client — same
         // pattern as ContributionsController, hence no "mine" parameter to forge.
         var imports = await db.RouteImports
             .AsNoTracking()
@@ -162,7 +160,7 @@ public class RouteImportsController(
     [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult> DeleteImport(int id)
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var import = await db.RouteImports.FirstOrDefaultAsync(i => i.Id == id && i.SubmittedByUserId == userId);
         if (import is null) return NotFound();
 
@@ -209,13 +207,13 @@ public class RouteImportsController(
 
     private static RouteImportDto ToDto(RouteImport import, string areaNamePath, string? routeAreaSlugPath) => new(
         import.Id,
-        import.Kind.ToString().ToLowerInvariant(),
+        import.Kind,
         import.FileName,
         import.SourceUrl,
         import.AreaId,
         areaNamePath,
         import.CreatedAt,
-        import.Status.ToString().ToLowerInvariant(),
+        import.Status,
         import.Outcome,
         import.RouteId,
         import.Route?.Name,

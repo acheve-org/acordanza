@@ -1,3 +1,5 @@
+using Acordanza.Core.Models;
+
 namespace Acordanza.Api.Dtos;
 
 public record ContributionDto(
@@ -6,7 +8,7 @@ public record ContributionDto(
     // Routes: "Peña Rúa › Sector 1"; areas: their own name path; openers: null.
     string? Detail,
     DateTimeOffset CreatedAt,
-    string ValidationStatus,
+    ReviewStatus ValidationStatus,
     DateTimeOffset? DecidedAt,
     string? DecidedByName,
     string? RejectionReason);

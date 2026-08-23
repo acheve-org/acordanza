@@ -6,7 +6,6 @@ using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using static Acordanza.Api.Dtos.RouteEnumParsing;
@@ -16,8 +15,8 @@ namespace Acordanza.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/ticks")]
-public class TicksController(AppDbContext db, UserManager<ApplicationUser> userManager, AreaHierarchyService areaHierarchy)
-    : ControllerBase
+public class TicksController(AppDbContext db, AreaHierarchyService areaHierarchy)
+    : ApiControllerBase
 {
     private const int DefaultPageSize = 20;
     private const int MaxPageSize = 100;
@@ -34,7 +33,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
 
         var areas = await areaHierarchy.GetAsync();
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var query = db.Ticks
             .Include(t => t.Route)
             .Where(t => t.ClimberUserId == userId)
@@ -79,7 +78,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> DeleteTick(int id)
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var tick = await db.Ticks.FirstOrDefaultAsync(t => t.Id == id && t.ClimberUserId == userId);
         if (tick is not null)
         {

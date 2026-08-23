@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Acordanza.Core.Models;
 
 // Who put this link on the route (plan 29 §6). Deliberately provenance only — it
@@ -5,7 +7,9 @@ namespace Acordanza.Core.Models;
 // enrichment link is *identifiable*: the detail modal badges it, a bad batch is one
 // `WHERE "Source" = 'Enrichment'` away from being deleted, and link precision becomes
 // countable. Anything arriving over HTTP is Human by definition (RoutesController) —
-// the write DTO carries no source field, so it can't be forged.
+// the write DTO carries no source field, so it can't be forged. Serializes lowercase
+// over the API (DUP-7) — see LowerInvariantEnumConverter.
+[JsonConverter(typeof(LowerInvariantEnumConverter<LinkSource>))]
 public enum LinkSource
 {
     Human,

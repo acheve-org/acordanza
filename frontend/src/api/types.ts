@@ -11,15 +11,14 @@ export type GeoPoint = components['schemas']['GeoPointDto'];
 // because `client.ts` already exports an `ApiError` class for the thrown client-side error.
 export type ApiErrorBody = components['schemas']['ApiError'];
 
-// Backend/Acordanza.Api/Models/ReviewStatus.cs is a free-text string column (both the
-// request-review flows' Status and the validation lifecycle's ValidationStatus), but its
-// runtime values are the closed set below — openapi-typescript can't know that from the
-// schema alone, so narrow it by hand.
-type RequestStatus = 'pending' | 'approved' | 'rejected';
+// Acordanza.Core/Models/ReviewStatus.cs — shared by every self-service request/approve/
+// reject flow (AreaExpert, FirstAscensionistLinkRequest) and every editorial validation
+// lifecycle (routes, areas, first ascensionists). A real OpenAPI enum now that the
+// backend's JsonStringEnumConverter (DUP-7) gives it a schema instead of a bare string,
+// so this is just an alias onto the generated type rather than a hand-narrowed union.
+export type RequestStatus = components['schemas']['ReviewStatus'];
 
-export type AreaSummary = Omit<components['schemas']['AreaDto'], 'validationStatus'> & {
-  validationStatus: RequestStatus;
-};
+export type AreaSummary = components['schemas']['AreaDto'];
 
 // Not a backend DTO — a client-constructed viewport query, not a response shape.
 export interface AreaBounds {
@@ -33,9 +32,7 @@ export type AreaNode = components['schemas']['AreaNodeDto'];
 
 // GET /areas/tree — the whole area tree, flat and geometry-free, that AreaPicker holds
 // client-side (plan 35 §1). RouteCount is the area's own routes only.
-export type AreaTreeNode = Omit<components['schemas']['AreaTreeNodeDto'], 'validationStatus'> & {
-  validationStatus: RequestStatus;
-};
+export type AreaTreeNode = components['schemas']['AreaTreeNodeDto'];
 
 export type PagedAreaNodes = components['schemas']['PagedAreaNodesResponse'];
 
@@ -43,45 +40,36 @@ export type AreaAncestor = components['schemas']['AreaAncestorDto'];
 
 export type AreaChild = components['schemas']['AreaChildDto'];
 
-export type AreaDetail = Omit<components['schemas']['AreaDetailDto'], 'validationStatus'> & {
-  validationStatus: RequestStatus;
-};
+export type AreaDetail = components['schemas']['AreaDetailDto'];
 
 // The review queue's view of a not-yet-decided area — GET /areas/pending.
 export type AreaPending = components['schemas']['AreaPendingDto'];
 
-export type AreaExpert = Omit<components['schemas']['AreaExpertDto'], 'status'> & { status: RequestStatus };
+export type AreaExpert = components['schemas']['AreaExpertDto'];
 
 export type FirstAscensionistSummary = components['schemas']['FirstAscensionistDto'];
 
 export type PagedFirstAscensionists = components['schemas']['PagedFirstAscensionistsResponse'];
 
 // The "Sigue" section's view of a first ascensionist: the plain DTO plus what they opened.
-export type FirstAscensionistProfile = Omit<components['schemas']['FirstAscensionistProfileDto'], 'validationStatus'> & {
-  validationStatus: RequestStatus;
-};
+export type FirstAscensionistProfile = components['schemas']['FirstAscensionistProfileDto'];
 
 // The review queue's view of a not-yet-decided first ascensionist — GET /first-ascensionists/pending.
 export type FirstAscensionistPending = components['schemas']['FirstAscensionistPendingDto'];
 
-export type FirstAscensionistLinkRequestSummary =
-  Omit<components['schemas']['FirstAscensionistLinkRequestDto'], 'status'> & { status: RequestStatus };
+export type FirstAscensionistLinkRequestSummary = components['schemas']['FirstAscensionistLinkRequestDto'];
 
 export type TopoSummary = components['schemas']['TopoDto'];
 
-// RouteImport.Status and .Kind are string columns on the backend for the same reason
-// ValidationStatus is (see RequestStatus above), but their runtime values are these closed
-// sets — narrowed by hand, since openapi-typescript can't see them from the schema.
-export type RouteImportStatus = 'pending' | 'completed' | 'discarded' | 'failed';
+// Acordanza.Core/Models/RouteImport.cs — real OpenAPI enums now (see RequestStatus above),
+// so these are aliases onto the generated types rather than hand-narrowed unions.
+export type RouteImportStatus = components['schemas']['RouteImportStatus'];
 
 // What the user handed us to read: a topo photo or the URL of a page. FileName is set for
 // the first, SourceUrl for the second — never both.
-export type RouteImportKind = 'image' | 'url';
+export type RouteImportKind = components['schemas']['RouteImportKind'];
 
-export type RouteImport = Omit<components['schemas']['RouteImportDto'], 'status' | 'kind'> & {
-  status: RouteImportStatus;
-  kind: RouteImportKind;
-};
+export type RouteImport = components['schemas']['RouteImportDto'];
 
 // A third label map alongside reviewStatusLabels/validationStatusLabels, and separate for
 // the same reason those two are: the four states here are the import pipeline's, not a
@@ -100,29 +88,19 @@ export const routeImportKindLabels: Record<RouteImportKind, string> = {
   url: 'Enlace',
 };
 
-export type RouteSummary = Omit<components['schemas']['RouteDto'], 'validationStatus'> & {
-  validationStatus: RequestStatus;
-};
+export type RouteSummary = components['schemas']['RouteDto'];
 
-export type RouteDetail = Omit<components['schemas']['RouteDetailDto'], 'validationStatus'> & {
-  validationStatus: RequestStatus;
-};
+export type RouteDetail = components['schemas']['RouteDetailDto'];
 
 // The review queue's view of a not-yet-decided route — GET /routes/pending.
 export type RoutePending = components['schemas']['RoutePendingDto'];
 
 // "Mis contribuciones" (issue #125) — the areas/routes/first-ascensionists the current
 // user created, each with its validation status.
-export type Contribution = Omit<components['schemas']['ContributionDto'], 'validationStatus'> & {
-  validationStatus: RequestStatus;
-};
+export type Contribution = components['schemas']['ContributionDto'];
 
-// One page of one kind — GET /contributions/{routes|areas|first-ascensionists}. `items` is
-// re-added narrowed for the same reason `Contribution` narrows: the contract types
-// validationStatus as a plain string.
-export type PagedContributions = Omit<components['schemas']['PagedContributionsResponse'], 'items'> & {
-  items: Contribution[];
-};
+// One page of one kind — GET /contributions/{routes|areas|first-ascensionists}.
+export type PagedContributions = components['schemas']['PagedContributionsResponse'];
 
 export interface RouteFilters {
   q: string;

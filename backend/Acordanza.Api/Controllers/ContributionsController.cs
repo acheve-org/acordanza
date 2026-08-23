@@ -5,7 +5,6 @@ using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,8 +23,7 @@ namespace Acordanza.Api.Controllers;
 [Route("api/contributions")]
 public class ContributionsController(
     AppDbContext db,
-    UserManager<ApplicationUser> userManager,
-    AreaHierarchyService areaHierarchy) : ControllerBase
+    AreaHierarchyService areaHierarchy) : ApiControllerBase
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
@@ -35,7 +33,7 @@ public class ContributionsController(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
         (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var query = db.Routes.AsNoTracking().Where(r => r.AddedByUserId == userId);
         var totalCount = await query.CountAsync();
@@ -54,7 +52,7 @@ public class ContributionsController(
         var items = rows
             .Select(r => new ContributionDto(
                 r.Id, r.Name, areas.NamePath(r.AreaId), r.CreatedAt,
-                r.ValidationStatus.ToString().ToLowerInvariant(), r.DecidedAt, r.DecidedBy?.Name, r.RejectionReason))
+                r.ValidationStatus, r.DecidedAt, r.DecidedBy?.Name, r.RejectionReason))
             .ToList();
 
         return Ok(new PagedContributionsResponse(items, totalCount, page, pageSize));
@@ -65,7 +63,7 @@ public class ContributionsController(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
         (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var query = db.Areas.AsNoTracking().Where(a => a.AddedByUserId == userId);
         var totalCount = await query.CountAsync();
@@ -79,7 +77,7 @@ public class ContributionsController(
         var items = rows
             .Select(a => new ContributionDto(
                 a.Id, a.Name, areas.NamePath(a.Id), a.CreatedAt,
-                a.ValidationStatus.ToString().ToLowerInvariant(), a.DecidedAt, a.DecidedBy?.Name, a.RejectionReason))
+                a.ValidationStatus, a.DecidedAt, a.DecidedBy?.Name, a.RejectionReason))
             .ToList();
 
         return Ok(new PagedContributionsResponse(items, totalCount, page, pageSize));
@@ -92,7 +90,7 @@ public class ContributionsController(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
         (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var query = db.FirstAscensionists.AsNoTracking().Where(f => f.AddedByUserId == userId);
         var totalCount = await query.CountAsync();
@@ -105,7 +103,7 @@ public class ContributionsController(
         var items = rows
             .Select(f => new ContributionDto(
                 f.Id, f.Name, null, f.CreatedAt,
-                f.ValidationStatus.ToString().ToLowerInvariant(), f.DecidedAt, f.DecidedBy?.Name, f.RejectionReason))
+                f.ValidationStatus, f.DecidedAt, f.DecidedBy?.Name, f.RejectionReason))
             .ToList();
 
         return Ok(new PagedContributionsResponse(items, totalCount, page, pageSize));

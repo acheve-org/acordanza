@@ -3806,7 +3806,7 @@ export interface components {
             parentAreaId: null | number;
             ancestors: components["schemas"]["AreaAncestorDto"][];
             children: components["schemas"]["AreaChildDto"][];
-            validationStatus: string;
+            validationStatus: components["schemas"]["ReviewStatus"];
             /** Format: date-time */
             decidedAt: null | string;
             decidedByName: null | string;
@@ -3826,7 +3826,7 @@ export interface components {
             centroidLat: null | number;
             /** Format: double */
             centroidLng: null | number;
-            validationStatus: string;
+            validationStatus: components["schemas"]["ReviewStatus"];
             /** Format: date-time */
             decidedAt: null | string;
             decidedByName: null | string;
@@ -3842,7 +3842,7 @@ export interface components {
             userName: string;
             /** Format: date-time */
             requestedAt: string;
-            status: string;
+            status: components["schemas"]["ReviewStatus"];
             /** Format: date-time */
             decidedAt: null | string;
             decidedByName: null | string;
@@ -3875,7 +3875,7 @@ export interface components {
             parentAreaId: null | number;
             /** Format: int32 */
             routeCount: number;
-            validationStatus: string;
+            validationStatus: components["schemas"]["ReviewStatus"];
         };
         AssertionOptions: {
             /** Format: byte */
@@ -3997,7 +3997,7 @@ export interface components {
             detail: null | string;
             /** Format: date-time */
             createdAt: string;
-            validationStatus: string;
+            validationStatus: components["schemas"]["ReviewStatus"];
             /** Format: date-time */
             decidedAt: null | string;
             decidedByName: null | string;
@@ -4073,7 +4073,7 @@ export interface components {
             userName: string;
             /** Format: date-time */
             requestedAt: string;
-            status: string;
+            status: components["schemas"]["ReviewStatus"];
             /** Format: date-time */
             decidedAt: null | string;
             decidedByName: null | string;
@@ -4097,7 +4097,7 @@ export interface components {
             /** Format: int32 */
             routeCount: number;
             areaNames: string[];
-            validationStatus: string;
+            validationStatus: components["schemas"]["ReviewStatus"];
             /** Format: date-time */
             decidedAt: null | string;
             decidedByName: null | string;
@@ -4125,6 +4125,8 @@ export interface components {
             value: components["schemas"]["AuthenticationExtensionsPRFValues"];
         };
         LargeBlobSupport: unknown;
+        /** @enum {unknown} */
+        LinkSource: "human" | "enrichment" | "import";
         LoginRequest: {
             email: string;
             password: string;
@@ -4283,6 +4285,8 @@ export interface components {
             newPassword: string;
         };
         ResidentKeyRequirement: unknown;
+        /** @enum {unknown} */
+        ReviewStatus: "pending" | "approved" | "rejected";
         RouteDetailDto: {
             /** Format: int32 */
             id: number;
@@ -4310,7 +4314,7 @@ export interface components {
             createdAt: string;
             hasTick: boolean;
             topos: components["schemas"]["TopoDto"][];
-            validationStatus: string;
+            validationStatus: components["schemas"]["ReviewStatus"];
             /** Format: date-time */
             decidedAt: null | string;
             decidedByName: null | string;
@@ -4346,7 +4350,7 @@ export interface components {
             createdAt: string;
             hasTick: boolean;
             hasTopos: boolean;
-            validationStatus: string;
+            validationStatus: components["schemas"]["ReviewStatus"];
             /** Format: date-time */
             decidedAt: null | string;
             decidedByName: null | string;
@@ -4356,7 +4360,7 @@ export interface components {
         RouteImportDto: {
             /** Format: int32 */
             id: number;
-            kind: string;
+            kind: components["schemas"]["RouteImportKind"];
             fileName: null | string;
             sourceUrl: null | string;
             /** Format: int32 */
@@ -4364,7 +4368,7 @@ export interface components {
             areaNamePath: string;
             /** Format: date-time */
             createdAt: string;
-            status: string;
+            status: components["schemas"]["RouteImportStatus"];
             outcome: null | string;
             /** Format: int32 */
             routeId: null | number;
@@ -4375,9 +4379,13 @@ export interface components {
             /** Format: date-time */
             processedAt: null | string;
         };
+        /** @enum {unknown} */
+        RouteImportKind: "image" | "url";
+        /** @enum {unknown} */
+        RouteImportStatus: "pending" | "completed" | "discarded" | "failed";
         RouteLinkDto: {
             url: string;
-            source: string;
+            source: components["schemas"]["LinkSource"];
         };
         RoutePendingDto: {
             /** Format: int32 */

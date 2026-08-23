@@ -282,7 +282,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
 
         var detail = await moderator.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
-        detail!.ValidationStatus.ShouldBe("approved");
+        detail!.ValidationStatus.ShouldBe(ReviewStatus.Approved);
         detail.DecidedAt.ShouldNotBeNull();
     }
 
@@ -301,7 +301,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
 
         var detail = await user.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
-        detail!.ValidationStatus.ShouldBe("pending");
+        detail!.ValidationStatus.ShouldBe(ReviewStatus.Pending);
         detail.DecidedAt.ShouldBeNull();
     }
 
@@ -320,7 +320,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
 
         var detail = await expert.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
-        detail!.ValidationStatus.ShouldBe("approved");
+        detail!.ValidationStatus.ShouldBe(ReviewStatus.Approved);
     }
 
     [Fact]
@@ -339,7 +339,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
 
         var detail = await expert.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{created!.Id}", TestContext.Current.CancellationToken);
-        detail!.ValidationStatus.ShouldBe("pending");
+        detail!.ValidationStatus.ShouldBe(ReviewStatus.Pending);
     }
 
     // Regression test for the reported bug: an admin (route.validate via role, unbounded)
@@ -367,7 +367,7 @@ public class RouteValidationLifecycleTests(ApiFixture fixture) : IntegrationTest
 
         var detail = await admin.Client.GetFromJsonAsync<RouteDetailDto>(
             $"/api/routes/{route.Id}", TestContext.Current.CancellationToken);
-        detail!.ValidationStatus.ShouldBe("approved");
+        detail!.ValidationStatus.ShouldBe(ReviewStatus.Approved);
         detail.DecidedAt.ShouldNotBeNull();
     }
 

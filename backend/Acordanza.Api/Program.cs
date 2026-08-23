@@ -229,6 +229,17 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
 });
 
+// DUP-7: ReviewStatus/LinkSource/RouteImportKind/RouteImportStatus DTO fields used to be
+// hand-serialized per call site as `X.ToString().ToLowerInvariant()`. Each of those four
+// enums now carries its own [JsonConverter(typeof(LowerInvariantEnumConverter<T>))]
+// attribute (Acordanza.Core/Models) instead of a converter registered here on
+// JsonSerializerOptions — see that file for why: a type-level attribute is honored by
+// *any* serializer touching the type (controller responses, the OpenAPI schema
+// generator, even a test's bare HttpClient.GetFromJsonAsync<T>() with no options at
+// all), and because it's attached to just these four enums it can never reach into an
+// unrelated one — unlike a blanket JsonStringEnumConverter registered as a converter
+// factory, which would also silently rewrite Fido2NetLib's WebAuthn enums
+// (PasskeysController) away from the exact wire format the WebAuthn spec requires.
 builder.Services.AddControllers();
 builder.Services.AddOpenApi(options =>
 {

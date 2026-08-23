@@ -1,3 +1,5 @@
+using Acordanza.Core.Models;
+
 namespace Acordanza.Api.Dtos;
 
 public record AreaExpertDto(
@@ -7,7 +9,7 @@ public record AreaExpertDto(
     string UserId,
     string UserName,
     DateTimeOffset RequestedAt,
-    string Status,
+    ReviewStatus Status,
     DateTimeOffset? DecidedAt,
     string? DecidedByName,
     string? RejectionReason);

@@ -4,7 +4,6 @@ using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,9 +14,8 @@ namespace Acordanza.Api.Controllers;
 [Route("api/topos")]
 public class ToposController(
     AppDbContext db,
-    UserManager<ApplicationUser> userManager,
     BlobStorageService blobStorage,
-    AreaExpertAuthorizer areaExpertAuthorizer) : ControllerBase
+    AreaExpertAuthorizer areaExpertAuthorizer) : ApiControllerBase
 {
     // Uploading a topo stays open to every account (RoutesController.UploadTopo): adding a
     // photo to a route is additive, and a shared log people actually add photos to is the
@@ -53,6 +51,6 @@ public class ToposController(
     }
 
     private async Task<bool> CanDeleteAsync(Topo topo) =>
-        topo.UploadedByUserId == userManager.GetUserId(User) ||
+        topo.UploadedByUserId == CallerId ||
         await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteEdit, topo.Route.AreaId);
 }

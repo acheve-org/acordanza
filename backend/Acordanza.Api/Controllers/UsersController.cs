@@ -24,7 +24,7 @@ public class UsersController(
     AppDbContext db,
     UserManager<ApplicationUser> userManager,
     IEmailSender emailSender,
-    IConfiguration configuration) : ControllerBase
+    IConfiguration configuration) : ApiControllerBase
 {
     private const int DefaultPageSize = 10;
     private const int MaxPageSize = 100;
@@ -111,7 +111,7 @@ public class UsersController(
     [HttpGet("my-invites")]
     public async Task<ActionResult<MyInvitesResponse>> GetMyInvites()
     {
-        var callerId = userManager.GetUserId(User)!;
+        var callerId = CallerId;
         var unlimited = User.HasClaim("permission", Permissions.UserManage);
         var maxInvites = unlimited ? (int?)null : GetInviteLimit();
 
@@ -147,7 +147,7 @@ public class UsersController(
             return BadRequest(new ApiError("Introduce un correo electrónico válido"));
         }
 
-        var callerId = userManager.GetUserId(User)!;
+        var callerId = CallerId;
         var unlimited = User.HasClaim("permission", Permissions.UserManage);
         var role = unlimited ? request.Role : Roles.User;
         if (!Roles.All.Contains(role))

@@ -24,7 +24,7 @@ public class RoutesController(
     MediaUploadService mediaUpload,
     AreaHierarchyService areaHierarchy,
     AreaExpertAuthorizer areaExpertAuthorizer,
-    RouteEnrichmentQueue enrichmentQueue) : ControllerBase
+    RouteEnrichmentQueue enrichmentQueue) : ApiControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(List<RouteDto>), 200)]
@@ -36,7 +36,7 @@ public class RoutesController(
         [FromQuery] int? firstAscensionistId, [FromQuery] bool exactArea = false, [FromQuery] bool openedByMe = false)
     {
         var areas = await areaHierarchy.GetAsync();
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var query = db.Routes
             .Include(r => r.AddedBy)
@@ -138,13 +138,13 @@ public class RoutesController(
             ObligatoryGrade: r.ObligatoryGrade,
             RecommendedGear: r.RecommendedGear,
             OptionalGear: r.OptionalGear,
-            Links: r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
+            Links: r.Links.Select(l => new RouteLinkDto(l.Url, l.Source)).ToList(),
             FirstAscensionists: r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             AddedBy: r.AddedBy.Name,
             CreatedAt: r.CreatedAt,
             HasTick: tickedRouteIds.Contains(r.Id),
             HasTopos: r.Topos.Count > 0,
-            ValidationStatus: r.ValidationStatus.ToString().ToLowerInvariant(),
+            ValidationStatus: r.ValidationStatus,
             DecidedAt: r.DecidedAt,
             DecidedByName: r.DecidedBy?.Name,
             RejectionReason: r.RejectionReason,
@@ -158,7 +158,7 @@ public class RoutesController(
     [HttpGet("grades")]
     public async Task<ActionResult<List<string>>> GetGrades()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var grades = await db.Routes.AsNoTracking()
             .Where(ValidationVisibility.Routes(userId))
             .Where(r => r.Grade != null)
@@ -176,7 +176,7 @@ public class RoutesController(
     [HttpGet("aid-grades")]
     public async Task<ActionResult<List<string>>> GetAidGrades()
     {
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var aidGrades = await db.Routes.AsNoTracking()
             .Where(ValidationVisibility.Routes(userId))
             .Where(r => r.AidGrade != null)
@@ -283,7 +283,7 @@ public class RoutesController(
     private async Task<RouteDetailDto> BuildRouteDetailDtoAsync(ClimbingRoute route)
     {
         var areas = await areaHierarchy.GetAsync();
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         // Same rule ToposController.DeleteTopo enforces, resolved once for the whole list.
         var canEditArea = await areaExpertAuthorizer.BuildAreaCheckAsync(User, Permissions.RouteEdit);
@@ -319,13 +319,13 @@ public class RoutesController(
             ObligatoryGrade: route.ObligatoryGrade,
             RecommendedGear: route.RecommendedGear,
             OptionalGear: route.OptionalGear,
-            Links: route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
+            Links: route.Links.Select(l => new RouteLinkDto(l.Url, l.Source)).ToList(),
             FirstAscensionists: route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
             AddedBy: route.AddedBy.Name,
             CreatedAt: route.CreatedAt,
             HasTick: hasTick,
             Topos: topoDtos,
-            ValidationStatus: route.ValidationStatus.ToString().ToLowerInvariant(),
+            ValidationStatus: route.ValidationStatus,
             DecidedAt: route.DecidedAt,
             DecidedByName: route.DecidedBy?.Name,
             RejectionReason: route.RejectionReason,
@@ -342,7 +342,7 @@ public class RoutesController(
         var (values, error) = await RouteWrite.TryBuildAsync(db, request, requireAreaId: true);
         if (error is not null) return BadRequest(new ApiError(error));
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var slug = await GenerateUniqueRouteSlugAsync(request.AreaId, request.Name);
         var route = new ClimbingRoute
         {
@@ -391,7 +391,7 @@ public class RoutesController(
             .FirstOrDefaultAsync(r => r.Id == id);
         if (route is null) return NotFound(new ApiError("No encontrado"));
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
 
         var (values, error) = await RouteWrite.TryBuildAsync(db, request);
         if (error is not null) return BadRequest(new ApiError(error));
@@ -468,7 +468,7 @@ public class RoutesController(
         // expert can also validate routes within the top-level area they're an
         // approved expert of (and any of its subareas) even without that role.
         var failure = await ValidationDecisions.ValidateAsync(
-            db, db.Routes, id, "No encontrado", userManager.GetUserId(User)!,
+            db, db.Routes, id, "No encontrado", CallerId,
             route => areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId));
 
         return failure ?? Ok(new { ok = true });
@@ -488,7 +488,7 @@ public class RoutesController(
 
         // Same guard as ValidateRoute — an area expert can reject within their area too.
         var failure = await ValidationDecisions.RejectAsync(
-            db, db.Routes, id, "No encontrado", userManager.GetUserId(User)!, request.Reason.Trim(),
+            db, db.Routes, id, "No encontrado", CallerId, request.Reason.Trim(),
             route => areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId));
 
         return failure ?? Ok(new { ok = true });
@@ -581,7 +581,7 @@ public class RoutesController(
         var routeExists = await db.Routes.AnyAsync(r => r.Id == id);
         if (!routeExists) return NotFound(new ApiError("No encontrado"));
 
-        var userId = userManager.GetUserId(User)!;
+        var userId = CallerId;
         var tick = new Tick
         {
             RouteId = id,

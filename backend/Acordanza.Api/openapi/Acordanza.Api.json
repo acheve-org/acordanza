@@ -4867,7 +4867,7 @@
             }
           },
           "validationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           },
           "decidedAt": {
             "type": [
@@ -4953,7 +4953,7 @@
             "format": "double"
           },
           "validationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           },
           "decidedAt": {
             "type": [
@@ -5013,7 +5013,7 @@
             "format": "date-time"
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           },
           "decidedAt": {
             "type": [
@@ -5133,7 +5133,7 @@
             "format": "int32"
           },
           "validationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           }
         }
       },
@@ -5618,7 +5618,7 @@
             "format": "date-time"
           },
           "validationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           },
           "decidedAt": {
             "type": [
@@ -5900,7 +5900,7 @@
             "format": "date-time"
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           },
           "decidedAt": {
             "type": [
@@ -6000,7 +6000,7 @@
             }
           },
           "validationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           },
           "decidedAt": {
             "type": [
@@ -6098,6 +6098,13 @@
         }
       },
       "LargeBlobSupport": { },
+      "LinkSource": {
+        "enum": [
+          "human",
+          "enrichment",
+          "import"
+        ]
+      },
       "LoginRequest": {
         "required": [
           "email",
@@ -6695,6 +6702,13 @@
         }
       },
       "ResidentKeyRequirement": { },
+      "ReviewStatus": {
+        "enum": [
+          "pending",
+          "approved",
+          "rejected"
+        ]
+      },
       "RouteDetailDto": {
         "required": [
           "id",
@@ -6840,7 +6854,7 @@
             }
           },
           "validationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           },
           "decidedAt": {
             "type": [
@@ -7014,7 +7028,7 @@
             "type": "boolean"
           },
           "validationStatus": {
-            "type": "string"
+            "$ref": "#/components/schemas/ReviewStatus"
           },
           "decidedAt": {
             "type": [
@@ -7065,7 +7079,7 @@
             "format": "int32"
           },
           "kind": {
-            "type": "string"
+            "$ref": "#/components/schemas/RouteImportKind"
           },
           "fileName": {
             "type": [
@@ -7091,7 +7105,7 @@
             "format": "date-time"
           },
           "status": {
-            "type": "string"
+            "$ref": "#/components/schemas/RouteImportStatus"
           },
           "outcome": {
             "type": [
@@ -7136,6 +7150,20 @@
           }
         }
       },
+      "RouteImportKind": {
+        "enum": [
+          "image",
+          "url"
+        ]
+      },
+      "RouteImportStatus": {
+        "enum": [
+          "pending",
+          "completed",
+          "discarded",
+          "failed"
+        ]
+      },
       "RouteLinkDto": {
         "required": [
           "url",
@@ -7147,7 +7175,7 @@
             "type": "string"
           },
           "source": {
-            "type": "string"
+            "$ref": "#/components/schemas/LinkSource"
           }
         }
       },
