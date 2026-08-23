@@ -89,6 +89,8 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
     // by-slug/ rather than a bare {slug} so it can't shadow the literal "profiles"/"pending"
     // segments above — same shape as AreasController's by-slug-path.
     [HttpGet("by-slug/{slug}")]
+    [ProducesResponseType(typeof(FirstAscensionistProfileDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<FirstAscensionistProfileDto>> GetFirstAscensionistBySlug(string slug)
     {
         var firstAscensionist = await db.FirstAscensionists.AsNoTracking()
@@ -96,7 +98,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             .Include(o => o.DecidedBy)
             .FirstOrDefaultAsync(o => o.Slug == slug);
 
-        if (firstAscensionist is null) return NotFound(new { error = "el aperturista no existe" });
+        if (firstAscensionist is null) return NotFound(new ApiError("el aperturista no existe"));
 
         return Ok(ToProfileDto(firstAscensionist, await OpeningsByFirstAscensionistAsync(firstAscensionist.Id)));
     }
@@ -171,15 +173,18 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
     // admins/moderators, so who-linked-what-when is always tracked.
     [Authorize(Policy = Permissions.FirstAscensionistCreate)]
     [HttpPost]
+    [ProducesResponseType(typeof(FirstAscensionistDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult<FirstAscensionistDto>> CreateFirstAscensionist(CreateFirstAscensionistRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { error = "el nombre es obligatorio" });
+            return BadRequest(new ApiError("el nombre es obligatorio"));
         }
         if (request.Name.Length > NameMaxLength)
         {
-            return BadRequest(new { error = "el nombre es demasiado largo" });
+            return BadRequest(new ApiError("el nombre es demasiado largo"));
         }
 
         var userId = userManager.GetUserId(User)!;
@@ -204,7 +209,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         {
             // The uniqueness loop above is only a friendly pre-check — this catches the rare
             // case of two concurrent creates racing past it for the same slug.
-            return Conflict(new { error = "ya existe un aperturista con esa dirección" });
+            return Conflict(new ApiError("ya existe un aperturista con esa dirección"));
         }
 
         return Ok(new FirstAscensionistDto(firstAscensionist.Id, firstAscensionist.Name, null, null));
@@ -212,12 +217,16 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
 
     [Authorize(Policy = Permissions.FirstAscensionistEdit)]
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(FirstAscensionistDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult<FirstAscensionistDto>> UpdateFirstAscensionist(int id, UpdateFirstAscensionistRequest request)
     {
         var firstAscensionist = await db.FirstAscensionists.Include(o => o.User).FirstOrDefaultAsync(o => o.Id == id);
         if (firstAscensionist is null)
         {
-            return NotFound(new { error = "el aperturista no existe" });
+            return NotFound(new ApiError("el aperturista no existe"));
         }
 
         // first-ascensionist.edit is granted both to moderators/admins (any record) and, dynamically,
@@ -233,11 +242,11 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { error = "el nombre es obligatorio" });
+            return BadRequest(new ApiError("el nombre es obligatorio"));
         }
         if (request.Name.Length > NameMaxLength)
         {
-            return BadRequest(new { error = "el nombre es demasiado largo" });
+            return BadRequest(new ApiError("el nombre es demasiado largo"));
         }
 
         var newName = request.Name.Trim();
@@ -269,7 +278,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            return Conflict(new { error = "ya existe un aperturista con esa dirección" });
+            return Conflict(new ApiError("ya existe un aperturista con esa dirección"));
         }
 
         return Ok(new FirstAscensionistDto(
@@ -278,6 +287,8 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
 
     [Authorize(Policy = Permissions.FirstAscensionistValidate)]
     [HttpPost("{id:int}/validate")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> ValidateFirstAscensionist(int id)
     {
         var failure = await ValidationDecisions.ValidateAsync(
@@ -288,11 +299,14 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
 
     [Authorize(Policy = Permissions.FirstAscensionistValidate)]
     [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> RejectFirstAscensionist(int id, RejectValidationRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            return BadRequest(new { error = "el motivo es obligatorio" });
+            return BadRequest(new ApiError("el motivo es obligatorio"));
         }
 
         var failure = await ValidationDecisions.RejectAsync(
@@ -303,11 +317,14 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
 
     [Authorize(Policy = Permissions.FirstAscensionistDelete)]
     [HttpDelete("{id}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<IActionResult> DeleteFirstAscensionist(int id)
     {
         if (!await db.FirstAscensionists.AnyAsync(f => f.Id == id))
         {
-            return NotFound(new { error = "el aperturista no existe" });
+            return NotFound(new ApiError("el aperturista no existe"));
         }
 
         // ClimbingRoute<->FirstAscensionist is many-to-many with a Cascade FK on the join
@@ -324,9 +341,9 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
         {
             if (!await db.FirstAscensionists.AnyAsync(f => f.Id == id))
             {
-                return NotFound(new { error = "el aperturista no existe" });
+                return NotFound(new ApiError("el aperturista no existe"));
             }
-            return BadRequest(new { error = "el aperturista tiene vías asociadas; quítalo de esas vías primero" });
+            return BadRequest(new ApiError("el aperturista tiene vías asociadas; quítalo de esas vías primero"));
         }
 
         return NoContent();

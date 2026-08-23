@@ -1,3 +1,4 @@
+using Acordanza.Api.Dtos;
 using Acordanza.Core.Data;
 using Acordanza.Core.Models;
 using Microsoft.AspNetCore.Mvc;
@@ -47,7 +48,7 @@ public static class ValidationDecisions
         where T : class, IValidatable
     {
         var entity = await set.FindAsync(id);
-        if (entity is null) return (null, new NotFoundObjectResult(new { error = notFoundMessage }));
+        if (entity is null) return (null, new NotFoundObjectResult(new ApiError(notFoundMessage)));
 
         if (authorize is not null && !await authorize(entity))
         {

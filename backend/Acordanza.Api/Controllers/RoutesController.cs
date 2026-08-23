@@ -26,6 +26,8 @@ public class RoutesController(
     RouteEnrichmentQueue enrichmentQueue) : ControllerBase
 {
     [HttpGet]
+    [ProducesResponseType(typeof(List<RouteDto>), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
         [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string? aidGrade,
         [FromQuery] string[]? orientation,
@@ -87,7 +89,7 @@ public class RoutesController(
         if (orientation is { Length: > 0 })
         {
             if (orientation.FirstOrDefault(o => !RouteWrite.AllowedOrientations.Contains(o)) is not null)
-                return BadRequest(new { error = "la orientación no es válida" });
+                return BadRequest(new ApiError("la orientación no es válida"));
             query = query.Where(r => r.Orientation != null && orientation.Contains(r.Orientation));
         }
         if (!string.IsNullOrWhiteSpace(gear))
@@ -209,6 +211,8 @@ public class RoutesController(
     }
 
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(RouteDetailDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<RouteDetailDto>> GetRoute(int id)
     {
         ClimbingRoute? route;
@@ -225,7 +229,7 @@ public class RoutesController(
             await transaction.CommitAsync();
         }
 
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         return Ok(await BuildRouteDetailDtoAsync(route));
     }
@@ -236,12 +240,14 @@ public class RoutesController(
     // the same walk AreasController's own by-slug-path action uses). Alongside, not
     // replacing, GET /routes/{id} — RouteFormPage's edit route keeps using the numeric id.
     [HttpGet("by-slug-path/{*path}")]
+    [ProducesResponseType(typeof(RouteDetailDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<RouteDetailDto>> GetRouteBySlugPath(string path)
     {
         var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length < 2)
         {
-            return NotFound(new { error = "No encontrado" });
+            return NotFound(new ApiError("No encontrado"));
         }
 
         var routeSlug = segments[^1];
@@ -251,7 +257,7 @@ public class RoutesController(
         var area = hierarchy.ResolveSlugPath(areaSegments);
         if (area is null)
         {
-            return NotFound(new { error = "No encontrado" });
+            return NotFound(new ApiError("No encontrado"));
         }
 
         ClimbingRoute? route;
@@ -268,7 +274,7 @@ public class RoutesController(
             await transaction.CommitAsync();
         }
 
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         return Ok(await BuildRouteDetailDtoAsync(route));
     }
@@ -328,10 +334,12 @@ public class RoutesController(
 
     [Authorize(Policy = Permissions.RouteCreate)]
     [HttpPost]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> CreateRoute(UpsertRouteRequest request)
     {
         var (values, error) = await RouteWrite.TryBuildAsync(db, request, requireAreaId: true);
-        if (error is not null) return BadRequest(new { error });
+        if (error is not null) return BadRequest(new ApiError(error));
 
         var userId = userManager.GetUserId(User)!;
         var slug = await GenerateUniqueRouteSlugAsync(request.AreaId, request.Name);
@@ -371,18 +379,21 @@ public class RoutesController(
 
     [Authorize(Policy = Permissions.RouteEdit)]
     [HttpPut("{id:int}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> UpdateRoute(int id, UpsertRouteRequest request)
     {
         var route = await db.Routes
             .Include(r => r.FirstAscensionists)
             .Include(r => r.Links)
             .FirstOrDefaultAsync(r => r.Id == id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         var userId = userManager.GetUserId(User)!;
 
         var (values, error) = await RouteWrite.TryBuildAsync(db, request);
-        if (error is not null) return BadRequest(new { error });
+        if (error is not null) return BadRequest(new ApiError(error));
 
         var newFirstAscensionistIds = values!.FirstAscensionists.Select(fa => fa.Id).ToHashSet();
         var newLinkUrls = values.Links.ToHashSet();
@@ -448,6 +459,8 @@ public class RoutesController(
 
     [Authorize]
     [HttpPost("{id:int}/validate")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> ValidateRoute(int id)
     {
         // Route validation is normally role-gated (route.validate), but an area
@@ -462,11 +475,14 @@ public class RoutesController(
 
     [Authorize]
     [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> RejectRoute(int id, RejectValidationRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            return BadRequest(new { error = "el motivo es obligatorio" });
+            return BadRequest(new ApiError("el motivo es obligatorio"));
         }
 
         // Same guard as ValidateRoute — an area expert can reject within their area too.
@@ -500,13 +516,17 @@ public class RoutesController(
 
     [HttpPost("{id:int}/topos")]
     [RequestSizeLimit(MediaUploadService.MaxImageBytes)]
+    [ProducesResponseType(typeof(TopoDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult<TopoDto>> UploadTopo(int id, IFormFile? file)
     {
         var validationError = ImageValidation.ValidateImage(file);
-        if (validationError is not null) return BadRequest(new { error = validationError.Message });
+        if (validationError is not null) return BadRequest(new ApiError(validationError.Message));
 
         var route = await db.Routes.FirstOrDefaultAsync(r => r.Id == id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         var areas = await areaHierarchy.GetAsync();
 
@@ -526,7 +546,7 @@ public class RoutesController(
         var blobName = await mediaUpload.UploadNumberedAsync(blobPrefix, extension, usedBlobNames, file.OpenReadStream(), file.ContentType);
         if (blobName is null)
         {
-            return Conflict(new { error = "no se pudo subir la imagen, inténtalo de nuevo" });
+            return Conflict(new ApiError("no se pudo subir la imagen, inténtalo de nuevo"));
         }
 
         var topo = new Topo
@@ -547,15 +567,18 @@ public class RoutesController(
 
     [Authorize(Policy = Permissions.TickCreate)]
     [HttpPost("{id:int}/ticks")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> CreateTick(int id, CreateTickRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Date))
         {
-            return BadRequest(new { error = "la fecha es obligatoria" });
+            return BadRequest(new ApiError("la fecha es obligatoria"));
         }
 
         var routeExists = await db.Routes.AnyAsync(r => r.Id == id);
-        if (!routeExists) return NotFound(new { error = "No encontrado" });
+        if (!routeExists) return NotFound(new ApiError("No encontrado"));
 
         var userId = userManager.GetUserId(User)!;
         var tick = new Tick
@@ -580,14 +603,18 @@ public class RoutesController(
     // grows on its own.
     [Authorize(Policy = Permissions.RouteEnrich)]
     [HttpPost("{id:int}/enrich")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    [ProducesResponseType(typeof(ApiError), 409)]
+    [ProducesResponseType(typeof(ApiError), 503)]
     public async Task<ActionResult> EnrichRoute(int id, [FromQuery] bool force = false)
     {
         var route = await db.Routes.FindAsync(id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         if (route.EnrichedAt is not null && !force)
         {
-            return Conflict(new { error = "Esta vía ya se ha enriquecido" });
+            return Conflict(new ApiError("Esta vía ya se ha enriquecido"));
         }
 
         try
@@ -598,7 +625,7 @@ public class RoutesController(
         {
             // Nothing else happened in this request — a failed enqueue is not
             // best-effort-and-swallow, unlike the (now-removed) create-time hook.
-            return StatusCode(503, new { error = "No se pudo iniciar la búsqueda, inténtalo de nuevo" });
+            return StatusCode(503, new ApiError("No se pudo iniciar la búsqueda, inténtalo de nuevo"));
         }
 
         // A JSON body (not truly empty) so the frontend's shared request() helper, which
