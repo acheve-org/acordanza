@@ -16,17 +16,9 @@ public static class RouteSlugs
     // Scoped to AreaId, not global, mirroring AreasController.GenerateUniqueAreaSlugAsync
     // (per-parent) rather than FirstAscensionistsController's flat version — see
     // ClimbingRoute.Slug. excludeId lets an unchanged name/area keep its slug on update.
-    public static async Task<string> GenerateUniqueAsync(
-        AppDbContext db, int areaId, string name, int? excludeId = null, CancellationToken cancellationToken = default)
-    {
-        var baseSlug = Slugify.ToSlug(name);
-        var slug = baseSlug;
-        var suffix = 2;
-        while (await db.Routes.AnyAsync(r => r.AreaId == areaId && r.Slug == slug && r.Id != excludeId, cancellationToken))
-        {
-            slug = $"{baseSlug}-{suffix}";
-            suffix++;
-        }
-        return slug;
-    }
+    public static Task<string> GenerateUniqueAsync(
+        AppDbContext db, int areaId, string name, int? excludeId = null, CancellationToken cancellationToken = default) =>
+        Slugs.GenerateUniqueAsync(
+            name,
+            slug => db.Routes.AnyAsync(r => r.AreaId == areaId && r.Slug == slug && r.Id != excludeId, cancellationToken));
 }

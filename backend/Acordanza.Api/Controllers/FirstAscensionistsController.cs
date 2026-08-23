@@ -1,6 +1,7 @@
 using Acordanza.Api.Authorization;
 using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
+using Acordanza.Api.Models;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
@@ -34,8 +35,7 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             return Forbid();
         }
 
-        if (page < 1) page = 1;
-        if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
 
         var query = db.FirstAscensionists.AsNoTracking().Include(o => o.User).AsQueryable();
         if (!includeUnvalidated)
@@ -126,18 +126,11 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
     // just a diacritics edge case — two real climbers named "José García" get
     // jose-garcia and jose-garcia-2. excludeId lets an unchanged name keep its slug on
     // update instead of colliding with itself.
-    private async Task<string> GenerateUniqueSlugAsync(string name, int? excludeId = null)
-    {
-        var baseSlug = Slugify.ToSlug(name, "aperturista");
-        var slug = baseSlug;
-        var suffix = 2;
-        while (await db.FirstAscensionists.AnyAsync(o => o.Slug == slug && o.Id != excludeId))
-        {
-            slug = $"{baseSlug}-{suffix}";
-            suffix++;
-        }
-        return slug;
-    }
+    private Task<string> GenerateUniqueSlugAsync(string name, int? excludeId = null) =>
+        Slugs.GenerateUniqueAsync(
+            name,
+            slug => db.FirstAscensionists.AnyAsync(o => o.Slug == slug && o.Id != excludeId),
+            "aperturista");
 
     private async Task<Dictionary<int, List<string>>> OpeningsByFirstAscensionistAsync(int? firstAscensionistId = null)
     {
@@ -298,13 +291,10 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
     [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> ValidateFirstAscensionist(int id)
     {
-        var firstAscensionist = await db.FirstAscensionists.FindAsync(id);
-        if (firstAscensionist is null) return NotFound(new ApiError("el aperturista no existe"));
+        var failure = await ValidationDecisions.ValidateAsync(
+            db, db.FirstAscensionists, id, "el aperturista no existe", userManager.GetUserId(User)!);
 
-        Validation.MarkValidated(firstAscensionist, userManager.GetUserId(User)!);
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.FirstAscensionistValidate)]
@@ -319,13 +309,10 @@ public class FirstAscensionistsController(AppDbContext db, UserManager<Applicati
             return BadRequest(new ApiError("el motivo es obligatorio"));
         }
 
-        var firstAscensionist = await db.FirstAscensionists.FindAsync(id);
-        if (firstAscensionist is null) return NotFound(new ApiError("el aperturista no existe"));
+        var failure = await ValidationDecisions.RejectAsync(
+            db, db.FirstAscensionists, id, "el aperturista no existe", userManager.GetUserId(User)!, request.Reason.Trim());
 
-        Validation.MarkRejected(firstAscensionist, userManager.GetUserId(User)!, request.Reason.Trim());
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.FirstAscensionistDelete)]

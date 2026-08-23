@@ -1,6 +1,7 @@
 using Acordanza.Api.Authorization;
 using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
+using Acordanza.Api.Models;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
@@ -77,7 +78,7 @@ public class AreasController(
             .Include(a => a.DecidedBy)
             .ToListAsync();
 
-        return Ok(areaEntities.Select(ToAreaDto).ToList());
+        return Ok(areaEntities.Select(a => ToAreaDto(a, a.DecidedBy?.Name)).ToList());
     }
 
     // The whole area tree, flat and geometry-free, for AreaPicker/TreeSelect (plan 35 §1)
@@ -126,8 +127,7 @@ public class AreasController(
             return Forbid();
         }
 
-        if (page < 1) page = 1;
-        if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
 
         var query = db.Areas.AsNoTracking().Where(a => a.ParentAreaId == null);
         if (!includeUnvalidated)
@@ -249,18 +249,7 @@ public class AreasController(
             return Conflict(new ApiError("ya existe un sector con ese nombre en este nivel"));
         }
 
-        return Ok(new AreaDto(
-            area.Id,
-            area.Name,
-            area.Slug,
-            area.ParentAreaId,
-            [],
-            null,
-            null,
-            area.ValidationStatus.ToString().ToLowerInvariant(),
-            area.DecidedAt,
-            await GetDecidedByNameAsync(area.DecidedByUserId),
-            area.RejectionReason));
+        return Ok(ToAreaDto(area, await GetDecidedByNameAsync(area.DecidedByUserId)));
     }
 
     [Authorize(Policy = Permissions.AreaEdit)]
@@ -333,18 +322,7 @@ public class AreasController(
 
         await db.SaveChangesAsync();
 
-        return Ok(new AreaDto(
-            area.Id,
-            area.Name,
-            area.Slug,
-            area.ParentAreaId,
-            area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
-            area.CentroidLat,
-            area.CentroidLng,
-            area.ValidationStatus.ToString().ToLowerInvariant(),
-            area.DecidedAt,
-            await GetDecidedByNameAsync(area.DecidedByUserId),
-            area.RejectionReason));
+        return Ok(ToAreaDto(area, await GetDecidedByNameAsync(area.DecidedByUserId)));
     }
 
     [Authorize(Policy = Permissions.AreaDelete)]
@@ -521,25 +499,17 @@ public class AreasController(
     // still slugify to the same value (e.g. "Peña Rúa" vs "Pena-Rua") — append "-2", "-3"
     // etc. until the slug is actually unique among this area's siblings, rather than
     // letting two areas collide onto the same topo storage prefix.
-    private async Task<string> GenerateUniqueAreaSlugAsync(int? parentAreaId, string name)
-    {
-        var baseSlug = Slugify.ToSlug(name);
-        var slug = baseSlug;
-        var suffix = 2;
-        while (await db.Areas.AnyAsync(a => a.ParentAreaId == parentAreaId && a.Slug == slug))
-        {
-            slug = $"{baseSlug}-{suffix}";
-            suffix++;
-        }
-        return slug;
-    }
+    private Task<string> GenerateUniqueAreaSlugAsync(int? parentAreaId, string name) =>
+        Slugs.GenerateUniqueAsync(
+            name,
+            slug => db.Areas.AnyAsync(a => a.ParentAreaId == parentAreaId && a.Slug == slug));
 
     private async Task<string?> GetDecidedByNameAsync(string? decidedByUserId) =>
         decidedByUserId is null
             ? null
             : await db.Users.Where(u => u.Id == decidedByUserId).Select(u => u.Name).FirstOrDefaultAsync();
 
-    private static AreaDto ToAreaDto(Area a) => new(
+    private static AreaDto ToAreaDto(Area a, string? decidedByName) => new(
         a.Id,
         a.Name,
         a.Slug,
@@ -549,7 +519,7 @@ public class AreasController(
         a.CentroidLng,
         a.ValidationStatus.ToString().ToLowerInvariant(),
         a.DecidedAt,
-        a.DecidedBy?.Name,
+        decidedByName,
         a.RejectionReason);
 
     [Authorize(Policy = Permissions.AreaEdit)]
@@ -601,18 +571,7 @@ public class AreasController(
 
         await db.SaveChangesAsync();
 
-        return Ok(new AreaDto(
-            area.Id,
-            area.Name,
-            area.Slug,
-            area.ParentAreaId,
-            area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
-            area.CentroidLat,
-            area.CentroidLng,
-            area.ValidationStatus.ToString().ToLowerInvariant(),
-            area.DecidedAt,
-            await GetDecidedByNameAsync(area.DecidedByUserId),
-            area.RejectionReason));
+        return Ok(ToAreaDto(area, await GetDecidedByNameAsync(area.DecidedByUserId)));
     }
 
     [Authorize(Policy = Permissions.AreaValidate)]
@@ -621,13 +580,10 @@ public class AreasController(
     [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> ValidateArea(int id)
     {
-        var area = await db.Areas.FindAsync(id);
-        if (area is null) return NotFound(new ApiError("el sector no existe"));
+        var failure = await ValidationDecisions.ValidateAsync(
+            db, db.Areas, id, "el sector no existe", userManager.GetUserId(User)!);
 
-        Validation.MarkValidated(area, userManager.GetUserId(User)!);
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.AreaValidate)]
@@ -642,12 +598,9 @@ public class AreasController(
             return BadRequest(new ApiError("el motivo es obligatorio"));
         }
 
-        var area = await db.Areas.FindAsync(id);
-        if (area is null) return NotFound(new ApiError("el sector no existe"));
+        var failure = await ValidationDecisions.RejectAsync(
+            db, db.Areas, id, "el sector no existe", userManager.GetUserId(User)!, request.Reason.Trim());
 
-        Validation.MarkRejected(area, userManager.GetUserId(User)!, request.Reason.Trim());
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 }
