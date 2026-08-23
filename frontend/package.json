@@ -14,7 +14,8 @@
     "test": "vitest run",
     "pretest:watch": "bun run --cwd ../design-system build",
     "test:watch": "vitest",
-    "generate-api": "bunx openapi-typescript@7.13.0 ../backend/Acordanza.Api/openapi/Acordanza.Api.json -o src/api/generated.ts"
+    "generate-api": "bunx openapi-typescript@7.13.0 ../backend/Acordanza.Api/openapi/Acordanza.Api.json -o src/api/generated.ts",
+    "generate-permissions": "bun run scripts/generate-permissions.ts"
   },
   "dependencies": {
     "@github/webauthn-json": "^2.1.1",

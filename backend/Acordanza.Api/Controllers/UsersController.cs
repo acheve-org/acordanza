@@ -4,6 +4,7 @@ using System.Text;
 using Acordanza.Api.Authorization;
 using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
+using Acordanza.Api.Models;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
@@ -46,8 +47,7 @@ public class UsersController(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize,
         [FromQuery] string sortBy = "name", [FromQuery] string sortDir = "asc")
     {
-        if (page < 1) page = 1;
-        if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
         if (!SortableFields.Contains(sortBy)) sortBy = "name";
 
         // A plain join on UserRoles would emit one row per user-role pair, which
@@ -136,12 +136,15 @@ public class UsersController(
     // as a plain user, capped at MaxInvitesForNonAdmins lifetime invites.
     [Authorize(Policy = Permissions.UserInvite)]
     [HttpPost("invite")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult> InviteUser(InviteUserRequest request)
     {
         var email = request.Email.Trim();
         if (email.Length == 0 || !new EmailAddressAttribute().IsValid(email))
         {
-            return BadRequest(new { error = "Introduce un correo electrónico válido" });
+            return BadRequest(new ApiError("Introduce un correo electrónico válido"));
         }
 
         var callerId = CallerId;
@@ -149,13 +152,13 @@ public class UsersController(
         var role = unlimited ? request.Role : Roles.User;
         if (!Roles.All.Contains(role))
         {
-            return BadRequest(new { error = "Rol no válido" });
+            return BadRequest(new ApiError("Rol no válido"));
         }
 
         var existing = await userManager.FindByEmailAsync(email);
         if (existing is not null && existing.PasswordHash is not null)
         {
-            return Conflict(new { error = "Ya existe una cuenta con ese correo" });
+            return Conflict(new ApiError("Ya existe una cuenta con ese correo"));
         }
 
         // A pending invite for this email already exists — most likely a previous
@@ -174,7 +177,7 @@ public class UsersController(
                 && invitedAt.Add(InviteTokens.Lifespan) > DateTimeOffset.UtcNow;
             if (!unlimited && !isOwnInvite && stillPending)
             {
-                return Conflict(new { error = "Ya hay una invitación pendiente para ese correo" });
+                return Conflict(new ApiError("Ya hay una invitación pendiente para ese correo"));
             }
             isTakeover = !isOwnInvite;
         }
@@ -195,7 +198,7 @@ public class UsersController(
                     var maxInvites = GetInviteLimit();
                     if (usedCount >= maxInvites)
                     {
-                        return Conflict(new { error = $"Has alcanzado el límite de {maxInvites} invitaciones" });
+                        return Conflict(new ApiError($"Has alcanzado el límite de {maxInvites} invitaciones"));
                     }
                 }
 
@@ -220,7 +223,7 @@ public class UsersController(
                         if (!removeResult.Succeeded)
                         {
                             var error = removeResult.Errors.FirstOrDefault()?.Description ?? "No se pudo actualizar el rol";
-                            return BadRequest(new { error });
+                            return BadRequest(new ApiError(error));
                         }
 
                         var addRoleResult = await userManager.AddToRoleAsync(user, role);
@@ -228,7 +231,7 @@ public class UsersController(
                         {
                             await userManager.AddToRolesAsync(user, currentRoles);
                             var error = addRoleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
-                            return BadRequest(new { error });
+                            return BadRequest(new ApiError(error));
                         }
                     }
 
@@ -236,7 +239,7 @@ public class UsersController(
                     if (!updateResult.Succeeded)
                     {
                         var error = updateResult.Errors.FirstOrDefault()?.Description ?? "No se pudo actualizar la invitación";
-                        return BadRequest(new { error });
+                        return BadRequest(new ApiError(error));
                     }
                 }
                 else
@@ -252,7 +255,7 @@ public class UsersController(
                     if (!createResult.Succeeded)
                     {
                         var error = createResult.Errors.FirstOrDefault()?.Description ?? "No se pudo crear la invitación";
-                        return BadRequest(new { error });
+                        return BadRequest(new ApiError(error));
                     }
 
                     var roleResult = await userManager.AddToRoleAsync(user, role);
@@ -260,7 +263,7 @@ public class UsersController(
                     {
                         await userManager.DeleteAsync(user);
                         var error = roleResult.Errors.FirstOrDefault()?.Description ?? "No se pudo asignar el rol";
-                        return BadRequest(new { error });
+                        return BadRequest(new ApiError(error));
                     }
                 }
 
@@ -268,7 +271,7 @@ public class UsersController(
             }
             catch (Exception ex) when (IsSerializationFailure(ex))
             {
-                return Conflict(new { error = "Ha habido un conflicto al procesar la invitación, inténtalo de nuevo" });
+                return Conflict(new ApiError("Ha habido un conflicto al procesar la invitación, inténtalo de nuevo"));
             }
         }
 

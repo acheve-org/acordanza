@@ -21,6 +21,8 @@ public class AccountController(
     IEmailSender emailSender) : ControllerBase
 {
     [HttpPost("change-password")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> ChangePassword(ChangePasswordRequest request)
     {
         var user = await userManager.GetUserAsync(User);
@@ -30,13 +32,15 @@ public class AccountController(
         if (!result.Succeeded)
         {
             var error = result.Errors.FirstOrDefault()?.Description ?? "No se pudo cambiar la contraseña";
-            return BadRequest(new { error });
+            return BadRequest(new ApiError(error));
         }
 
         return Ok(new { ok = true });
     }
 
     [HttpPut("profile")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> UpdateProfile(UpdateProfileRequest request)
     {
         var user = await userManager.GetUserAsync(User);
@@ -45,7 +49,7 @@ public class AccountController(
         var name = request.Name.Trim();
         if (name.Length is 0 or > 20)
         {
-            return BadRequest(new { error = "El nombre debe tener entre 1 y 20 caracteres" });
+            return BadRequest(new ApiError("El nombre debe tener entre 1 y 20 caracteres"));
         }
 
         user.Name = name;
@@ -53,7 +57,7 @@ public class AccountController(
         if (!result.Succeeded)
         {
             var error = result.Errors.FirstOrDefault()?.Description ?? "No se pudo guardar el nombre";
-            return BadRequest(new { error });
+            return BadRequest(new ApiError(error));
         }
 
         return Ok(new { name });
@@ -67,6 +71,8 @@ public class AccountController(
     // exact new address and dies the moment it's used or the stamp changes.
     [EnableRateLimiting("change-email")]
     [HttpPost("email/change-request")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> RequestEmailChange(ChangeEmailRequest request)
     {
         var user = await userManager.GetUserAsync(User);
@@ -74,24 +80,24 @@ public class AccountController(
 
         if (!await userManager.CheckPasswordAsync(user, request.CurrentPassword))
         {
-            return BadRequest(new { error = "Contraseña incorrecta" });
+            return BadRequest(new ApiError("Contraseña incorrecta"));
         }
 
         var newEmail = request.NewEmail.Trim();
         if (newEmail.Length == 0 || !new EmailAddressAttribute().IsValid(newEmail))
         {
-            return BadRequest(new { error = "Correo electrónico no válido" });
+            return BadRequest(new ApiError("Correo electrónico no válido"));
         }
 
         if (string.Equals(newEmail, user.Email, StringComparison.OrdinalIgnoreCase))
         {
-            return BadRequest(new { error = "Ese ya es tu correo electrónico actual" });
+            return BadRequest(new ApiError("Ese ya es tu correo electrónico actual"));
         }
 
         var existing = await userManager.FindByEmailAsync(newEmail);
         if (existing is not null)
         {
-            return BadRequest(new { error = "Ese correo electrónico ya está en uso" });
+            return BadRequest(new ApiError("Ese correo electrónico ya está en uso"));
         }
 
         var token = await userManager.GenerateChangeEmailTokenAsync(user, newEmail);

@@ -40,11 +40,13 @@ public class AreaExpertsController(
 
     [Authorize(Policy = Permissions.AreaExpertRequest)]
     [HttpPost]
+    [ProducesResponseType(typeof(AreaExpertDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult<AreaExpertDto>> RequestExpert(CreateAreaExpertRequest request)
     {
         var area = await db.Areas.FindAsync(request.AreaId);
-        if (area is null) return BadRequest(new { error = "el sector no existe" });
-        if (area.ParentAreaId is not null) return BadRequest(new { error = "solo los sectores principales admiten expertos" });
+        if (area is null) return BadRequest(new ApiError("el sector no existe"));
+        if (area.ParentAreaId is not null) return BadRequest(new ApiError("solo los sectores principales admiten expertos"));
 
         var userId = CallerId;
         var alreadyActive = await db.AreaExperts.AnyAsync(e =>
@@ -53,7 +55,7 @@ public class AreaExpertsController(
             e.Status != ReviewStatus.Rejected);
         if (alreadyActive)
         {
-            return BadRequest(new { error = "ya has solicitado ser experto de este sector" });
+            return BadRequest(new ApiError("ya has solicitado ser experto de este sector"));
         }
 
         var expert = new AreaExpert { AreaId = request.AreaId, UserId = userId };
@@ -67,7 +69,7 @@ public class AreaExpertsController(
             // Lost a race against another pending request for the same
             // (AreaId, UserId) pair — the AnyAsync check above passed, but the
             // unique filtered index only lets one insert through.
-            return BadRequest(new { error = "ya has solicitado ser experto de este sector" });
+            return BadRequest(new ApiError("ya has solicitado ser experto de este sector"));
         }
 
         var saved = await Query().FirstAsync(e => e.Id == expert.Id);
@@ -76,6 +78,9 @@ public class AreaExpertsController(
 
     [Authorize(Policy = Permissions.AreaExpertApprove)]
     [HttpPost("{id:int}/approve")]
+    [ProducesResponseType(typeof(AreaExpertDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<AreaExpertDto>> Approve(int id)
     {
         var approverId = CallerId;
@@ -84,8 +89,8 @@ public class AreaExpertsController(
         if (outcome != DecisionOutcome.Applied)
         {
             return outcome == DecisionOutcome.AlreadyResolved
-                ? BadRequest(new { error = "ya se ha resuelto esta solicitud" })
-                : NotFound(new { error = "No encontrado" });
+                ? BadRequest(new ApiError("ya se ha resuelto esta solicitud"))
+                : NotFound(new ApiError("No encontrado"));
         }
 
         var saved = await Query().FirstAsync(e => e.Id == id);
@@ -96,11 +101,14 @@ public class AreaExpertsController(
 
     [Authorize(Policy = Permissions.AreaExpertApprove)]
     [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(typeof(AreaExpertDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<AreaExpertDto>> Reject(int id, RejectAreaExpertRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            return BadRequest(new { error = "el motivo es obligatorio" });
+            return BadRequest(new ApiError("el motivo es obligatorio"));
         }
 
         var approverId = CallerId;
@@ -110,8 +118,8 @@ public class AreaExpertsController(
         if (outcome != DecisionOutcome.Applied)
         {
             return outcome == DecisionOutcome.AlreadyResolved
-                ? BadRequest(new { error = "ya se ha resuelto esta solicitud" })
-                : NotFound(new { error = "No encontrado" });
+                ? BadRequest(new ApiError("ya se ha resuelto esta solicitud"))
+                : NotFound(new ApiError("No encontrado"));
         }
 
         var saved = await Query().FirstAsync(e => e.Id == id);
@@ -121,6 +129,8 @@ public class AreaExpertsController(
     }
 
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> Cancel(int id)
     {
         var userId = CallerId;
@@ -128,7 +138,7 @@ public class AreaExpertsController(
         var outcome = await ReviewRequestService.CancelAsync(db.AreaExperts, id, userId);
         if (outcome != DecisionOutcome.Applied)
         {
-            return outcome == DecisionOutcome.AlreadyResolved ? Forbid() : NotFound(new { error = "No encontrado" });
+            return outcome == DecisionOutcome.AlreadyResolved ? Forbid() : NotFound(new ApiError("No encontrado"));
         }
 
         return Ok(new { ok = true });

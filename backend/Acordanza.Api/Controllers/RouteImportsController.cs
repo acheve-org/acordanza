@@ -47,14 +47,16 @@ public class RouteImportsController(
     [HttpPost("image")]
     [EnableRateLimiting("route-import")]
     [RequestSizeLimit(MediaUploadService.MaxImageBytes)]
+    [ProducesResponseType(typeof(RouteImportDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult<RouteImportDto>> CreateImageImport(IFormFile? file, [FromForm] int areaId)
     {
         var validationError = ImageValidation.ValidateImage(file);
-        if (validationError is not null) return BadRequest(new { error = validationError.Message });
+        if (validationError is not null) return BadRequest(new ApiError(validationError.Message));
 
         if (!await db.Areas.AnyAsync(a => a.Id == areaId))
         {
-            return BadRequest(new { error = "el sector no existe" });
+            return BadRequest(new ApiError("el sector no existe"));
         }
 
         var userId = CallerId;
@@ -86,6 +88,8 @@ public class RouteImportsController(
     [Authorize(Policy = Permissions.RouteCreate)]
     [HttpPost("url")]
     [EnableRateLimiting("route-import")]
+    [ProducesResponseType(typeof(RouteImportDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult<RouteImportDto>> CreateUrlImport([FromBody] CreateUrlImportRequest request)
     {
         // Deliberately *syntactic* only — http(s)-only, trimmed, length-capped, the same
@@ -96,12 +100,12 @@ public class RouteImportsController(
         // typo is a typo now, rather than after a two-minute wait for a Discarded row
         // saying the same thing.
         var (urls, linkError) = LinkRules.Resolve([request.Url ?? ""]);
-        if (linkError is not null) return BadRequest(new { error = linkError });
-        if (urls is not [var url]) return BadRequest(new { error = "escribe el enlace de la página" });
+        if (linkError is not null) return BadRequest(new ApiError(linkError));
+        if (urls is not [var url]) return BadRequest(new ApiError("escribe el enlace de la página"));
 
         if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
         {
-            return BadRequest(new { error = "el sector no existe" });
+            return BadRequest(new ApiError("el sector no existe"));
         }
 
         var import = new RouteImport
@@ -152,6 +156,8 @@ public class RouteImportsController(
     // than folding into "not found" — the frontend only ever shows the button on rows this
     // will accept, so either non-2xx here should only mean a stale UI, not a real choice.
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult> DeleteImport(int id)
     {
         var userId = CallerId;
@@ -160,7 +166,7 @@ public class RouteImportsController(
 
         if (import.Status is RouteImportStatus.Pending or RouteImportStatus.Completed)
         {
-            return Conflict(new { error = "No se puede eliminar una importación pendiente o completada" });
+            return Conflict(new ApiError("No se puede eliminar una importación pendiente o completada"));
         }
 
         // DeleteAsync is DeleteIfExistsAsync underneath, so this is safe whether the blob
@@ -192,7 +198,7 @@ public class RouteImportsController(
             db.RouteImports.Remove(import);
             await db.SaveChangesAsync();
             await onUnwind();
-            return StatusCode(503, new { error = enqueueError });
+            return StatusCode(503, new ApiError(enqueueError));
         }
 
         var areas = await areaHierarchy.GetAsync();

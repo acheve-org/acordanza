@@ -1,3 +1,5 @@
+import type { ApiErrorBody } from './types';
+
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5073/api';
 
 export class ApiError extends Error {
@@ -53,7 +55,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
+      const body: Partial<ApiErrorBody> = await res.json().catch(() => ({}));
 
       // A 401 on a request that carried a token means the session is over, not that this
       // one call failed. Nothing refreshes the JWT, so every later request fails the same

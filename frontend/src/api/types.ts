@@ -6,6 +6,11 @@ export type { Orientation };
 
 export type GeoPoint = components['schemas']['GeoPointDto'];
 
+// The one error response shape every API error status (400/401/403/404/409/503/...) shares —
+// see backend/Acordanza.Api/Dtos/ApiError.cs. Named `ApiErrorBody` here (rather than `ApiError`)
+// because `client.ts` already exports an `ApiError` class for the thrown client-side error.
+export type ApiErrorBody = components['schemas']['ApiError'];
+
 // Acordanza.Core/Models/ReviewStatus.cs — shared by every self-service request/approve/
 // reject flow (AreaExpert, FirstAscensionistLinkRequest) and every editorial validation
 // lifecycle (routes, areas, first ascensionists). A real OpenAPI enum now that the
@@ -143,10 +148,16 @@ export type PasskeySummary = components['schemas']['PasskeySummary'];
 export const orientations = designSystemOrientations;
 export const orientationLabels = designSystemOrientationLabels;
 
-// Route `gear` values are stored in English to match the backend; this maps them to
-// the Spanish labels shown in the UI (see root CLAUDE.md — all user-facing text is Spanish).
+// Route `gear` is now a real enum on the backend (Acordanza.Api/Dtos/RouteEnums.cs,
+// DUP-12) rather than a hand-validated string allowlist, so `Gear` here comes straight
+// from the generated OpenAPI schema instead of being retyped by hand — keying gearLabels
+// off it means an added/renamed Gear value fails to compile here instead of silently
+// rendering `undefined` in the UI. Values are stored in English to match the backend;
+// this maps them to the Spanish labels shown in the UI (see root CLAUDE.md — all
+// user-facing text is Spanish).
+export type Gear = NonNullable<components['schemas']['Gear']>;
 
-export const gearLabels: Record<string, string> = {
+export const gearLabels: Record<Gear, string> = {
   bolted: 'Equipada',
   removable: 'Flotantes',
   pitons: 'Clavos',

@@ -35,6 +35,17 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -72,6 +83,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -112,6 +134,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -230,6 +263,17 @@ export interface paths {
                         "text/json": components["schemas"]["AreaExpertDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -267,6 +311,28 @@ export interface paths {
                         "text/plain": components["schemas"]["AreaExpertDto"];
                         "application/json": components["schemas"]["AreaExpertDto"];
                         "text/json": components["schemas"]["AreaExpertDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -314,6 +380,28 @@ export interface paths {
                         "text/json": components["schemas"]["AreaExpertDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -349,6 +437,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -452,6 +551,28 @@ export interface paths {
                         "text/plain": components["schemas"]["AreaDto"];
                         "application/json": components["schemas"]["AreaDto"];
                         "text/json": components["schemas"]["AreaDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -571,6 +692,17 @@ export interface paths {
                         "text/json": components["schemas"]["AreaNodeDto"][];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         put?: never;
@@ -654,6 +786,28 @@ export interface paths {
                         "text/json": components["schemas"]["AreaDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         post?: never;
@@ -674,6 +828,28 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -709,6 +885,17 @@ export interface paths {
                         "text/plain": components["schemas"]["AreaDetailDto"];
                         "application/json": components["schemas"]["AreaDetailDto"];
                         "text/json": components["schemas"]["AreaDetailDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -758,6 +945,39 @@ export interface paths {
                         "text/json": components["schemas"]["TopoDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -802,6 +1022,28 @@ export interface paths {
                         "text/json": components["schemas"]["AreaDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         post?: never;
@@ -837,6 +1079,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -879,6 +1132,28 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -920,6 +1195,17 @@ export interface paths {
                         "text/plain": components["schemas"]["LoginResponse"];
                         "application/json": components["schemas"]["LoginResponse"];
                         "text/json": components["schemas"]["LoginResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -1000,6 +1286,17 @@ export interface paths {
                         "text/plain": components["schemas"]["LoginResponse"];
                         "application/json": components["schemas"]["LoginResponse"];
                         "text/json": components["schemas"]["LoginResponse"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -1117,6 +1414,17 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -1155,6 +1463,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1195,6 +1514,17 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -1233,6 +1563,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1471,6 +1812,17 @@ export interface paths {
                         "text/json": components["schemas"]["FirstAscensionistLinkRequestDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -1508,6 +1860,28 @@ export interface paths {
                         "text/plain": components["schemas"]["FirstAscensionistLinkRequestDto"];
                         "application/json": components["schemas"]["FirstAscensionistLinkRequestDto"];
                         "text/json": components["schemas"]["FirstAscensionistLinkRequestDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -1555,6 +1929,28 @@ export interface paths {
                         "text/json": components["schemas"]["FirstAscensionistLinkRequestDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -1590,6 +1986,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1658,6 +2065,28 @@ export interface paths {
                         "text/plain": components["schemas"]["FirstAscensionistDto"];
                         "application/json": components["schemas"]["FirstAscensionistDto"];
                         "text/json": components["schemas"]["FirstAscensionistDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -1734,6 +2163,17 @@ export interface paths {
                         "text/plain": components["schemas"]["FirstAscensionistProfileDto"];
                         "application/json": components["schemas"]["FirstAscensionistProfileDto"];
                         "text/json": components["schemas"]["FirstAscensionistProfileDto"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -1819,6 +2259,39 @@ export interface paths {
                         "text/json": components["schemas"]["FirstAscensionistDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         post?: never;
@@ -1839,6 +2312,28 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1873,6 +2368,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1914,6 +2420,28 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -1995,6 +2523,17 @@ export interface paths {
                         "text/json": components["schemas"]["RegisterPasskeyOptionsResponse"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -2036,6 +2575,17 @@ export interface paths {
                         "text/plain": components["schemas"]["PasskeySummary"];
                         "application/json": components["schemas"]["PasskeySummary"];
                         "text/json": components["schemas"]["PasskeySummary"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -2119,6 +2669,17 @@ export interface paths {
                         "text/json": components["schemas"]["RouteImportDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -2160,6 +2721,17 @@ export interface paths {
                         "text/plain": components["schemas"]["RouteImportDto"];
                         "application/json": components["schemas"]["RouteImportDto"];
                         "text/json": components["schemas"]["RouteImportDto"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
                     };
                 };
             };
@@ -2235,6 +2807,17 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         options?: never;
@@ -2280,6 +2863,17 @@ export interface paths {
                         "text/json": components["schemas"]["RouteDto"][];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         put?: never;
@@ -2304,6 +2898,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2453,6 +3058,17 @@ export interface paths {
                         "text/json": components["schemas"]["RouteDetailDto"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         put: {
@@ -2478,6 +3094,28 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2536,6 +3174,17 @@ export interface paths {
                         "text/json": components["schemas"]["RouteDetailDto"];
                     };
                 };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         put?: never;
@@ -2572,6 +3221,17 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2613,6 +3273,28 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2659,6 +3341,39 @@ export interface paths {
                         "text/json": components["schemas"]["TopoDto"];
                     };
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -2700,6 +3415,28 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -2736,6 +3473,39 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Service Unavailable */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
                 };
             };
         };
@@ -2970,6 +3740,28 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ApiError"];
+                        "application/json": components["schemas"]["ApiError"];
+                        "text/json": components["schemas"]["ApiError"];
+                    };
+                };
             };
         };
         delete?: never;
@@ -2989,6 +3781,9 @@ export interface components {
             password: string;
         };
         Algorithm: number;
+        ApiError: {
+            error: string;
+        };
         AreaAncestorDto: {
             /** Format: int32 */
             id: number;
@@ -3311,6 +4106,8 @@ export interface components {
         ForgotPasswordRequest: {
             email: string;
         };
+        /** @enum {unknown} */
+        Gear: "bolted" | "removable" | "pitons" | "aiders" | null;
         GeoPointDto: {
             /** Format: double */
             lat: number;
@@ -3376,8 +4173,8 @@ export interface components {
             areaSlugPath: string;
             grade: null | string;
             aidGrade: null | string;
-            orientation: null | string;
-            gear: null | string;
+            orientation: null | components["schemas"]["Orientation"];
+            gear: null | components["schemas"]["Gear"];
             /** Format: int32 */
             length: null | number;
             date: string;
@@ -3387,6 +4184,8 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /** @enum {unknown} */
+        Orientation: "north" | "northeast" | "east" | "southeast" | "south" | "southwest" | "west" | "northwest" | null;
         PagedAreaNodesResponse: {
             items: components["schemas"]["AreaNodeDto"][];
             /** Format: int32 */
@@ -3500,8 +4299,8 @@ export interface components {
             areaSlugPath: string;
             grade: null | string;
             aidGrade: null | string;
-            orientation: null | string;
-            gear: null | string;
+            orientation: null | components["schemas"]["Orientation"];
+            gear: null | components["schemas"]["Gear"];
             description: string;
             /** Format: int32 */
             length: null | number;
@@ -3536,8 +4335,8 @@ export interface components {
             areaSlugPath: string;
             grade: null | string;
             aidGrade: null | string;
-            orientation: null | string;
-            gear: null | string;
+            orientation: null | components["schemas"]["Orientation"];
+            gear: null | components["schemas"]["Gear"];
             description: string;
             /** Format: int32 */
             length: null | number;

@@ -1,10 +1,10 @@
 import { CompassRose, orientationAbbr, type Orientation } from 'acordanza-design-system';
-import { gearLabels } from '../api/types';
+import { gearLabels, type Gear } from '../api/types';
 
 interface Props {
   orientation: string | null;
   length: number | null;
-  gear: string | null;
+  gear: Gear | null;
   bottomAligned?: boolean;
 }
 

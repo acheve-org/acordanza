@@ -1,5 +1,6 @@
 using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
+using Acordanza.Api.Models;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
@@ -31,7 +32,7 @@ public class ContributionsController(
     public async Task<ActionResult<PagedContributionsResponse>> GetRoutes(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
-        Clamp(ref page, ref pageSize);
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
         var userId = CallerId;
 
         var query = db.Routes.AsNoTracking().Where(r => r.AddedByUserId == userId);
@@ -61,7 +62,7 @@ public class ContributionsController(
     public async Task<ActionResult<PagedContributionsResponse>> GetAreas(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
-        Clamp(ref page, ref pageSize);
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
         var userId = CallerId;
 
         var query = db.Areas.AsNoTracking().Where(a => a.AddedByUserId == userId);
@@ -88,7 +89,7 @@ public class ContributionsController(
     public async Task<ActionResult<PagedContributionsResponse>> GetFirstAscensionists(
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
-        Clamp(ref page, ref pageSize);
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
         var userId = CallerId;
 
         var query = db.FirstAscensionists.AsNoTracking().Where(f => f.AddedByUserId == userId);
@@ -106,13 +107,5 @@ public class ContributionsController(
             .ToList();
 
         return Ok(new PagedContributionsResponse(items, totalCount, page, pageSize));
-    }
-
-    // Out-of-range paging parameters are clamped rather than rejected, same as
-    // UsersController/AreasController.
-    private static void Clamp(ref int page, ref int pageSize)
-    {
-        if (page < 1) page = 1;
-        if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
     }
 }
