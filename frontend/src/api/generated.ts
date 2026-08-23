@@ -4106,6 +4106,8 @@ export interface components {
         ForgotPasswordRequest: {
             email: string;
         };
+        /** @enum {unknown} */
+        Gear: "bolted" | "removable" | "pitons" | "aiders" | null;
         GeoPointDto: {
             /** Format: double */
             lat: number;
@@ -4169,8 +4171,8 @@ export interface components {
             areaSlugPath: string;
             grade: null | string;
             aidGrade: null | string;
-            orientation: null | string;
-            gear: null | string;
+            orientation: null | components["schemas"]["Orientation"];
+            gear: null | components["schemas"]["Gear"];
             /** Format: int32 */
             length: null | number;
             date: string;
@@ -4180,6 +4182,8 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        /** @enum {unknown} */
+        Orientation: "north" | "northeast" | "east" | "southeast" | "south" | "southwest" | "west" | "northwest" | null;
         PagedAreaNodesResponse: {
             items: components["schemas"]["AreaNodeDto"][];
             /** Format: int32 */
@@ -4291,8 +4295,8 @@ export interface components {
             areaSlugPath: string;
             grade: null | string;
             aidGrade: null | string;
-            orientation: null | string;
-            gear: null | string;
+            orientation: null | components["schemas"]["Orientation"];
+            gear: null | components["schemas"]["Gear"];
             description: string;
             /** Format: int32 */
             length: null | number;
@@ -4327,8 +4331,8 @@ export interface components {
             areaSlugPath: string;
             grade: null | string;
             aidGrade: null | string;
-            orientation: null | string;
-            gear: null | string;
+            orientation: null | components["schemas"]["Orientation"];
+            gear: null | components["schemas"]["Gear"];
             description: string;
             /** Format: int32 */
             length: null | number;

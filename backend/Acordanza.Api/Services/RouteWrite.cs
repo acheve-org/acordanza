@@ -13,10 +13,16 @@ namespace Acordanza.Api.Services;
 // the area-exists and first-ascensionist-resolution checks, which need db.
 public static class RouteWrite
 {
+    // Derived from the Orientation/Gear enums (Dtos/RouteEnums.cs) rather than duplicated
+    // as string literals (DUP-12) — a member's name lowercased is exactly the wire value
+    // it was validated against back when these were hand-maintained string allowlists, so
+    // this preserves the exact set and error messages ValidateOrientation/ValidateGear
+    // already returned.
     public static readonly HashSet<string> AllowedOrientations =
-        ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
+        Enum.GetNames<Orientation>().Select(n => n.ToLowerInvariant()).ToHashSet();
 
-    public static readonly HashSet<string> AllowedGear = ["bolted", "removable", "pitons", "aiders"];
+    public static readonly HashSet<string> AllowedGear =
+        Enum.GetNames<Gear>().Select(n => n.ToLowerInvariant()).ToHashSet();
 
     private const int ObligatoryGradeMaxLength = 20;
     private const int GearNoteMaxLength = 500;

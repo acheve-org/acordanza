@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using static Acordanza.Api.Dtos.RouteEnumParsing;
 
 namespace Acordanza.Api.Controllers;
 
@@ -130,8 +131,8 @@ public class RoutesController(
             AreaSlugPath: areas.SlugPath(r.AreaId),
             Grade: r.Grade,
             AidGrade: r.AidGrade,
-            Orientation: r.Orientation,
-            Gear: r.Gear,
+            Orientation: ParseOrientation(r.Orientation),
+            Gear: ParseGear(r.Gear),
             Description: r.Description,
             Length: r.Length,
             ObligatoryGrade: r.ObligatoryGrade,
@@ -311,8 +312,8 @@ public class RoutesController(
             AreaSlugPath: areas.SlugPath(route.AreaId),
             Grade: route.Grade,
             AidGrade: route.AidGrade,
-            Orientation: route.Orientation,
-            Gear: route.Gear,
+            Orientation: ParseOrientation(route.Orientation),
+            Gear: ParseGear(route.Gear),
             Description: route.Description,
             Length: route.Length,
             ObligatoryGrade: route.ObligatoryGrade,

@@ -170,10 +170,16 @@ export type PasskeySummary = components['schemas']['PasskeySummary'];
 export const orientations = designSystemOrientations;
 export const orientationLabels = designSystemOrientationLabels;
 
-// Route `gear` values are stored in English to match the backend; this maps them to
-// the Spanish labels shown in the UI (see root CLAUDE.md — all user-facing text is Spanish).
+// Route `gear` is now a real enum on the backend (Acordanza.Api/Dtos/RouteEnums.cs,
+// DUP-12) rather than a hand-validated string allowlist, so `Gear` here comes straight
+// from the generated OpenAPI schema instead of being retyped by hand — keying gearLabels
+// off it means an added/renamed Gear value fails to compile here instead of silently
+// rendering `undefined` in the UI. Values are stored in English to match the backend;
+// this maps them to the Spanish labels shown in the UI (see root CLAUDE.md — all
+// user-facing text is Spanish).
+export type Gear = NonNullable<components['schemas']['Gear']>;
 
-export const gearLabels: Record<string, string> = {
+export const gearLabels: Record<Gear, string> = {
   bolted: 'Equipada',
   removable: 'Flotantes',
   pitons: 'Clavos',
