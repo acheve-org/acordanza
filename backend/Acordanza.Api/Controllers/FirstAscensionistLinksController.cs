@@ -42,13 +42,15 @@ public class FirstAscensionistLinksController(
 
     [Authorize(Policy = Permissions.FirstAscensionistLinkRequest)]
     [HttpPost]
+    [ProducesResponseType(typeof(FirstAscensionistLinkRequestDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult<FirstAscensionistLinkRequestDto>> RequestLink(CreateFirstAscensionistLinkRequest request)
     {
         var firstAscensionist = await db.FirstAscensionists.FindAsync(request.FirstAscensionistId);
-        if (firstAscensionist is null) return BadRequest(new { error = "el aperturista no existe" });
+        if (firstAscensionist is null) return BadRequest(new ApiError("el aperturista no existe"));
         if (firstAscensionist.UserId is not null)
         {
-            return BadRequest(new { error = "este aperturista ya está vinculado a una cuenta" });
+            return BadRequest(new ApiError("este aperturista ya está vinculado a una cuenta"));
         }
 
         var userId = userManager.GetUserId(User)!;
@@ -58,7 +60,7 @@ public class FirstAscensionistLinksController(
             l.Status == ReviewStatus.Pending);
         if (alreadyPending)
         {
-            return BadRequest(new { error = "ya has solicitado este vínculo" });
+            return BadRequest(new ApiError("ya has solicitado este vínculo"));
         }
 
         // One claim per user (plan 15, §5): a pending request for any aperturista, or an
@@ -68,13 +70,13 @@ public class FirstAscensionistLinksController(
             l.UserId == userId && l.Status == ReviewStatus.Pending);
         if (hasPendingClaim)
         {
-            return BadRequest(new { error = "ya tienes una solicitud de vínculo pendiente" });
+            return BadRequest(new ApiError("ya tienes una solicitud de vínculo pendiente"));
         }
 
         var alreadyLinked = await db.FirstAscensionists.AnyAsync(f => f.UserId == userId);
         if (alreadyLinked)
         {
-            return BadRequest(new { error = "ya estás vinculado a un aperturista" });
+            return BadRequest(new ApiError("ya estás vinculado a un aperturista"));
         }
 
         var link = new FirstAscensionistLinkRequest { FirstAscensionistId = request.FirstAscensionistId, UserId = userId };
@@ -88,7 +90,7 @@ public class FirstAscensionistLinksController(
             // Lost a race against another pending request for the same
             // (FirstAscensionistId, UserId) pair — the AnyAsync check above
             // passed, but the unique filtered index only lets one insert through.
-            return BadRequest(new { error = "ya has solicitado este vínculo" });
+            return BadRequest(new ApiError("ya has solicitado este vínculo"));
         }
 
         var saved = await Query().FirstAsync(l => l.Id == link.Id);
@@ -97,6 +99,9 @@ public class FirstAscensionistLinksController(
 
     [Authorize(Policy = Permissions.FirstAscensionistLinkApprove)]
     [HttpPost("{id:int}/approve")]
+    [ProducesResponseType(typeof(FirstAscensionistLinkRequestDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<FirstAscensionistLinkRequestDto>> Approve(int id)
     {
         var approverId = userManager.GetUserId(User)!;
@@ -111,8 +116,8 @@ public class FirstAscensionistLinksController(
         if (outcome != DecisionOutcome.Applied)
         {
             return outcome == DecisionOutcome.AlreadyResolved
-                ? BadRequest(new { error = "ya se ha resuelto esta solicitud" })
-                : NotFound(new { error = "No encontrado" });
+                ? BadRequest(new ApiError("ya se ha resuelto esta solicitud"))
+                : NotFound(new ApiError("No encontrado"));
         }
 
         var link = await Query().FirstAsync(l => l.Id == id);
@@ -166,9 +171,9 @@ public class FirstAscensionistLinksController(
             var autoRejected = await Query().FirstAsync(l => l.Id == id);
             await NotifyDecisionAsync(autoRejected, approved: false, reason);
 
-            return BadRequest(new { error = requesterAlreadyLinked
+            return BadRequest(new ApiError(requesterAlreadyLinked
                 ? "esta cuenta ya está vinculada a otro aperturista; la solicitud se ha marcado como rechazada"
-                : "este aperturista ya está vinculado a otra cuenta; la solicitud se ha marcado como rechazada" });
+                : "este aperturista ya está vinculado a otra cuenta; la solicitud se ha marcado como rechazada"));
         }
 
         await transaction.CommitAsync();
@@ -179,11 +184,14 @@ public class FirstAscensionistLinksController(
 
     [Authorize(Policy = Permissions.FirstAscensionistLinkApprove)]
     [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(typeof(FirstAscensionistLinkRequestDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<FirstAscensionistLinkRequestDto>> Reject(int id, RejectFirstAscensionistLinkRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            return BadRequest(new { error = "el motivo es obligatorio" });
+            return BadRequest(new ApiError("el motivo es obligatorio"));
         }
 
         var approverId = userManager.GetUserId(User)!;
@@ -193,8 +201,8 @@ public class FirstAscensionistLinksController(
         if (outcome != DecisionOutcome.Applied)
         {
             return outcome == DecisionOutcome.AlreadyResolved
-                ? BadRequest(new { error = "ya se ha resuelto esta solicitud" })
-                : NotFound(new { error = "No encontrado" });
+                ? BadRequest(new ApiError("ya se ha resuelto esta solicitud"))
+                : NotFound(new ApiError("No encontrado"));
         }
 
         var link = await Query().FirstAsync(l => l.Id == id);
@@ -204,6 +212,8 @@ public class FirstAscensionistLinksController(
     }
 
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> Cancel(int id)
     {
         var userId = userManager.GetUserId(User)!;
@@ -211,7 +221,7 @@ public class FirstAscensionistLinksController(
         var outcome = await ReviewRequestService.CancelAsync(db.FirstAscensionistLinkRequests, id, userId);
         if (outcome != DecisionOutcome.Applied)
         {
-            return outcome == DecisionOutcome.AlreadyResolved ? Forbid() : NotFound(new { error = "No encontrado" });
+            return outcome == DecisionOutcome.AlreadyResolved ? Forbid() : NotFound(new ApiError("No encontrado"));
         }
 
         return Ok(new { ok = true });

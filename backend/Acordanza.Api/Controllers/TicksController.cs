@@ -1,6 +1,7 @@
 using Acordanza.Api.Authorization;
 using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
+using Acordanza.Api.Models;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
@@ -29,8 +30,7 @@ public class TicksController(AppDbContext db, UserManager<ApplicationUser> userM
         [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? gear,
         [FromQuery] int page = 1, [FromQuery] int pageSize = DefaultPageSize)
     {
-        if (page < 1) page = 1;
-        if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
 
         var areas = await areaHierarchy.GetAsync();
 

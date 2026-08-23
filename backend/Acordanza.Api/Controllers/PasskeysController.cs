@@ -34,11 +34,13 @@ public class PasskeysController(
     }
 
     [HttpPost("register/options")]
+    [ProducesResponseType(typeof(RegisterPasskeyOptionsResponse), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult<RegisterPasskeyOptionsResponse>> RegisterOptions(RegisterPasskeyOptionsRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { error = "El nombre es obligatorio" });
+            return BadRequest(new ApiError("El nombre es obligatorio"));
         }
 
         var user = await userManager.GetUserAsync(User);
@@ -70,11 +72,13 @@ public class PasskeysController(
     }
 
     [HttpPost("register/complete")]
+    [ProducesResponseType(typeof(PasskeySummary), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult<PasskeySummary>> RegisterComplete(RegisterPasskeyCompleteRequest request)
     {
         if (!cache.TryGetValue(RegisterCacheKey(request.SessionId), out RegisterPasskeyChallenge? challenge) || challenge is null)
         {
-            return BadRequest(new { error = "La solicitud ha caducado, inténtalo de nuevo" });
+            return BadRequest(new ApiError("La solicitud ha caducado, inténtalo de nuevo"));
         }
         cache.Remove(RegisterCacheKey(request.SessionId));
 
@@ -107,7 +111,7 @@ public class PasskeysController(
         }
         catch (Fido2VerificationException)
         {
-            return BadRequest(new { error = "No se pudo registrar la llave de acceso" });
+            return BadRequest(new ApiError("No se pudo registrar la llave de acceso"));
         }
     }
 

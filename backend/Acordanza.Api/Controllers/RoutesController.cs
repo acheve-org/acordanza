@@ -26,18 +26,9 @@ public class RoutesController(
     AreaExpertAuthorizer areaExpertAuthorizer,
     RouteEnrichmentQueue enrichmentQueue) : ControllerBase
 {
-    // Derived from the Orientation/Gear enums (Dtos/RouteEnums.cs) rather than duplicated
-    // as string literals (DUP-12) — a member's name lowercased is exactly the wire value
-    // it was validated against back when these were hand-maintained string allowlists, so
-    // this preserves the exact set and error messages ValidateOrientation/ValidateGear
-    // already returned.
-    private static readonly HashSet<string> AllowedOrientations =
-        Enum.GetNames<Orientation>().Select(n => n.ToLowerInvariant()).ToHashSet();
-
-    private static readonly HashSet<string> AllowedGear =
-        Enum.GetNames<Gear>().Select(n => n.ToLowerInvariant()).ToHashSet();
-
     [HttpGet]
+    [ProducesResponseType(typeof(List<RouteDto>), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult<List<RouteDto>>> GetRoutes(
         [FromQuery] string? q, [FromQuery] int? areaId, [FromQuery] string? grade, [FromQuery] string? aidGrade,
         [FromQuery] string[]? orientation,
@@ -98,8 +89,8 @@ public class RoutesController(
         }
         if (orientation is { Length: > 0 })
         {
-            if (orientation.FirstOrDefault(o => !AllowedOrientations.Contains(o)) is not null)
-                return BadRequest(new { error = "la orientación no es válida" });
+            if (orientation.FirstOrDefault(o => !RouteWrite.AllowedOrientations.Contains(o)) is not null)
+                return BadRequest(new ApiError("la orientación no es válida"));
             query = query.Where(r => r.Orientation != null && orientation.Contains(r.Orientation));
         }
         if (!string.IsNullOrWhiteSpace(gear))
@@ -131,16 +122,33 @@ public class RoutesController(
             .ToListAsync()).ToHashSet();
 
         var dtos = routes.Select(r => new RouteDto(
-            r.Id, r.Name, r.Slug, r.AreaId, areas[r.AreaId].Name, areas.NamePath(r.AreaId), areas.SlugPath(r.AreaId),
-            r.Grade, r.AidGrade, ParseOrientation(r.Orientation), ParseGear(r.Gear), r.Description,
-            r.Length, r.ObligatoryGrade, r.RecommendedGear, r.OptionalGear,
-            r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
-            r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
-            r.AddedBy.Name, r.CreatedAt,
-            tickedRouteIds.Contains(r.Id),
-            r.Topos.Count > 0,
-            r.ValidationStatus.ToString().ToLowerInvariant(), r.DecidedAt, r.DecidedBy?.Name, r.RejectionReason,
-            canValidateArea(r.AreaId))).ToList();
+            Id: r.Id,
+            Name: r.Name,
+            Slug: r.Slug,
+            AreaId: r.AreaId,
+            AreaName: areas[r.AreaId].Name,
+            AreaPath: areas.NamePath(r.AreaId),
+            AreaSlugPath: areas.SlugPath(r.AreaId),
+            Grade: r.Grade,
+            AidGrade: r.AidGrade,
+            Orientation: ParseOrientation(r.Orientation),
+            Gear: ParseGear(r.Gear),
+            Description: r.Description,
+            Length: r.Length,
+            ObligatoryGrade: r.ObligatoryGrade,
+            RecommendedGear: r.RecommendedGear,
+            OptionalGear: r.OptionalGear,
+            Links: r.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
+            FirstAscensionists: r.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
+            AddedBy: r.AddedBy.Name,
+            CreatedAt: r.CreatedAt,
+            HasTick: tickedRouteIds.Contains(r.Id),
+            HasTopos: r.Topos.Count > 0,
+            ValidationStatus: r.ValidationStatus.ToString().ToLowerInvariant(),
+            DecidedAt: r.DecidedAt,
+            DecidedByName: r.DecidedBy?.Name,
+            RejectionReason: r.RejectionReason,
+            CanValidate: canValidateArea(r.AreaId))).ToList();
 
         return Ok(dtos);
     }
@@ -204,6 +212,8 @@ public class RoutesController(
     }
 
     [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(RouteDetailDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<RouteDetailDto>> GetRoute(int id)
     {
         ClimbingRoute? route;
@@ -220,7 +230,7 @@ public class RoutesController(
             await transaction.CommitAsync();
         }
 
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         return Ok(await BuildRouteDetailDtoAsync(route));
     }
@@ -231,12 +241,14 @@ public class RoutesController(
     // the same walk AreasController's own by-slug-path action uses). Alongside, not
     // replacing, GET /routes/{id} — RouteFormPage's edit route keeps using the numeric id.
     [HttpGet("by-slug-path/{*path}")]
+    [ProducesResponseType(typeof(RouteDetailDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<RouteDetailDto>> GetRouteBySlugPath(string path)
     {
         var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length < 2)
         {
-            return NotFound(new { error = "No encontrado" });
+            return NotFound(new ApiError("No encontrado"));
         }
 
         var routeSlug = segments[^1];
@@ -246,7 +258,7 @@ public class RoutesController(
         var area = hierarchy.ResolveSlugPath(areaSegments);
         if (area is null)
         {
-            return NotFound(new { error = "No encontrado" });
+            return NotFound(new ApiError("No encontrado"));
         }
 
         ClimbingRoute? route;
@@ -263,7 +275,7 @@ public class RoutesController(
             await transaction.CommitAsync();
         }
 
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         return Ok(await BuildRouteDetailDtoAsync(route));
     }
@@ -291,65 +303,44 @@ public class RoutesController(
         var hasTick = await db.Ticks.AnyAsync(t => t.RouteId == route.Id && t.ClimberUserId == userId);
 
         return new RouteDetailDto(
-            route.Id, route.Name, route.Slug, route.AreaId, areas[route.AreaId].Name, areas.NamePath(route.AreaId),
-            areas.SlugPath(route.AreaId),
-            route.Grade, route.AidGrade, ParseOrientation(route.Orientation), ParseGear(route.Gear), route.Description,
-            route.Length, route.ObligatoryGrade, route.RecommendedGear, route.OptionalGear,
-            route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
-            route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
-            route.AddedBy.Name, route.CreatedAt,
-            hasTick,
-            topoDtos,
-            route.ValidationStatus.ToString().ToLowerInvariant(), route.DecidedAt, route.DecidedBy?.Name, route.RejectionReason,
-            canValidateArea(route.AreaId), route.EnrichedAt);
+            Id: route.Id,
+            Name: route.Name,
+            Slug: route.Slug,
+            AreaId: route.AreaId,
+            AreaName: areas[route.AreaId].Name,
+            AreaPath: areas.NamePath(route.AreaId),
+            AreaSlugPath: areas.SlugPath(route.AreaId),
+            Grade: route.Grade,
+            AidGrade: route.AidGrade,
+            Orientation: ParseOrientation(route.Orientation),
+            Gear: ParseGear(route.Gear),
+            Description: route.Description,
+            Length: route.Length,
+            ObligatoryGrade: route.ObligatoryGrade,
+            RecommendedGear: route.RecommendedGear,
+            OptionalGear: route.OptionalGear,
+            Links: route.Links.Select(l => new RouteLinkDto(l.Url, l.Source.ToString().ToLowerInvariant())).ToList(),
+            FirstAscensionists: route.FirstAscensionists.Select(ToFirstAscensionistDto).ToList(),
+            AddedBy: route.AddedBy.Name,
+            CreatedAt: route.CreatedAt,
+            HasTick: hasTick,
+            Topos: topoDtos,
+            ValidationStatus: route.ValidationStatus.ToString().ToLowerInvariant(),
+            DecidedAt: route.DecidedAt,
+            DecidedByName: route.DecidedBy?.Name,
+            RejectionReason: route.RejectionReason,
+            CanValidate: canValidateArea(route.AreaId),
+            EnrichedAt: route.EnrichedAt);
     }
 
     [Authorize(Policy = Permissions.RouteCreate)]
     [HttpPost]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
     public async Task<ActionResult> CreateRoute(UpsertRouteRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequest(new { error = "el nombre es obligatorio" });
-        }
-
-        if (request.AreaId == 0) return BadRequest(new { error = "el sector es obligatorio" });
-        if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
-        {
-            return BadRequest(new { error = "el sector no existe" });
-        }
-
-        // Absent is legal now (plan 34); present-but-wrong still isn't.
-        if (!string.IsNullOrWhiteSpace(request.Grade) && !GradeValidator.IsValid(request.Grade))
-        {
-            return BadRequest(new { error = "el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)" });
-        }
-        if (!string.IsNullOrWhiteSpace(request.AidGrade) && !AidGradeValidator.IsValid(request.AidGrade))
-        {
-            return BadRequest(new { error = "el grado artificial debe ser A0–A5 o C0–C5 (por ejemplo A1, C2, A3+)" });
-        }
-
-        var orientationError = ValidateOrientation(request.Orientation);
-        if (orientationError is not null) return BadRequest(new { error = orientationError });
-
-        var gearError = ValidateGear(request.Gear);
-        if (gearError is not null) return BadRequest(new { error = gearError });
-
-        var lengthError = ValidateLength(request.Length);
-        if (lengthError is not null) return BadRequest(new { error = lengthError });
-
-        var obligatoryGrade = NormalizeOptionalText(request.ObligatoryGrade);
-        var recommendedGear = NormalizeOptionalText(request.RecommendedGear);
-        var optionalGear = NormalizeOptionalText(request.OptionalGear);
-        var textLengthError = ValidateTextLength(request.Name, NameMaxLength) ?? ValidateTextLength(request.Description, DescriptionMaxLength)
-            ?? ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
-        if (textLengthError is not null) return BadRequest(new { error = textLengthError });
-
-        var (links, linksError) = LinkRules.Resolve(request.Links);
-        if (linksError is not null) return BadRequest(new { error = linksError });
-
-        var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
-        if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
+        var (values, error) = await RouteWrite.TryBuildAsync(db, request, requireAreaId: true);
+        if (error is not null) return BadRequest(new ApiError(error));
 
         var userId = userManager.GetUserId(User)!;
         var slug = await GenerateUniqueRouteSlugAsync(request.AreaId, request.Name);
@@ -358,18 +349,18 @@ public class RoutesController(
             Name = request.Name,
             Slug = slug,
             AreaId = request.AreaId,
-            Grade = NormalizeOptionalGrade(request.Grade),
-            AidGrade = NormalizeOptionalAidGrade(request.AidGrade),
-            Orientation = request.Orientation,
-            Gear = request.Gear,
-            Description = request.Description ?? "",
-            Length = request.Length,
-            ObligatoryGrade = obligatoryGrade,
-            RecommendedGear = recommendedGear,
-            OptionalGear = optionalGear,
-            Links = links!.Select(u => new Link { Url = u, Source = LinkSource.Human }).ToList(),
+            Grade = values!.Grade,
+            AidGrade = values.AidGrade,
+            Orientation = values.Orientation,
+            Gear = values.Gear,
+            Description = values.Description,
+            Length = values.Length,
+            ObligatoryGrade = values.ObligatoryGrade,
+            RecommendedGear = values.RecommendedGear,
+            OptionalGear = values.OptionalGear,
+            Links = values.Links.Select(u => new Link { Url = u, Source = LinkSource.Human }).ToList(),
             AddedByUserId = userId,
-            FirstAscensionists = firstAscensionists!
+            FirstAscensionists = values.FirstAscensionists
         };
 
         // Same rule AreasController.CreateArea and FirstAscensionistsController.CreateFirstAscensionist
@@ -389,73 +380,35 @@ public class RoutesController(
 
     [Authorize(Policy = Permissions.RouteEdit)]
     [HttpPut("{id:int}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> UpdateRoute(int id, UpsertRouteRequest request)
     {
         var route = await db.Routes
             .Include(r => r.FirstAscensionists)
             .Include(r => r.Links)
             .FirstOrDefaultAsync(r => r.Id == id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         var userId = userManager.GetUserId(User)!;
 
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequest(new { error = "el nombre es obligatorio" });
-        }
+        var (values, error) = await RouteWrite.TryBuildAsync(db, request);
+        if (error is not null) return BadRequest(new ApiError(error));
 
-        if (!await db.Areas.AnyAsync(a => a.Id == request.AreaId))
-        {
-            return BadRequest(new { error = "el sector no existe" });
-        }
-
-        // Absent is legal now (plan 34); present-but-wrong still isn't.
-        if (!string.IsNullOrWhiteSpace(request.Grade) && !GradeValidator.IsValid(request.Grade))
-        {
-            return BadRequest(new { error = "el grado debe seguir la escala francesa (por ejemplo 6a, 7c+, 8a)" });
-        }
-        if (!string.IsNullOrWhiteSpace(request.AidGrade) && !AidGradeValidator.IsValid(request.AidGrade))
-        {
-            return BadRequest(new { error = "el grado artificial debe ser A0–A5 o C0–C5 (por ejemplo A1, C2, A3+)" });
-        }
-
-        var orientationError = ValidateOrientation(request.Orientation);
-        if (orientationError is not null) return BadRequest(new { error = orientationError });
-
-        var gearError = ValidateGear(request.Gear);
-        if (gearError is not null) return BadRequest(new { error = gearError });
-
-        var lengthError = ValidateLength(request.Length);
-        if (lengthError is not null) return BadRequest(new { error = lengthError });
-
-        var obligatoryGrade = NormalizeOptionalText(request.ObligatoryGrade);
-        var recommendedGear = NormalizeOptionalText(request.RecommendedGear);
-        var optionalGear = NormalizeOptionalText(request.OptionalGear);
-        var textLengthError = ValidateTextLength(request.Name, NameMaxLength) ?? ValidateTextLength(request.Description, DescriptionMaxLength)
-            ?? ValidateTextLength(obligatoryGrade, ObligatoryGradeMaxLength) ?? ValidateTextLength(recommendedGear, GearNoteMaxLength) ?? ValidateTextLength(optionalGear, GearNoteMaxLength);
-        if (textLengthError is not null) return BadRequest(new { error = textLengthError });
-
-        var (links, linksError) = LinkRules.Resolve(request.Links);
-        if (linksError is not null) return BadRequest(new { error = linksError });
-
-        var (firstAscensionists, firstAscensionistsError) = await ResolveFirstAscensionistsAsync(request.FirstAscensionistIds);
-        if (firstAscensionistsError is not null) return BadRequest(new { error = firstAscensionistsError });
-
-        var normalizedGrade = NormalizeOptionalGrade(request.Grade);
-        var normalizedAidGrade = NormalizeOptionalAidGrade(request.AidGrade);
-        var newFirstAscensionistIds = firstAscensionists!.Select(fa => fa.Id).ToHashSet();
-        var newLinkUrls = links!.ToHashSet();
+        var newFirstAscensionistIds = values!.FirstAscensionists.Select(fa => fa.Id).ToHashSet();
+        var newLinkUrls = values.Links.ToHashSet();
         var changed = route.Name != request.Name ||
             route.AreaId != request.AreaId ||
-            route.Grade != normalizedGrade ||
-            route.AidGrade != normalizedAidGrade ||
-            (route.Orientation ?? "") != (request.Orientation ?? "") ||
-            (route.Gear ?? "") != (request.Gear ?? "") ||
-            route.Description != (request.Description ?? "") ||
-            route.Length != request.Length ||
-            (route.ObligatoryGrade ?? "") != (obligatoryGrade ?? "") ||
-            (route.RecommendedGear ?? "") != (recommendedGear ?? "") ||
-            (route.OptionalGear ?? "") != (optionalGear ?? "") ||
+            route.Grade != values.Grade ||
+            route.AidGrade != values.AidGrade ||
+            (route.Orientation ?? "") != (values.Orientation ?? "") ||
+            (route.Gear ?? "") != (values.Gear ?? "") ||
+            route.Description != values.Description ||
+            route.Length != values.Length ||
+            (route.ObligatoryGrade ?? "") != (values.ObligatoryGrade ?? "") ||
+            (route.RecommendedGear ?? "") != (values.RecommendedGear ?? "") ||
+            (route.OptionalGear ?? "") != (values.OptionalGear ?? "") ||
             !route.Links.Select(l => l.Url).ToHashSet().SetEquals(newLinkUrls) ||
             !route.FirstAscensionists.Select(fa => fa.Id).ToHashSet().SetEquals(newFirstAscensionistIds);
 
@@ -470,21 +423,21 @@ public class RoutesController(
 
         route.Name = request.Name;
         route.AreaId = request.AreaId;
-        route.Grade = normalizedGrade;
-        route.AidGrade = normalizedAidGrade;
-        route.Orientation = request.Orientation;
-        route.Gear = request.Gear;
-        route.Description = request.Description ?? "";
-        route.Length = request.Length;
-        route.ObligatoryGrade = obligatoryGrade;
-        route.RecommendedGear = recommendedGear;
-        route.OptionalGear = optionalGear;
+        route.Grade = values.Grade;
+        route.AidGrade = values.AidGrade;
+        route.Orientation = values.Orientation;
+        route.Gear = values.Gear;
+        route.Description = values.Description;
+        route.Length = values.Length;
+        route.ObligatoryGrade = values.ObligatoryGrade;
+        route.RecommendedGear = values.RecommendedGear;
+        route.OptionalGear = values.OptionalGear;
 
         route.Links.Clear();
-        route.Links.AddRange(links!.Select(u => new Link { Url = u, Source = LinkSource.Human }));
+        route.Links.AddRange(values.Links.Select(u => new Link { Url = u, Source = LinkSource.Human }));
 
         route.FirstAscensionists.Clear();
-        route.FirstAscensionists.AddRange(firstAscensionists!);
+        route.FirstAscensionists.AddRange(values.FirstAscensionists);
 
         // Same rule as CreateRoute: an editor who could validate this route outright (role
         // permission or approved area expert) shouldn't have their own edit demote it to
@@ -507,51 +460,38 @@ public class RoutesController(
 
     [Authorize]
     [HttpPost("{id:int}/validate")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> ValidateRoute(int id)
     {
-        var route = await db.Routes.FindAsync(id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
-
-        var userId = userManager.GetUserId(User)!;
-
         // Route validation is normally role-gated (route.validate), but an area
         // expert can also validate routes within the top-level area they're an
         // approved expert of (and any of its subareas) even without that role.
-        if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
-        {
-            return Forbid();
-        }
+        var failure = await ValidationDecisions.ValidateAsync(
+            db, db.Routes, id, "No encontrado", userManager.GetUserId(User)!,
+            route => areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId));
 
-        Validation.MarkValidated(route, userId);
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize]
     [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> RejectRoute(int id, RejectValidationRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            return BadRequest(new { error = "el motivo es obligatorio" });
+            return BadRequest(new ApiError("el motivo es obligatorio"));
         }
-
-        var route = await db.Routes.FindAsync(id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
-
-        var userId = userManager.GetUserId(User)!;
 
         // Same guard as ValidateRoute — an area expert can reject within their area too.
-        if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId))
-        {
-            return Forbid();
-        }
+        var failure = await ValidationDecisions.RejectAsync(
+            db, db.Routes, id, "No encontrado", userManager.GetUserId(User)!, request.Reason.Trim(),
+            route => areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.RouteValidate, route.AreaId));
 
-        Validation.MarkRejected(route, userId, request.Reason.Trim());
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.RouteDelete)]
@@ -577,13 +517,17 @@ public class RoutesController(
 
     [HttpPost("{id:int}/topos")]
     [RequestSizeLimit(MediaUploadService.MaxImageBytes)]
+    [ProducesResponseType(typeof(TopoDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult<TopoDto>> UploadTopo(int id, IFormFile? file)
     {
         var validationError = ImageValidation.ValidateImage(file);
-        if (validationError is not null) return BadRequest(new { error = validationError.Message });
+        if (validationError is not null) return BadRequest(new ApiError(validationError.Message));
 
         var route = await db.Routes.FirstOrDefaultAsync(r => r.Id == id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         var areas = await areaHierarchy.GetAsync();
 
@@ -603,7 +547,7 @@ public class RoutesController(
         var blobName = await mediaUpload.UploadNumberedAsync(blobPrefix, extension, usedBlobNames, file.OpenReadStream(), file.ContentType);
         if (blobName is null)
         {
-            return Conflict(new { error = "no se pudo subir la imagen, inténtalo de nuevo" });
+            return Conflict(new ApiError("no se pudo subir la imagen, inténtalo de nuevo"));
         }
 
         var topo = new Topo
@@ -624,15 +568,18 @@ public class RoutesController(
 
     [Authorize(Policy = Permissions.TickCreate)]
     [HttpPost("{id:int}/ticks")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> CreateTick(int id, CreateTickRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Date))
         {
-            return BadRequest(new { error = "la fecha es obligatoria" });
+            return BadRequest(new ApiError("la fecha es obligatoria"));
         }
 
         var routeExists = await db.Routes.AnyAsync(r => r.Id == id);
-        if (!routeExists) return NotFound(new { error = "No encontrado" });
+        if (!routeExists) return NotFound(new ApiError("No encontrado"));
 
         var userId = userManager.GetUserId(User)!;
         var tick = new Tick
@@ -657,14 +604,18 @@ public class RoutesController(
     // grows on its own.
     [Authorize(Policy = Permissions.RouteEnrich)]
     [HttpPost("{id:int}/enrich")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    [ProducesResponseType(typeof(ApiError), 409)]
+    [ProducesResponseType(typeof(ApiError), 503)]
     public async Task<ActionResult> EnrichRoute(int id, [FromQuery] bool force = false)
     {
         var route = await db.Routes.FindAsync(id);
-        if (route is null) return NotFound(new { error = "No encontrado" });
+        if (route is null) return NotFound(new ApiError("No encontrado"));
 
         if (route.EnrichedAt is not null && !force)
         {
-            return Conflict(new { error = "Esta vía ya se ha enriquecido" });
+            return Conflict(new ApiError("Esta vía ya se ha enriquecido"));
         }
 
         try
@@ -675,56 +626,12 @@ public class RoutesController(
         {
             // Nothing else happened in this request — a failed enqueue is not
             // best-effort-and-swallow, unlike the (now-removed) create-time hook.
-            return StatusCode(503, new { error = "No se pudo iniciar la búsqueda, inténtalo de nuevo" });
+            return StatusCode(503, new ApiError("No se pudo iniciar la búsqueda, inténtalo de nuevo"));
         }
 
         // A JSON body (not truly empty) so the frontend's shared request() helper, which
         // always parses a response body, doesn't need a 202-specific exception.
         return Accepted(new { ok = true });
-    }
-
-    private static string? ValidateOrientation(string? orientation) =>
-        orientation is not null && !AllowedOrientations.Contains(orientation)
-            ? "la orientación no es válida"
-            : null;
-
-    private static string? ValidateGear(string? gear) =>
-        gear is not null && !AllowedGear.Contains(gear)
-            ? "el tipo de equipamiento no es válido"
-            : null;
-
-    private static string? ValidateLength(int? length) =>
-        length is null or (> 5 and < 3000) ? null : "la longitud debe ser mayor que 5 y menor que 3000";
-
-    private const int ObligatoryGradeMaxLength = 20;
-    private const int GearNoteMaxLength = 500;
-    private const int NameMaxLength = 200;
-    private const int DescriptionMaxLength = 5000;
-
-    private static string? ValidateTextLength(string? value, int maxLength) =>
-        value is not null && value.Length > maxLength ? "el texto es demasiado largo" : null;
-
-    private static string? NormalizeOptionalText(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-
-    private static string? NormalizeOptionalGrade(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : GradeValidator.Normalize(value);
-
-    private static string? NormalizeOptionalAidGrade(string? value) =>
-        string.IsNullOrWhiteSpace(value) ? null : AidGradeValidator.Normalize(value);
-
-    private async Task<(List<FirstAscensionist>? FirstAscensionists, string? Error)> ResolveFirstAscensionistsAsync(List<int>? firstAscensionistIds)
-    {
-        if (firstAscensionistIds is not { Count: > 0 }) return ([], null);
-
-        var distinctIds = firstAscensionistIds.Distinct().ToList();
-        var firstAscensionists = await db.FirstAscensionists.Where(o => distinctIds.Contains(o.Id)).ToListAsync();
-        if (firstAscensionists.Count != distinctIds.Count)
-        {
-            return (null, "algún aperturista no existe");
-        }
-
-        return (firstAscensionists, null);
     }
 
     private static FirstAscensionistDto ToFirstAscensionistDto(FirstAscensionist o) => new(o.Id, o.Name, o.UserId, o.User?.Name);

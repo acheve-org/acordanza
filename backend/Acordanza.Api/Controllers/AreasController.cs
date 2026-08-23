@@ -1,6 +1,7 @@
 using Acordanza.Api.Authorization;
 using Acordanza.Core.Data;
 using Acordanza.Api.Dtos;
+using Acordanza.Api.Models;
 using Acordanza.Core.Models;
 using Acordanza.Api.Services;
 using Acordanza.Core.Services;
@@ -77,7 +78,7 @@ public class AreasController(
             .Include(a => a.DecidedBy)
             .ToListAsync();
 
-        return Ok(areaEntities.Select(ToAreaDto).ToList());
+        return Ok(areaEntities.Select(a => ToAreaDto(a, a.DecidedBy?.Name)).ToList());
     }
 
     // The whole area tree, flat and geometry-free, for AreaPicker/TreeSelect (plan 35 §1)
@@ -126,8 +127,7 @@ public class AreasController(
             return Forbid();
         }
 
-        if (page < 1) page = 1;
-        if (pageSize is < 1 or > MaxPageSize) pageSize = DefaultPageSize;
+        (page, pageSize) = PageRequest.Clamp(page, pageSize, DefaultPageSize, MaxPageSize);
 
         var query = db.Areas.AsNoTracking().Where(a => a.ParentAreaId == null);
         if (!includeUnvalidated)
@@ -149,6 +149,8 @@ public class AreasController(
     }
 
     [HttpGet("{id}/children")]
+    [ProducesResponseType(typeof(List<AreaNodeDto>), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<List<AreaNodeDto>>> GetAreaChildren(int id, [FromQuery] bool includeUnvalidated = false)
     {
         if (includeUnvalidated && !User.HasClaim("permission", Permissions.AreaValidate))
@@ -158,7 +160,7 @@ public class AreasController(
 
         if (!await db.Areas.AnyAsync(a => a.Id == id))
         {
-            return NotFound(new { error = "el sector no existe" });
+            return NotFound(new ApiError("el sector no existe"));
         }
 
         var query = db.Areas.AsNoTracking().Where(a => a.ParentAreaId == id);
@@ -196,20 +198,23 @@ public class AreasController(
 
     [Authorize(Policy = Permissions.AreaCreate)]
     [HttpPost]
+    [ProducesResponseType(typeof(AreaDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult<AreaDto>> CreateArea(CreateAreaRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { error = "el nombre es obligatorio" });
+            return BadRequest(new ApiError("el nombre es obligatorio"));
         }
         if (request.Name.Length > NameMaxLength)
         {
-            return BadRequest(new { error = "el nombre es demasiado largo" });
+            return BadRequest(new ApiError("el nombre es demasiado largo"));
         }
 
         if (request.ParentAreaId is int parentId && !await db.Areas.AnyAsync(a => a.Id == parentId))
         {
-            return BadRequest(new { error = "el sector padre no existe" });
+            return BadRequest(new ApiError("el sector padre no existe"));
         }
 
         var name = request.Name.Trim();
@@ -217,7 +222,7 @@ public class AreasController(
             a.ParentAreaId == request.ParentAreaId && a.Name.ToLower() == name.ToLower());
         if (isDuplicate)
         {
-            return Conflict(new { error = "ya existe un sector con ese nombre en este nivel" });
+            return Conflict(new ApiError("ya existe un sector con ese nombre en este nivel"));
         }
 
         var slug = await GenerateUniqueAreaSlugAsync(request.ParentAreaId, name);
@@ -241,52 +246,44 @@ public class AreasController(
         {
             // The AnyAsync check above is only a friendly pre-check — this catches the rare
             // case of two concurrent creates racing past it for the same parent/name.
-            return Conflict(new { error = "ya existe un sector con ese nombre en este nivel" });
+            return Conflict(new ApiError("ya existe un sector con ese nombre en este nivel"));
         }
 
-        return Ok(new AreaDto(
-            area.Id,
-            area.Name,
-            area.Slug,
-            area.ParentAreaId,
-            [],
-            null,
-            null,
-            area.ValidationStatus.ToString().ToLowerInvariant(),
-            area.DecidedAt,
-            await GetDecidedByNameAsync(area.DecidedByUserId),
-            area.RejectionReason));
+        return Ok(ToAreaDto(area, await GetDecidedByNameAsync(area.DecidedByUserId)));
     }
 
     [Authorize(Policy = Permissions.AreaEdit)]
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(AreaDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<AreaDto>> UpdateArea(int id, UpdateAreaRequest request)
     {
         var area = await db.Areas.FindAsync(id);
         if (area is null)
         {
-            return NotFound(new { error = "el sector no existe" });
+            return NotFound(new ApiError("el sector no existe"));
         }
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest(new { error = "el nombre es obligatorio" });
+            return BadRequest(new ApiError("el nombre es obligatorio"));
         }
         if (request.Name.Length > NameMaxLength)
         {
-            return BadRequest(new { error = "el nombre es demasiado largo" });
+            return BadRequest(new ApiError("el nombre es demasiado largo"));
         }
 
         if (request.ParentAreaId is int parentId)
         {
             if (parentId == id)
             {
-                return BadRequest(new { error = "un sector no puede ser su propio padre" });
+                return BadRequest(new ApiError("un sector no puede ser su propio padre"));
             }
 
             if (!await db.Areas.AnyAsync(a => a.Id == parentId))
             {
-                return BadRequest(new { error = "el sector padre no existe" });
+                return BadRequest(new ApiError("el sector padre no existe"));
             }
 
             // Walk up from the proposed parent to make sure `id` isn't among its
@@ -296,7 +293,7 @@ public class AreasController(
             {
                 if (ancestorId == id)
                 {
-                    return BadRequest(new { error = "el sector padre no puede ser un descendiente de este sector" });
+                    return BadRequest(new ApiError("el sector padre no puede ser un descendiente de este sector"));
                 }
 
                 ancestorId = await db.Areas.Where(a => a.Id == ancestorId).Select(a => a.ParentAreaId).FirstOrDefaultAsync();
@@ -325,35 +322,27 @@ public class AreasController(
 
         await db.SaveChangesAsync();
 
-        return Ok(new AreaDto(
-            area.Id,
-            area.Name,
-            area.Slug,
-            area.ParentAreaId,
-            area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
-            area.CentroidLat,
-            area.CentroidLng,
-            area.ValidationStatus.ToString().ToLowerInvariant(),
-            area.DecidedAt,
-            await GetDecidedByNameAsync(area.DecidedByUserId),
-            area.RejectionReason));
+        return Ok(ToAreaDto(area, await GetDecidedByNameAsync(area.DecidedByUserId)));
     }
 
     [Authorize(Policy = Permissions.AreaDelete)]
     [HttpDelete("{id}")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<IActionResult> DeleteArea(int id)
     {
         var area = await db.Areas.FindAsync(id);
         if (area is null)
         {
-            return NotFound(new { error = "el sector no existe" });
+            return NotFound(new ApiError("el sector no existe"));
         }
 
         var idsToDelete = (await areaHierarchy.GetAsync()).DescendantIds(id);
 
         if (await db.Routes.AnyAsync(r => idsToDelete.Contains(r.AreaId)))
         {
-            return BadRequest(new { error = "el sector o alguno de sus subsectores tiene vías asociadas; muévelas o elimínalas primero" });
+            return BadRequest(new ApiError("el sector o alguno de sus subsectores tiene vías asociadas; muévelas o elimínalas primero"));
         }
 
         // AreaMedia rows cascade-delete with their area (see AppDbContext), but that's
@@ -379,25 +368,27 @@ public class AreasController(
     // Returns a single area resolved by its full slug path (e.g. "pena-rua/sector-1") —
     // see AreaHierarchy.ResolveSlugPath for the level-by-level walk.
     [HttpGet("by-slug-path/{*path}")]
+    [ProducesResponseType(typeof(AreaDetailDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<AreaDetailDto>> GetAreaBySlugPath(string path)
     {
         var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
         if (segments.Length == 0)
         {
-            return NotFound(new { error = "el sector no existe" });
+            return NotFound(new ApiError("el sector no existe"));
         }
 
         var hierarchy = await areaHierarchy.GetAsync();
         var resolved = hierarchy.ResolveSlugPath(segments);
         if (resolved is null)
         {
-            return NotFound(new { error = "el sector no existe" });
+            return NotFound(new ApiError("el sector no existe"));
         }
 
         var area = await db.Areas.Include(a => a.DecidedBy).FirstOrDefaultAsync(a => a.Id == resolved.Id);
         if (area is null)
         {
-            return NotFound(new { error = "el sector no existe" });
+            return NotFound(new ApiError("el sector no existe"));
         }
 
         var ancestors = hierarchy.Ancestors(area.Id)
@@ -446,13 +437,17 @@ public class AreasController(
 
     [HttpPost("{id:int}/media")]
     [RequestSizeLimit(MediaUploadService.MaxImageBytes)]
+    [ProducesResponseType(typeof(TopoDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    [ProducesResponseType(typeof(ApiError), 409)]
     public async Task<ActionResult<TopoDto>> UploadAreaMedia(int id, IFormFile? file)
     {
         var validationError = ImageValidation.ValidateImage(file);
-        if (validationError is not null) return BadRequest(new { error = validationError.Message });
+        if (validationError is not null) return BadRequest(new ApiError(validationError.Message));
 
         var area = await db.Areas.FirstOrDefaultAsync(a => a.Id == id);
-        if (area is null) return NotFound(new { error = "No encontrado" });
+        if (area is null) return NotFound(new ApiError("No encontrado"));
 
         if (!await areaExpertAuthorizer.CanActOnAreaAsync(User, Permissions.AreaEdit, id))
         {
@@ -480,7 +475,7 @@ public class AreasController(
         var blobName = await mediaUpload.UploadNumberedAsync(blobPrefix, extension, usedBlobNames, file.OpenReadStream(), file.ContentType);
         if (blobName is null)
         {
-            return Conflict(new { error = "no se pudo subir la imagen, inténtalo de nuevo" });
+            return Conflict(new ApiError("no se pudo subir la imagen, inténtalo de nuevo"));
         }
 
         var media = new AreaMedia
@@ -504,25 +499,17 @@ public class AreasController(
     // still slugify to the same value (e.g. "Peña Rúa" vs "Pena-Rua") — append "-2", "-3"
     // etc. until the slug is actually unique among this area's siblings, rather than
     // letting two areas collide onto the same topo storage prefix.
-    private async Task<string> GenerateUniqueAreaSlugAsync(int? parentAreaId, string name)
-    {
-        var baseSlug = Slugify.ToSlug(name);
-        var slug = baseSlug;
-        var suffix = 2;
-        while (await db.Areas.AnyAsync(a => a.ParentAreaId == parentAreaId && a.Slug == slug))
-        {
-            slug = $"{baseSlug}-{suffix}";
-            suffix++;
-        }
-        return slug;
-    }
+    private Task<string> GenerateUniqueAreaSlugAsync(int? parentAreaId, string name) =>
+        Slugs.GenerateUniqueAsync(
+            name,
+            slug => db.Areas.AnyAsync(a => a.ParentAreaId == parentAreaId && a.Slug == slug));
 
     private async Task<string?> GetDecidedByNameAsync(string? decidedByUserId) =>
         decidedByUserId is null
             ? null
             : await db.Users.Where(u => u.Id == decidedByUserId).Select(u => u.Name).FirstOrDefaultAsync();
 
-    private static AreaDto ToAreaDto(Area a) => new(
+    private static AreaDto ToAreaDto(Area a, string? decidedByName) => new(
         a.Id,
         a.Name,
         a.Slug,
@@ -532,22 +519,25 @@ public class AreasController(
         a.CentroidLng,
         a.ValidationStatus.ToString().ToLowerInvariant(),
         a.DecidedAt,
-        a.DecidedBy?.Name,
+        decidedByName,
         a.RejectionReason);
 
     [Authorize(Policy = Permissions.AreaEdit)]
     [HttpPut("{id}/coordinates")]
+    [ProducesResponseType(typeof(AreaDto), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult<AreaDto>> UpdateAreaCoordinates(int id, UpdateAreaCoordinatesRequest request)
     {
         var area = await db.Areas.FindAsync(id);
         if (area is null)
         {
-            return NotFound(new { error = "el sector no existe" });
+            return NotFound(new ApiError("el sector no existe"));
         }
 
         if (request.Polygon.Count != 0 && request.Polygon.Count < 3)
         {
-            return BadRequest(new { error = "el polígono necesita al menos 3 puntos" });
+            return BadRequest(new ApiError("el polígono necesita al menos 3 puntos"));
         }
 
         var newPolygon = request.Polygon.Select(p => new GeoPoint { Lat = p.Lat, Lng = p.Lng }).ToList();
@@ -581,48 +571,36 @@ public class AreasController(
 
         await db.SaveChangesAsync();
 
-        return Ok(new AreaDto(
-            area.Id,
-            area.Name,
-            area.Slug,
-            area.ParentAreaId,
-            area.Polygon.Select(p => new GeoPointDto(p.Lat, p.Lng)).ToList(),
-            area.CentroidLat,
-            area.CentroidLng,
-            area.ValidationStatus.ToString().ToLowerInvariant(),
-            area.DecidedAt,
-            await GetDecidedByNameAsync(area.DecidedByUserId),
-            area.RejectionReason));
+        return Ok(ToAreaDto(area, await GetDecidedByNameAsync(area.DecidedByUserId)));
     }
 
     [Authorize(Policy = Permissions.AreaValidate)]
     [HttpPost("{id:int}/validate")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> ValidateArea(int id)
     {
-        var area = await db.Areas.FindAsync(id);
-        if (area is null) return NotFound(new { error = "el sector no existe" });
+        var failure = await ValidationDecisions.ValidateAsync(
+            db, db.Areas, id, "el sector no existe", userManager.GetUserId(User)!);
 
-        Validation.MarkValidated(area, userManager.GetUserId(User)!);
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 
     [Authorize(Policy = Permissions.AreaValidate)]
     [HttpPost("{id:int}/reject")]
+    [ProducesResponseType(200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
     public async Task<ActionResult> RejectArea(int id, RejectValidationRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
         {
-            return BadRequest(new { error = "el motivo es obligatorio" });
+            return BadRequest(new ApiError("el motivo es obligatorio"));
         }
 
-        var area = await db.Areas.FindAsync(id);
-        if (area is null) return NotFound(new { error = "el sector no existe" });
+        var failure = await ValidationDecisions.RejectAsync(
+            db, db.Areas, id, "el sector no existe", userManager.GetUserId(User)!, request.Reason.Trim());
 
-        Validation.MarkRejected(area, userManager.GetUserId(User)!, request.Reason.Trim());
-
-        await db.SaveChangesAsync();
-        return Ok(new { ok = true });
+        return failure ?? Ok(new { ok = true });
     }
 }
