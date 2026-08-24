@@ -172,6 +172,7 @@ ASPNETCORE_ENVIRONMENT=Development dotnet build -p:OpenApiGenerateDocumentsOnBui
 | `Storage:ConnectionString` | — | local blob auth (Azurite) |
 | `Storage:AccountName` + `Storage:ManagedIdentityClientId` | — | production blob auth |
 | `Resend:ApiKey` / `Resend:FromEmail` / `Resend:FromName` | — | see Email above |
+| `Amplitude:ApiKey` | — | Amplitude project API key for `IAnalyticsTracker` (invite-accepted/route-import-completed events); absent locally and gates `AmplitudeAnalyticsTracker` vs `NoOpAnalyticsTracker`, same pattern as `Resend:ApiKey` |
 | `Invites:MaxForUser` | 5 | per-role invite quota cap for non-admins; admins unbounded; read per-request via `GetInviteLimit()`, so tunable by config rather than redeploy — see `UsersController` above |
 | `Invites:MaxForModerator` | 10 | same |
 | `Storage:EnrichmentQueueName` | `route-enrichment` | see Route enrichment above |

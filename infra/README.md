@@ -185,6 +185,11 @@ certificates — see "Custom domains" below.
      as long as you merge Resend's `include:` into the existing SPF TXT
      record rather than adding a second one). Without a verified domain,
      `Resend:FromEmail` will fail to send or land in spam.
+   - `AMPLITUDE_API_KEY` — an Amplitude project API key, used both to send
+     backend events (`Amplitude:ApiKey`) and to initialize the frontend's
+     browser SDK (`VITE_AMPLITUDE_API_KEY`) — the same value serves both.
+     Optional: leave the GitHub secret unset (or empty) to deploy with
+     tracking disabled.
    - `GRAFANA_OTLP_HEADERS` — the OTLP auth header for the Grafana Cloud
      stack above, in `Authorization=Basic <base64 instanceId:token>` form
      (generate the token alongside the endpoint in the same Grafana Cloud

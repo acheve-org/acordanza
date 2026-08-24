@@ -82,6 +82,13 @@ variable "resend_from_email" {
   default     = "noreply@acordanza.eu"
 }
 
+variable "amplitude_api_key" {
+  description = "Amplitude project API key (Amplitude:ApiKey on the API/worker, VITE_AMPLITUDE_API_KEY on the frontend build). Supply via TF_VAR_amplitude_api_key (a GitHub Actions secret) — never commit this. Leave empty to disable tracking."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "grafana_otlp_endpoint" {
   description = "Grafana Cloud OTLP gateway endpoint (Connections -> OpenTelemetry in the Grafana Cloud UI) traces/metrics/logs are exported to, e.g. https://otlp-gateway-prod-xx-xxx.grafana.net/otlp."
   type        = string

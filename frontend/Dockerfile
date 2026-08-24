@@ -12,6 +12,8 @@ COPY design-system ./design-system
 COPY frontend ./frontend
 ARG VITE_API_URL=http://localhost:5073/api
 ENV VITE_API_URL=$VITE_API_URL
+ARG VITE_AMPLITUDE_API_KEY=""
+ENV VITE_AMPLITUDE_API_KEY=$VITE_AMPLITUDE_API_KEY
 RUN bun run --cwd design-system build
 RUN bun run --cwd frontend build
 
