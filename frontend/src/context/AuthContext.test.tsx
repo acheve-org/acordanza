@@ -10,6 +10,17 @@ import { queryClient } from '../queryClient';
 import { api } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 
+const { identifyMock, resetAnalyticsMock } = vi.hoisted(() => ({
+  identifyMock: vi.fn(),
+  resetAnalyticsMock: vi.fn(),
+}));
+vi.mock('../lib/analytics', () => ({
+  init: vi.fn(),
+  identify: identifyMock,
+  reset: resetAnalyticsMock,
+  trackPageView: vi.fn(),
+}));
+
 const STORAGE_KEY = 'acordanza.auth';
 
 const storedSession = (token: string) =>
@@ -149,5 +160,27 @@ describe('AuthProvider', () => {
     await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
 
     expect(queryClient.getQueryData(['probe-test-key'])).toBeUndefined();
+  });
+
+  it('identifies the user in Amplitude after a successful session restore', async () => {
+    localStorage.setItem(STORAGE_KEY, storedSession('good-token'));
+    server.use(http.get(`${API_URL}/auth/me`, () => HttpResponse.json(makeMeResponse({ id: 'user-9' }))));
+
+    renderWithProviders(<Probe />, { useRealAuthProvider: true });
+
+    await waitFor(() => expect(identifyMock).toHaveBeenCalledWith('user-9'));
+  });
+
+  it('resets Amplitude identity on logout', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(STORAGE_KEY, storedSession('good-token'));
+    server.use(http.get(`${API_URL}/auth/me`, () => HttpResponse.json(makeMeResponse({ id: 'user-9' }))));
+
+    renderWithProviders(<Probe />, { useRealAuthProvider: true });
+    await waitFor(() => expect(screen.getByTestId('probe')).toHaveTextContent('alex@example.com'));
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+
+    expect(resetAnalyticsMock).toHaveBeenCalled();
   });
 });
