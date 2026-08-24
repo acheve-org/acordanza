@@ -27,6 +27,7 @@ public class AuthController(
     IMemoryCache cache,
     IConfiguration configuration,
     IEmailSender emailSender,
+    IAnalyticsTracker analyticsTracker,
     ILogger<AuthController> logger) : ControllerBase
 {
     [EnableRateLimiting("login")]
@@ -278,6 +279,8 @@ public class AuthController(
 
             await transaction.CommitAsync();
         }
+
+        await analyticsTracker.TrackEventAsync(user.Id, "Invite Accepted");
 
         // Best-effort from here on — the invite has already been fully accepted (password
         // set, name saved, single-use token consumed), so a notification delivery failure
