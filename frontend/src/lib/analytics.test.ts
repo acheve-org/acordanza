@@ -51,6 +51,36 @@ describe('lib/analytics', () => {
     expect(resetMock).toHaveBeenCalledOnce();
   });
 
+  // The events go to our own nginx (frontend/nginx.conf's `location = /_i/e`), which
+  // forwards them to Amplitude — a request to api2.amplitude.com is blocked by every
+  // common ad-blocker, a same-origin one is not. Relative on purpose: it resolves against
+  // whatever origin the app is served from, so dev, preview and prod need no config.
+  it('sends events to the same-origin proxy path rather than to Amplitude directly', async () => {
+    vi.stubEnv('VITE_AMPLITUDE_API_KEY', 'test-key');
+    const analytics = await import('./analytics');
+
+    analytics.init();
+
+    expect(initMock).toHaveBeenCalledWith('test-key', expect.objectContaining({ serverUrl: '/_i/e' }));
+  });
+
+  // Both default to true and call Amplitude hosts the proxy doesn't cover and the CSP
+  // doesn't allow, so leaving them on would mean blocked requests on every page load.
+  it('disables the SDK calls that would reach un-proxied Amplitude hosts', async () => {
+    vi.stubEnv('VITE_AMPLITUDE_API_KEY', 'test-key');
+    const analytics = await import('./analytics');
+
+    analytics.init();
+
+    expect(initMock).toHaveBeenCalledWith(
+      'test-key',
+      expect.objectContaining({
+        remoteConfig: { fetchRemoteConfig: false },
+        enableDiagnostics: false,
+      }),
+    );
+  });
+
   it('stays disabled if identify/trackPageView/reset are called before init', async () => {
     vi.stubEnv('VITE_AMPLITUDE_API_KEY', 'test-key');
     const analytics = await import('./analytics');
