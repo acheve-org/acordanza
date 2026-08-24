@@ -34,7 +34,8 @@ public class WorkerConfigurationTests
             ["Storage:RouteImportQueueName"] = "route-import",
             ["Storage:ManagedIdentityClientId"] = Guid.NewGuid().ToString(),
             ["Anthropic:FoundryResource"] = "acordanza-foundry-test",
-            ["Anthropic:ManagedIdentityClientId"] = Guid.NewGuid().ToString()
+            ["Anthropic:ManagedIdentityClientId"] = Guid.NewGuid().ToString(),
+            ["Amplitude:ApiKey"] = "test-amplitude-key"
         });
 
         builder.Services.AddEnrichmentWorker(builder.Configuration);
@@ -53,6 +54,11 @@ public class WorkerConfigurationTests
             .ShouldBeOfType<ClaudeTopoImportGateProvider>();
         scope.ServiceProvider.GetRequiredService<ITopoExtractionProvider>()
             .ShouldBeOfType<ClaudeTopoExtractionProvider>();
+        // The real Amplitude tracker, not the no-op one — Amplitude:ApiKey is set above,
+        // so this asserts the AddHttpClient<IAnalyticsTracker, AmplitudeAnalyticsTracker>()
+        // branch actually resolves, not just the no-op branch exercised elsewhere.
+        scope.ServiceProvider.GetRequiredService<IAnalyticsTracker>()
+            .ShouldBeOfType<AmplitudeAnalyticsTracker>();
     }
 
     // The two queue clients must be distinguishable, and the keyed registration is what

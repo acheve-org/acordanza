@@ -8,6 +8,9 @@ import { AuthProvider } from './context/AuthContext.tsx';
 import { PendingTasksProvider } from './context/PendingTasksContext.tsx';
 import { LoadingBar } from './components/LoadingBar.tsx';
 import { queryClient } from './queryClient.ts';
+import * as analytics from './lib/analytics.ts';
+
+analytics.init();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -93,6 +93,18 @@ else
     builder.Services.AddTransient<IEmailSender>(sp => sp.GetRequiredService<ResendEmailSender>());
 }
 
+// Amplitude is active only when a real API key is configured (deployed
+// environments); local dev has none, so invite-acceptance tracking is a
+// no-op — see backend/CLAUDE.md's Configuration table.
+if (string.IsNullOrEmpty(builder.Configuration["Amplitude:ApiKey"]))
+{
+    builder.Services.AddSingleton<IAnalyticsTracker, NoOpAnalyticsTracker>();
+}
+else
+{
+    builder.Services.AddHttpClient<IAnalyticsTracker, AmplitudeAnalyticsTracker>();
+}
+
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Missing Jwt:Key configuration");
 

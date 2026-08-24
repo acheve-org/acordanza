@@ -62,6 +62,7 @@ public class RouteImportService(
     IEnumerable<IImportReader> readers,
     MediaUploadService mediaUpload,
     BlobStorageService blobStorage,
+    IAnalyticsTracker analyticsTracker,
     ILogger<RouteImportService> logger)
 {
     public async Task ImportAsync(int importId, CancellationToken cancellationToken = default)
@@ -181,6 +182,11 @@ public class RouteImportService(
 
         import.RouteId = route.Id;
         import.RouteWasCreated = created;
+        if (created)
+        {
+            await analyticsTracker.TrackEventAsync(import.SubmittedByUserId, "Route Import Completed",
+                new Dictionary<string, object> { ["routeId"] = route.Id, ["kind"] = import.Kind.ToString() });
+        }
         var headline = created
             ? RouteImportOutcomes.RouteCreated
             : notes.Count > 0 ? RouteImportOutcomes.RouteExisted : RouteImportOutcomes.RouteMatched;

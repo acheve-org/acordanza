@@ -29,6 +29,7 @@ env:
   TF_VAR_postgres_admin_password: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
   TF_VAR_jwt_key: ${{ secrets.JWT_KEY }}
   TF_VAR_resend_api_key: ${{ secrets.RESEND_API_KEY }}
+  TF_VAR_amplitude_api_key: ${{ secrets.AMPLITUDE_API_KEY }}
   TF_VAR_grafana_otlp_endpoint: ${{ vars.GRAFANA_OTLP_ENDPOINT }}
   TF_VAR_grafana_otlp_headers: ${{ secrets.GRAFANA_OTLP_HEADERS }}
   TF_VAR_cors_allowed_origins: ${{ vars.CORS_ALLOWED_ORIGINS || '[]' }} # JSON array string, e.g. ["https://acordanza.example.com"]; empty is fine, see infra/terraform/variables.tf
@@ -400,6 +401,7 @@ jobs:
         run: |
           docker build \
             --build-arg VITE_API_URL="https://${{ needs.terraform.outputs.backend_custom_domain }}/api" \
+            --build-arg VITE_AMPLITUDE_API_KEY="${{ secrets.AMPLITUDE_API_KEY }}" \
             -t "$IMAGE" -f frontend/Dockerfile .
           docker push "$IMAGE"
 

@@ -50,6 +50,19 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
             throw new InvalidOperationException("Foundry is down");
     }
 
+    private sealed record TrackedEvent(string UserId, string EventType, IReadOnlyDictionary<string, object>? Properties);
+
+    private sealed class FakeAnalyticsTracker : IAnalyticsTracker
+    {
+        public List<TrackedEvent> Events { get; } = [];
+
+        public Task TrackEventAsync(string userId, string eventType, IReadOnlyDictionary<string, object>? eventProperties = null)
+        {
+            Events.Add(new TrackedEvent(userId, eventType, eventProperties));
+            return Task.CompletedTask;
+        }
+    }
+
     // The model returning a clean, high-confidence read — the shape every test that isn't
     // specifically about the acceptance filter starts from.
     private static TopoExtractionResult CleanRead(string name = "La Loca", string grade = "6b+", int? length = 25, string? gear = null) =>
@@ -58,7 +71,8 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
     // The Image kind's reader, wired with fakes and handed to the spine as the only
     // registered reader — the same shape production builds, minus Foundry.
     private RouteImportService BuildService(
-        AppDbContext db, ITopoImportGateProvider gate, ITopoExtractionProvider? extraction = null)
+        AppDbContext db, ITopoImportGateProvider gate, ITopoExtractionProvider? extraction = null,
+        IAnalyticsTracker? analyticsTracker = null)
     {
         var reader = new TopoImageReader(
             new AreaHierarchyService(db),
@@ -73,6 +87,7 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
             [reader],
             Fixture.Services.GetRequiredService<MediaUploadService>(),
             Fixture.Services.GetRequiredService<BlobStorageService>(),
+            analyticsTracker ?? Fixture.Services.GetRequiredService<IAnalyticsTracker>(),
             NullLogger<RouteImportService>.Instance);
     }
 
@@ -177,6 +192,59 @@ public class RouteImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fix
         reloaded.Status.ShouldBe(RouteImportStatus.Completed);
         reloaded.RouteWasCreated.ShouldBeTrue();
         reloaded.RouteId.ShouldBe(route.Id);
+    }
+
+    [Fact]
+    public async Task A_created_route_fires_a_route_import_completed_analytics_event()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await CreateAreaAsync(db);
+        var import = await SeedImportAsync(db, area, user.Id);
+        var tracker = new FakeAnalyticsTracker();
+
+        await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(CleanRead()), tracker)
+            .ImportAsync(import.Id, TestContext.Current.CancellationToken);
+
+        var route = await db.Routes.AsNoTracking().SingleAsync(TestContext.Current.CancellationToken);
+        var trackedEvent = tracker.Events.ShouldHaveSingleItem();
+        trackedEvent.UserId.ShouldBe(user.Id);
+        trackedEvent.EventType.ShouldBe("Route Import Completed");
+        trackedEvent.Properties.ShouldNotBeNull();
+        trackedEvent.Properties!["routeId"].ShouldBe(route.Id);
+        trackedEvent.Properties!["kind"].ShouldBe(RouteImportKind.Image.ToString());
+    }
+
+    [Fact]
+    public async Task Matching_an_existing_route_does_not_fire_an_analytics_event()
+    {
+        using var scope = Fixture.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var user = await SeedData.CreateUserAsync(db);
+        var area = await CreateAreaAsync(db);
+
+        var existing = new ClimbingRoute
+        {
+            Name = "La Loca",
+            Slug = "la-loca",
+            AreaId = area.Id,
+            Grade = "6a",
+            Length = 30,
+            AddedByUserId = user.Id,
+            ValidationStatus = ReviewStatus.Approved,
+            DecidedAt = DateTimeOffset.UtcNow
+        };
+        db.Routes.Add(existing);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var import = await SeedImportAsync(db, area, user.Id);
+        var tracker = new FakeAnalyticsTracker();
+
+        await BuildService(db, new FakeGate(isTopo: true), new FakeExtraction(CleanRead(name: "LA LOCA")), tracker)
+            .ImportAsync(import.Id, TestContext.Current.CancellationToken);
+
+        tracker.Events.ShouldBeEmpty();
     }
 
     [Fact]

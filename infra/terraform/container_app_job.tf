@@ -36,6 +36,11 @@ resource "azurerm_container_app_job" "enrichment" {
   }
 
   secret {
+    name  = "amplitude-api-key"
+    value = var.amplitude_api_key
+  }
+
+  secret {
     name  = "grafana-otlp-headers"
     value = var.grafana_otlp_headers
   }
@@ -115,6 +120,11 @@ resource "azurerm_container_app_job" "enrichment" {
       env {
         name        = "ConnectionStrings__Default"
         secret_name = "db-connection-string"
+      }
+
+      env {
+        name        = "Amplitude__ApiKey"
+        secret_name = "amplitude-api-key"
       }
 
       env {

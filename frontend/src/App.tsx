@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useLocation } from 'react-router';
 import { Badge, Icon } from 'acordanza-design-system';
 import { useAuth } from './hooks/useAuth';
+import * as analytics from './lib/analytics';
 import { usePendingTasks } from './hooks/usePendingTasks';
 import { useDisclosure } from './hooks/useDisclosure';
 import { Permissions } from './api/permissions';
@@ -118,6 +120,10 @@ function AppLayout() {
 function App() {
   const { username, loading } = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+    analytics.trackPageView(location.pathname);
+  }, [location.pathname]);
 
   // Reachable while logged out — this is where the password-reset email links.
   if (location.pathname === '/reset-password') return <ResetPasswordScreen />;

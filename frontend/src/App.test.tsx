@@ -10,6 +10,14 @@ import { PendingTasksProvider } from './context/PendingTasksContext';
 import { makeRoute, makeRouteDetail } from './test/factories';
 import App from './App';
 
+const { trackPageViewMock } = vi.hoisted(() => ({ trackPageViewMock: vi.fn() }));
+vi.mock('./lib/analytics', () => ({
+  init: vi.fn(),
+  identify: vi.fn(),
+  reset: vi.fn(),
+  trackPageView: trackPageViewMock,
+}));
+
 // The background-location mechanic (plan 21) is the riskiest new piece here — until now
 // covered only by manual click-through — so this exercises the real App tree (not just
 // SearchPage/RouteDetailOverlay in isolation): a real BrowserRouter (so window.history
@@ -94,5 +102,21 @@ describe('App background-location overlay', () => {
     // ...and the overlay opens on top, rather than a blank/broken route match.
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Travesía del Gato' })).toBeInTheDocument();
+  });
+});
+
+describe('App page-view tracking', () => {
+  it('tracks a page view on initial render and again after navigating', async () => {
+    mockRouteList();
+    mockRouteDetail();
+
+    renderApp('/routes');
+    await screen.findByPlaceholderText('Nombre de la vía o descripción…');
+    expect(trackPageViewMock).toHaveBeenCalledWith('/routes');
+
+    const card = await screen.findByText('Travesía del Gato');
+    act(() => card.click());
+
+    await waitFor(() => expect(trackPageViewMock).toHaveBeenCalledWith('/routes/pena-rua/travesia-del-gato'));
   });
 });

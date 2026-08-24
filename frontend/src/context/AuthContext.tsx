@@ -4,6 +4,7 @@ import { api, setAuthToken, setUnauthorizedHandler } from '../api/client';
 import { queryClient } from '../queryClient';
 import type { LoginResponse, MeResponse } from '../api/types';
 import { AuthContext, type PasskeyChallenge } from './auth-context';
+import * as analytics from '../lib/analytics';
 
 const STORAGE_KEY = 'acordanza.auth';
 
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPermissions(me.permissions);
         setIsFirstAscensionist(me.isFirstAscensionist);
         setIsAreaExpert(me.isAreaExpert);
+        analytics.identify(me.id);
       })
       .catch(() => {
         localStorage.removeItem(STORAGE_KEY);
@@ -100,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPermissions(me.permissions);
     setIsFirstAscensionist(me.isFirstAscensionist);
     setIsAreaExpert(me.isAreaExpert);
+    analytics.identify(me.id);
   }
 
   async function login(email: string, password: string): Promise<PasskeyChallenge | null> {
@@ -135,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function clearSession() {
     localStorage.removeItem(STORAGE_KEY);
     setAuthToken(null);
+    analytics.reset();
     queryClient.clear();
     setId(null);
     setUsername(null);
