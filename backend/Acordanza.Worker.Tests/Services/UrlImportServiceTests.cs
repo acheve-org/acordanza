@@ -53,6 +53,7 @@ public class UrlImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fixtu
             [reader],
             Fixture.Services.GetRequiredService<MediaUploadService>(),
             Fixture.Services.GetRequiredService<BlobStorageService>(),
+            Fixture.Services.GetRequiredService<IAnalyticsTracker>(),
             NullLogger<RouteImportService>.Instance);
 
     private static async Task<RouteImport> SeedImportAsync(
@@ -415,6 +416,7 @@ public class UrlImportServiceTests(WorkerFixture fixture) : WorkerTestBase(fixtu
             [urlReader, imageReader],
             Fixture.Services.GetRequiredService<MediaUploadService>(),
             Fixture.Services.GetRequiredService<BlobStorageService>(),
+            Fixture.Services.GetRequiredService<IAnalyticsTracker>(),
             NullLogger<RouteImportService>.Instance);
 
         await service.ImportAsync(urlImport.Id, Ct);

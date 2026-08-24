@@ -70,6 +70,18 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MediaUploadService>();
         services.AddScoped<AreaHierarchyService>();
 
+        // Amplitude is active only when a real API key is configured (deployed
+        // environments); local dev/tests have none, so route-import tracking is a
+        // no-op — mirrors Acordanza.Api's Resend:ApiKey-gated IEmailSender registration.
+        if (string.IsNullOrEmpty(configuration["Amplitude:ApiKey"]))
+        {
+            services.AddSingleton<IAnalyticsTracker, NoOpAnalyticsTracker>();
+        }
+        else
+        {
+            services.AddHttpClient<IAnalyticsTracker, AmplitudeAnalyticsTracker>();
+        }
+
         // The default (unnamed) client carries the same guarded handler as the named one
         // registered further down. Nothing resolves it today — RouteEnrichmentService did,
         // and that was the whole of its SSRF exposure: `CreateClient()` is one line, reads as
