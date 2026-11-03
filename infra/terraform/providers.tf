@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "5.1.0"
+      version = "5.12.0"
     }
     # Used only by ai_foundry.tf: as of azurerm 5.0.1, azurerm_cognitive_account/
     # azurerm_cognitive_deployment don't yet expose allowProjectManagement or
