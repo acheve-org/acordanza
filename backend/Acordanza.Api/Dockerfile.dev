@@ -1,6 +1,6 @@
 # Dev image: full SDK (not the distroless runtime in Dockerfile) so `dotnet watch`
 # and debugger attach (e.g. Rider's Docker Compose debug) both work in-container.
-FROM mcr.microsoft.com/dotnet/sdk:10.0
+FROM mcr.microsoft.com/dotnet/sdk:11.0
 WORKDIR /src
 
 COPY Acordanza.Core/Acordanza.Core.csproj Acordanza.Core/
