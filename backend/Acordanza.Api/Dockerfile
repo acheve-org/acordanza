@@ -14,7 +14,7 @@ RUN dotnet publish Acordanza.Api/Acordanza.Api.csproj -c Release -o /app/publish
 # "-extra" pulls in ICU/tzdata/openssl, needed for correct date/culture
 # handling (tick dates, route names) instead of falling back to invariant
 # globalization.
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-azurelinux3.0-distroless-extra AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-azurelinux3.0-distroless-extra AS final
 WORKDIR /app
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
